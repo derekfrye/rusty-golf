@@ -1,0 +1,67 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'rusty-golf'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=rusty-golf",
+                    "--package=rusty-golf"
+                ],
+                "filter": {
+                    "name": "rusty-golf",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "DB_USER",
+                    "value": "your_db_user"
+                },
+                {
+                    "name": "DB_PASSWORD",
+                    "value": "your_db_password"
+                },
+                {
+                    "name": "DB_HOST",
+                    "value": "your_db_host"
+                },
+                {
+                    "name": "DB_NAME",
+                    "value": "your_db_name"
+                },
+                {
+                    "name": "DB_PORT",
+                    "value": "your_db_port"
+                }
+            ],
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'rusty-golf'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=rusty-golf",
+                    "--package=rusty-golf"
+                ],
+                "filter": {
+                    "name": "rusty-golf",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
