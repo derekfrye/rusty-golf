@@ -1,29 +1,20 @@
 mod espn;
+mod db;
+// mod scores;
+mod cache;
+
+use crate::cache::{CacheMap, TotalCache};
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use chrono::{DateTime, Utc};
+// use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
-use std::env;
-use tokio_postgres::{Config, NoTls};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
 
-#[derive(Serialize, Deserialize, Clone)]
-struct Cache {
-    data: Option<TotalCache>,
-    cached_time: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct TotalCache {
-    bettor_struct: Vec<Bettors>,
-    score_struct: Vec<Scores>,
-    last_refresh: String,
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Bettors {
@@ -81,9 +72,6 @@ enum ResultStatus {
     Success,
 }
 
-type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
-const CACHE_DURATION: chrono::Duration = chrono::Duration::minutes(5);
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
@@ -106,21 +94,6 @@ async fn main() -> std::io::Result<()> {
     .bind("0.0.0.0:8083")?
     .run()
     .await
-}
-
-async fn get_or_create_cache(event: i32, year: i32, cache_map: CacheMap) -> Cache {
-    let key = format!("{}{}", event, year);
-    let mut map = cache_map.write().await;
-    if let Some(cache) = map.get(&key) {
-        return cache.clone();
-    }
-
-    let new_cache = Cache {
-        data: None,
-        cached_time: chrono::Utc::now().to_rfc3339(),
-    };
-    map.insert(key.clone(), new_cache.clone());
-    new_cache
 }
 
 // async fn group_by_scores(scores: Vec<Scores>) -> HashMap<i32, Vec<Scores>> {
@@ -208,29 +181,32 @@ async fn get_data_for_scores_page(
     cache_map: &CacheMap,
     use_cache: bool,
 ) -> Result<TotalCache, Box<dyn std::error::Error>> {
-    let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
+    let cache = cache::get_or_create_cache(event_id, year, cache_map.clone()).await;
 
     if use_cache {
-        let cached_time = chrono::DateTime::parse_from_rfc3339(&cache.cached_time).unwrap();
-        let cached_time_utc: DateTime<Utc> = cached_time.with_timezone(&Utc);
-        let now = chrono::Utc::now();
-        let elapsed = now - cached_time_utc;
-        // if we're within the cache duration, return the cache
-        if elapsed < CACHE_DURATION {
-            if let Some(ref total_cache) = cache.data {
-                let time_since = elapsed.num_seconds();
-                let minutes = time_since / 60;
-                let seconds = time_since % 60;
-                let time_string = format!("{}m, {}s", minutes, seconds);
-                let mut refreshed_cache = total_cache.clone();
-                refreshed_cache.last_refresh = time_string;
-                return Ok(refreshed_cache);
-            }
-        }
+
+        return Ok(cache::xya(cache)?);
+
+        // let cached_time = chrono::DateTime::parse_from_rfc3339(&cache.cached_time).unwrap();
+        // let cached_time_utc: DateTime<Utc> = cached_time.with_timezone(&Utc);
+        // let now = chrono::Utc::now();
+        // let elapsed = now - cached_time_utc;
+        // // if we're within the cache duration, return the cache
+        // if elapsed < CACHE_DURATION {
+        //     if let Some(ref total_cache) = cache.data {
+        //         let time_since = elapsed.num_seconds();
+        //         let minutes = time_since / 60;
+        //         let seconds = time_since % 60;
+        //         let time_string = format!("{}m, {}s", minutes, seconds);
+        //         let mut refreshed_cache = total_cache.clone();
+        //         refreshed_cache.last_refresh = time_string;
+        //         return Ok(refreshed_cache);
+        //     }
+        // }
     }
 
     // reviewed, ok now for debugging
-    let active_golfers = get_golfers_from_db(event_id).await?;
+    let active_golfers = db::get_golfers_from_db(event_id).await?;
     let start_time = Instant::now();
     // reviewed, ok now for debugging
     let scores = espn::fetch_scores_from_espn(active_golfers.clone(), year, event_id).await;
@@ -309,81 +285,11 @@ async fn get_data_for_scores_page(
     let mut cache = cache_map.write().await;
     cache.insert(
         key,
-        Cache {
+       crate::cache::Cache {
             data: Some(total_cache.clone()),
             cached_time: chrono::Utc::now().to_rfc3339(),
         },
     );
 
     Ok(total_cache)
-}
-
-
-
-
-
-async fn get_golfers_from_db(event_id: i32) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
-    let db_user = env::var("DB_USER")?;
-    let mut db_password = env::var("DB_PASSWORD")?;
-    let db_host = env::var("DB_HOST")?;
-    let db_name = env::var("DB_NAME")?;
-    let db_port = env::var("DB_PORT")?;
-
-    if db_password == "/secrets/db_password" {
-        // open the file and read the contents
-        let contents = std::fs::read_to_string("/secrets/db_password")?;
-        // set the password to the contents of the file
-        db_password = contents.trim().to_string();
-    }
-
-    // let db_url = format!(
-    //     "postgres://{}:{}@{}:{}/{}",
-    //     db_user, db_password, db_host, db_port, db_name
-    // );
-
-    let (client, conn) = Config::new()
-        .host(&db_host)
-        .port(db_port.parse::<u16>().unwrap())
-        .user(&db_user)
-        .password(db_password)
-        .dbname(&db_name)
-        .connect(NoTls)
-        .await?;
-
-    tokio::spawn(async move {
-        if let Err(e) = conn.await {
-            eprintln!("connection error: {}", e);
-        }
-    });
-
-    // let conn = tokio_postgres::connect(&db_url, tokio_postgres::NoTls)
-    //     .await?
-    //     .0;
-
-    let rows = client
-        .query("SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id", &[&event_id])
-        .await?;
-
-    let players = rows
-        .iter()
-        .map(|row| Scores {
-            // parse column 0 as an int32
-            group: row.get::<_, i64>(0),
-            golfer_name: row.get(1),
-            bettor_name: row.get(2),
-            eup_id: row.get::<_, i64>(3),
-            espn_id: row.get::<_, i64>(4),
-            detailed_statistics: Statistic {
-                eup_id: row.get::<_, i64>(3),
-                rounds: vec![],
-                scores: vec![],
-                tee_times: vec![],
-                holes_completed: vec![],
-                success_fail: ResultStatus::NoData,
-                total_score: 0,
-            },
-        })
-        .collect();
-
-    Ok(players)
 }
