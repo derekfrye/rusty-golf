@@ -1,10 +1,31 @@
 use std::collections::HashMap;
 
-use crate::{IntStat, PlayerJsonResponse, ResultStatus, Scores, Statistic, StringStat};
+use crate::score::{ResultStatus, Scores, Statistic};
 use chrono::DateTime;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct StringStat {
+    val: String,
+    success: ResultStatus,
+    last_refresh_date: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct IntStat {
+    val: i32,
+    success: ResultStatus,
+    last_refresh_date: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PlayerJsonResponse {
+    data: Vec<HashMap<String, serde_json::Value>>,
+    eup_ids: Vec<i64>,
+}
 
 pub async fn get_json_from_espn(
     scores: Vec<Scores>,

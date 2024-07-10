@@ -1,4 +1,4 @@
-use crate::{ResultStatus, Scores, Statistic};
+use crate::score::{ResultStatus, Scores, Statistic};
 use std::env;
 use tokio_postgres::{Config, NoTls};
 

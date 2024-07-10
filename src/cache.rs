@@ -1,4 +1,4 @@
-use crate::{Bettors, Scores};
+use crate::score::{Bettors, Scores};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -7,12 +7,12 @@ use tokio::sync::RwLock;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Cache {
-    pub data: Option<TotalCache>,
+    pub data: Option<ScoreData>,
     pub cached_time: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct TotalCache {
+pub struct ScoreData {
     pub bettor_struct: Vec<Bettors>,
     pub score_struct: Vec<Scores>,
     pub last_refresh: String,
@@ -36,19 +36,19 @@ pub async fn get_or_create_cache(event: i32, year: i32, cache_map: CacheMap) -> 
     new_cache
 }
 
-pub fn xya(cache: Cache) -> Result<TotalCache, Box<dyn std::error::Error>> {
+pub fn xya(cache: Cache) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cached_time = chrono::DateTime::parse_from_rfc3339(&cache.cached_time).unwrap();
     let cached_time_utc: DateTime<Utc> = cached_time.with_timezone(&Utc);
     let now = chrono::Utc::now();
     let elapsed = now - cached_time_utc;
     // if we're within the cache duration, return the cache
     if elapsed < CACHE_DURATION {
-        if let Some(ref total_cache) = cache.data {
+        if let Some(ref score_data) = cache.data {
             let time_since = elapsed.num_seconds();
             let minutes = time_since / 60;
             let seconds = time_since % 60;
             let time_string = format!("{}m, {}s", minutes, seconds);
-            let mut refreshed_cache = total_cache.clone();
+            let mut refreshed_cache = score_data.clone();
             refreshed_cache.last_refresh = time_string;
             return Ok(refreshed_cache);
         }
