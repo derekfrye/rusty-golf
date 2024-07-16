@@ -1,25 +1,9 @@
-use crate::score::{Bettors, Scores};
+use crate::model::{Cache, CacheMap, ScoreData};
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+// use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Cache {
-    pub data: Option<ScoreData>,
-    pub cached_time: String,
-}
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct ScoreData {
-    pub bettor_struct: Vec<Bettors>,
-    pub score_struct: Vec<Scores>,
-    pub last_refresh: String,
-}
-
-pub type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
-pub const CACHE_DURATION: chrono::Duration = chrono::Duration::minutes(5);
+const CACHE_DURATION: chrono::Duration = chrono::Duration::minutes(5);
 
 pub async fn get_or_create_cache(event: i32, year: i32, cache_map: CacheMap) -> Cache {
     let key = format!("{}{}", event, year);
@@ -36,7 +20,7 @@ pub async fn get_or_create_cache(event: i32, year: i32, cache_map: CacheMap) -> 
     new_cache
 }
 
-pub fn check_cache_validity(cache: Cache) -> Result<ScoreData, Box<dyn std::error::Error>> {
+pub fn xya(cache: Cache) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cached_time = chrono::DateTime::parse_from_rfc3339(&cache.cached_time).unwrap();
     let cached_time_utc: DateTime<Utc> = cached_time.with_timezone(&Utc);
     let now = chrono::Utc::now();

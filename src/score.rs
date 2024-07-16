@@ -1,49 +1,16 @@
-use crate::cache::CacheMap;
-use crate::cache::ScoreData;
-use crate::espn::{IntStat, StringStat};
+use crate::model::CacheMap;
+use crate::model::ScoreData;
+// use crate::espn::{IntStat, StringStat};
+use crate::model::{Bettors, Scores};
 use std::time::Instant;
 // use crate::Scores;
 // use crate::Bettors;
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 // mod cache;
 // mod espn;
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Bettors {
-    bettor_name: String,
-    total_score: i32,
-    scoreboard_position_name: String,
-    scoreboard_position: usize,
-}
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Scores {
-    pub eup_id: i64,
-    pub espn_id: i64,
-    pub golfer_name: String,
-    pub bettor_name: String,
-    pub detailed_statistics: Statistic,
-    pub group: i64,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Statistic {
-    pub eup_id: i64,
-    pub rounds: Vec<IntStat>,
-    pub scores: Vec<IntStat>,
-    pub tee_times: Vec<StringStat>,
-    pub holes_completed: Vec<IntStat>,
-    pub success_fail: ResultStatus,
-    pub total_score: i32,
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy)]
-pub enum ResultStatus {
-    NoData,
-    NoDisplayValue,
-    Success,
-}
 
 pub async fn get_data_for_scores_page(
     event_id: i32,
@@ -56,7 +23,7 @@ pub async fn get_data_for_scores_page(
 
     let cache = crate::cache::get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
-        if let Ok(cache) = crate::cache::check_cache_validity(cache) {
+        if let Ok(cache) = crate::cache::xya(cache) {
             return Ok(cache);
         }
     }
@@ -141,7 +108,7 @@ pub async fn get_data_for_scores_page(
     let mut cache = cache_map.write().await;
     cache.insert(
         key,
-        crate::cache::Cache {
+        crate::model::Cache {
             data: Some(total_cache.clone()),
             cached_time: chrono::Utc::now().to_rfc3339(),
         },
