@@ -4,6 +4,9 @@ mod espn;
 mod cache;
 mod score;
 mod model;
+mod templates {
+    pub mod scores;
+}
 
 use crate::model::CacheMap;
 
@@ -113,8 +116,8 @@ async fn scores(
             if json {
                 HttpResponse::Ok().json(cache)
             } else {
-                // not impl yet
-                HttpResponse::Ok().json(cache)
+                let markup = crate::templates::scores::render_scores_template(&cache);
+                HttpResponse::Ok().content_type("text/html").body(markup.into_string())
             }
         }
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
