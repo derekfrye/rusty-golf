@@ -2,6 +2,7 @@ use maud::{html, Markup};
 
 pub fn render_index_template() -> Markup {
     html! {
+        (maud::DOCTYPE)
         head{
             meta charset="UTF-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
