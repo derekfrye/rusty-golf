@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# checked 9/22/2024
 # latest version of tokio 1 branch 
 tokio = { version = "1", features = ["full"] }  
 # latest version of serde 1.0 branch 
