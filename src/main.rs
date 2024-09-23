@@ -2,11 +2,11 @@ mod db;
 mod espn;
 // mod scores;
 mod cache;
-mod score;
 mod model;
+mod score;
 mod templates {
-    pub mod scores;
     pub mod index;
+    pub mod scores;
 }
 
 use crate::model::CacheMap;
@@ -64,7 +64,9 @@ async fn main() -> std::io::Result<()> {
 
 async fn index() -> impl Responder {
     let markup = crate::templates::index::render_index_template();
-    HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(markup.into_string())
 }
 
 async fn scores(
@@ -121,7 +123,9 @@ async fn scores(
                 HttpResponse::Ok().json(cache)
             } else {
                 let markup = crate::templates::scores::render_scores_template(&cache);
-                HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+                HttpResponse::Ok()
+                    .content_type("text/html")
+                    .body(markup.into_string())
             }
         }
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),

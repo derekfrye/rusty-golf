@@ -73,13 +73,13 @@ pub struct ScoreData {
 }
 
 pub struct SummaryScore {
-	pub bettor_name   :String,
-	pub computed_rounds :Vec<isize>,
-	pub new_scores      :Vec<isize>,
+    pub bettor_name: String,
+    pub computed_rounds: Vec<isize>,
+    pub new_scores: Vec<isize>,
 }
 
-pub struct  SummaryScores {
-	pub summary_scores: Vec<SummaryScore>,
+pub struct SummaryScores {
+    pub summary_scores: Vec<SummaryScore>,
 }
 
 pub type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
