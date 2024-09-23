@@ -2,7 +2,6 @@ use crate::model::{Cache, CacheMap, ScoreData};
 use chrono::{DateTime, Utc};
 // use serde::{Deserialize, Serialize};
 
-
 const CACHE_DURATION: chrono::Duration = chrono::Duration::minutes(5);
 
 pub async fn get_or_create_cache(event: i32, year: i32, cache_map: CacheMap) -> Cache {

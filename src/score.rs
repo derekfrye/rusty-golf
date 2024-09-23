@@ -10,8 +10,6 @@ use std::collections::HashMap;
 // mod cache;
 // mod espn;
 
-
-
 pub async fn get_data_for_scores_page(
     event_id: i32,
     year: i32,

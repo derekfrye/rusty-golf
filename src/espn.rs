@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 
-use crate::model::{ResultStatus, Scores, Statistic, PlayerJsonResponse, IntStat, StringStat};
+use crate::model::{IntStat, PlayerJsonResponse, ResultStatus, Scores, Statistic, StringStat};
 use chrono::DateTime;
 use reqwest::Client;
 // use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc;
-
-
 
 pub async fn get_json_from_espn(
     scores: Vec<Scores>,

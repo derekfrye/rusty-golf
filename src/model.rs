@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Bettors {
     pub bettor_name: String,
@@ -56,7 +55,7 @@ pub struct IntStat {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerJsonResponse {
-    pub  data: Vec<HashMap<String, serde_json::Value>>,
+    pub data: Vec<HashMap<String, serde_json::Value>>,
     pub eup_ids: Vec<i64>,
 }
 
