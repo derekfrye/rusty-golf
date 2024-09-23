@@ -17,6 +17,8 @@ tokio-postgres = "0.7"
 chrono = "0.4"
 actix-web = "4.0"
 maud = "0.26"
+actix-files = "0.6"
+
 
 [dependencies.tokio-util]
 version = "0.7"

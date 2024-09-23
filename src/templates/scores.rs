@@ -1,6 +1,5 @@
 use crate::model::ScoreData;
 
-// use actix_web::{web, HttpResponse, Responder};
 use maud::{html, Markup};
 
 pub fn render_scores_template(total_cache: &ScoreData) -> Markup {

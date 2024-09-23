@@ -6,6 +6,7 @@ mod score;
 mod model;
 mod templates {
     pub mod scores;
+    pub mod index;
 }
 
 use crate::model::CacheMap;
@@ -13,6 +14,7 @@ use crate::model::CacheMap;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 // use chrono::{DateTime, Utc};
+use actix_files::Files;
 
 use serde_json::json;
 use std::collections::HashMap;
@@ -38,6 +40,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(cache_map.clone()))
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
+            .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
     .bind("0.0.0.0:8083")?
     .run()
@@ -60,7 +63,8 @@ async fn main() -> std::io::Result<()> {
 // }
 
 async fn index() -> impl Responder {
-    HttpResponse::Ok().body("Index")
+    let markup = crate::templates::index::render_index_template();
+    HttpResponse::Ok().content_type("text/html").body(markup.into_string())
 }
 
 async fn scores(
