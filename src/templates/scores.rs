@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::model::{ScoreData, Scores, SummaryScore, SummaryScores};
 
@@ -54,13 +54,11 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
                         @for summary_score in &summary_scores.summary_scores {
                             tr {
                                 td { (summary_score.bettor_name) }
-
-                                @let total = 0;
                                 @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                                     @let score = summary_score.new_scores[idx];
                                     td { (score) }
-                                    // @let total = total + score;
                                 }
+                                @let total = summary_score.new_scores.iter().sum::<isize>();
                                 td { (total) }
                             }
                         }
@@ -72,23 +70,16 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
 
 @let grouped_scores = group_by_scores(data.score_struct.clone());
 @for (group, scores) in &grouped_scores {
+    @let max_len_of_tee_times_in_rounds = scores.iter().map(|score| score.detailed_statistics.tee_times.len()).max().unwrap_or(0);
+
     table id=(format!("scores-table-{}", group)) {
         thead {
             tr {
                 th class="topheader" rowspan="2" { "Player" }
                 th class="topheader" rowspan="2" { "Pick" }
 
-                // @let mut max_rounds = 0;
-                // @for score in scores {
-                //     @let rounds = score.detailed_statistics.tee_times.len();
-                //     @if rounds > max_rounds {
-                //      max_rounds = rounds;
-                //     }
-                // }
-
-                @for round in 0..4 {
-                // @for round in 0..max_rounds {
-                    th class="topheader shrinkable" colspan="3" data-round=({ round + 1 }) {
+                @for round in 0..max_len_of_tee_times_in_rounds {
+                th class="topheader shrinkable" colspan="3" data-round=({ round + 1 }) {
                         span class="toggle" data-round=({ round + 1 }) onclick=(format!("toggleRound({})", round + 1)) {
                             "Round " (round + 1)
                         }
@@ -101,32 +92,25 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
                 th class="topheader" { i { "Totals" } }
             }
             tr {
-                // @let mut itr = 0;
-                @let z_vec = vec!["Tee Time (CT)", "Holes Compl.", "Score", "Total"];
-                @for round in 0..4 {
-                //@for round in 0..max_rounds {
-                @for a in 1..4 {
-                    th class="sortable hideable" data-round=({ round + 1 }) onclick=(format!("sortTable('scores-table-{}', {})", group, a)) {
+                @let z_vec = vec!["Tee Time (CT)", "Holes Compl.", "Score", ];
+                @for round in 0..max_len_of_tee_times_in_rounds {
+                    // for each of the 4 columns, add tee time, holes completed, and score
+                    @for a in 0..z_vec.len() {
+
+                        // thanks chatgippity for figuring out this way of generating 1...13 without using mutable variable
+@let c = round * z_vec.len() + a +1;
+
+                    th class="sortable hideable" data-round=({ round + 1 }) onclick=(format!("sortTable('scores-table-{}', {})", group,
+                   c   )) {
                         (z_vec[a])
                     }
-                    // @{ itr += 1; }
-                    // th class="sortable hideable" data-round=({ round + 1 }) onclick=(format!("sortTable('scores-table-{}', {})", group, itr)) {
-                    //     "Tee Time (CT)"
-                    // }
-                    // // @{ itr += 1; }
-                    // th class="sortable hideable" data-round=({ round + 1 }) onclick=(format!("sortTable('scores-table-{}', {})", group, itr)) {
-                    //     "Holes Compl."
-                    // }
-                    // // @{ itr += 1; }
-                    // th class="sortable" onclick=(format!("sortTable('scores-table-{}', {})", group, itr)) {
-                    //     "Score"
-                    // }
                 }
             }
                 // @{ itr += 1; }
-                // th class="sortable" onclick=(format!("sortTable('scores-table-{}', {})", group, itr)) {
-                //     "Total"
-                // }
+                @let d = max_len_of_tee_times_in_rounds * z_vec.len() +1;
+                th class="sortable" onclick=(format!("sortTable('scores-table-{}', {})", group, d)) {
+                    "Total"
+                }
             }
         }
         tbody {
@@ -135,9 +119,8 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
                     td { (score.bettor_name) }
                     td { (score.golfer_name) }
                     @let stats = &score.detailed_statistics;
-                    @for index in 0..4 {
-                    // @for index in 0..max_rounds {
-                        @if index < stats.tee_times.len() {
+                    @for index in 0..max_len_of_tee_times_in_rounds {
+                    @if index < stats.tee_times.len() {
                             td class="cells hideable teetime" data-round=({ index + 1 }) {
                                 (stats.tee_times[index].val)
                             }
@@ -201,60 +184,107 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
     }
 }
 
-// async fn scores(data: web::Data<ScoreData>) -> impl Responder {
-//     let markup = render_scores_template(&data);
-//     HttpResponse::Ok()
-//         .content_type("text/html")
-//         .body(markup.into_string())
-// }
-
-fn group_by_scores(scores: Vec<Scores>) -> HashMap<i32, Vec<Scores>> {
-    let mut grouped_scores: HashMap<i32, Vec<Scores>> = HashMap::new();
+fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
+    let mut grouped_scores: HashMap<usize, Vec<Scores>> = HashMap::new();
 
     for score in scores {
-        grouped_scores.entry(score.group.try_into().unwrap())
+        grouped_scores.entry(score.group as usize)
             .or_insert_with(Vec::new)
             .push(score);
     }
 
-    grouped_scores
+let x = sort_scores(grouped_scores);
+
+    x
 }
 
+fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<Scores>)> {
+    let mut sorted_scores: Vec<(usize, Vec<Scores>)> = grouped_scores.into_iter().collect();
+
+    sorted_scores.sort_by_key(|(group, _)| *group); // Sort by the `group` key
+
+    sorted_scores
+}
+
+
 fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
-    let mut bettor_round_scores: HashMap<String, HashMap<usize, i64>> = HashMap::new();
+    // key = bettor, value = hashmap of rounds and the corresponding score
+    let mut rounds_by_bettor_storing_score_val: HashMap<String, Vec<(isize, isize)>> = HashMap::new();
 
     // Accumulate scores by bettor and round
     for score in scores {
         let bettor_name = &score.bettor_name;
+
+        // for debug watching
+        let golfers_name = &score.golfer_name;
+        let _ = golfers_name.len();
+
         for (round_idx, round_score) in score.detailed_statistics.scores.iter().enumerate() {
-            let rounds = bettor_round_scores.entry(bettor_name.clone()).or_insert_with(HashMap::new);
-            *rounds.entry(round_idx).or_insert(0) += round_score.val as i64;
+            let a_single_bettors_scores = rounds_by_bettor_storing_score_val.entry(bettor_name.clone()).or_insert_with(Vec::new);
+            // Check if the round already exists in the Vec, if so, update the score
+            // if let Some(existing) = a_single_bettors_scores.iter_mut().find(|(idx, _)| *idx == round_idx) {
+            //     existing.1 = existing.1.checked_add(round_score.val as usize).unwrap_or(usize::MAX);
+            // } else {
+                a_single_bettors_scores.push((round_idx.try_into().unwrap() , round_score.val as isize));
+            // }
+
+// for debug watching
+let golfers_namex = &score.golfer_name;
+let _ = golfers_namex.len();
+
         }
     }
+
+    // 0 =
+    // "Chris"
+    // 1 =
+    // (8) vec![(0, 4), (1, 5), (0, 2), (1, -1), (2, 1), ...]
+    // [0] =
+    // (0, 4)
+    // [1] =
+    // (1, 5)
+    // [2] =
+    // (0, 2)
+    // [3] =
+    // (1, -1)
 
     let mut summary_scores = SummaryScores {
         summary_scores: Vec::new(),
     };
     let mut bettor_names: Vec<String> = Vec::new();
 
-    // Preserve order of bettor names
+    // Preserves order of bettors
     for score in scores {
         let bettor_name = &score.bettor_name;
-        if bettor_round_scores.contains_key(bettor_name) && !bettor_names.contains(bettor_name) {
+        if rounds_by_bettor_storing_score_val.contains_key(bettor_name) && !bettor_names.contains(bettor_name) {
             bettor_names.push(bettor_name.clone());
         }
     }
 
-    // Preserve order of rounds
+    // Preserves order of bettors
+    // this actually just needs to sum all the scores where the rounds are 0, store that val, sum all scores where rounds are 1, store that value, etc
     for bettor_name in &bettor_names {
-        if let Some(rounds) = bettor_round_scores.get(bettor_name) {
-            let mut computed_rounds: Vec<i64> = Vec::with_capacity(rounds.len());
-            let mut new_scores: Vec<i64> = Vec::with_capacity(rounds.len());
+        if let Some(_) = rounds_by_bettor_storing_score_val.get(bettor_name) {
 
-            for (round_idx, &score) in rounds.iter() {
-                computed_rounds.push(*round_idx as i64);
-                new_scores.push(score.try_into().unwrap());
-            }
+let res1 = rounds_by_bettor_storing_score_val.get(bettor_name).unwrap().iter();
+
+            let result = res1    .fold(BTreeMap::new(), |mut acc, &(k, v)| {
+        *acc.entry(k).or_insert(0) += v;
+        acc
+    })
+    .into_iter()
+    .collect::<Vec<(isize, isize)>>();
+
+            // let scores_grouped_by_round: HashMap<isize, isize> = rounds.iter().cloned().collect();
+
+            // let mut computed_rounds: Vec<i64> = Vec::with_capacity(rounds.len());
+            // let mut new_scores: Vec<i64> = Vec::with_capacity(rounds.len());
+
+            // for (round_idx, score) in rounds.iter() {
+            //     computed_rounds.push(*round_idx as i64);
+            //     new_scores.push(*score as i64);
+            // }
+            let (computed_rounds, new_scores): (Vec<isize>, Vec<isize>) = result.iter().cloned().unzip();
 
             summary_scores.summary_scores.push(SummaryScore {
                 bettor_name: bettor_name.clone(),

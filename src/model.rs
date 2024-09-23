@@ -74,8 +74,8 @@ pub struct ScoreData {
 
 pub struct SummaryScore {
 	pub bettor_name   :String,
-	pub computed_rounds :Vec<i64>,
-	pub new_scores      :Vec<i64>,
+	pub computed_rounds :Vec<isize>,
+	pub new_scores      :Vec<isize>,
 }
 
 pub struct  SummaryScores {
