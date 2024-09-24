@@ -9,7 +9,7 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
         @if !data.score_struct.is_empty() {
             (render_scoreboard(data))
             (render_summary_scores(data))
-            (render_scores_template2(data))
+            (render_score_detail(data))
         }
     }
 }
@@ -167,7 +167,7 @@ fn render_thead(max_len_of_tee_times_in_rounds: usize, group: &usize) -> Markup 
     }
 }
 
-fn render_scores_template2(data: &ScoreData) -> Markup {
+fn render_score_detail(data: &ScoreData) -> Markup {
     html! {
         h3 { "Details" }
          @let grouped_scores = group_by_scores(data.score_struct.clone());
