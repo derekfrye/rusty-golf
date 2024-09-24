@@ -16,9 +16,6 @@ pub async fn get_data_for_scores_page(
     cache_map: &CacheMap,
     use_cache: bool,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
-    //
-    //
-
     let cache = crate::cache::get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
         if let Ok(cache) = crate::cache::xya(cache) {

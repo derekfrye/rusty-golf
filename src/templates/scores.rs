@@ -68,28 +68,29 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
 
                     h3 { "Details" }
 
-        @let grouped_scores = group_by_scores(data.score_struct.clone());
-        @for (group, scores) in &grouped_scores {
-            @let max_len_of_tee_times_in_rounds = scores.iter().map(|score| score.detailed_statistics.tee_times.len()).max().unwrap_or(0);
+                    @let grouped_scores = group_by_scores(data.score_struct.clone());
+                    @for (group, scores) in &grouped_scores {
+                    @let max_len_of_tee_times_in_rounds = scores.iter().map(|score| score.detailed_statistics.tee_times.len()).max().unwrap_or(0);
 
-            table id=(format!("scores-table-{}", group)) {
-                thead {
-                    tr {
-                        th class="topheader" rowspan="2" { "Player" }
-                        th class="topheader" rowspan="2" { "Pick" }
+                    table id=(format!("scores-table-{}", group)) {
+                        thead {
+                            tr {
+                                th class="topheader" rowspan="2" { "Player" }
+                                th class="topheader" rowspan="2" { "Pick" }
 
-                        @for round in 0..max_len_of_tee_times_in_rounds {
-                        th class="topheader shrinkable" colspan="3" data-round=({ round + 1 }) {
-                                span class="toggle" data-round=({ round + 1 }) onclick=(format!("toggleRound({})", round + 1)) {
-                                    "Round " (round + 1)
+                                @for round in 0..max_len_of_tee_times_in_rounds {
+                                    th class="topheader shrinkable" colspan="3" data-round=({ round + 1 }) {
+                                        span class="toggle" data-round=({ round + 1 }) onclick=(format!("toggleRound({})", round + 1)) {
+                                            "Round " (round + 1)
+                                        }
+                                        br;
+                                        span class="kindatiny" data-round=({ round + 1 }) onclick=(format!("toggleRound({})", round + 1)) {
+                                            "Tap to shrink"
+                                        }
+                                    }
                                 }
-                                br;
-                                span class="kindatiny" data-round=({ round + 1 }) onclick=(format!("toggleRound({})", round + 1)) {
-                                    "Tap to shrink"
-                                }
-                            }
-                        }
-                        th class="topheader" { i { "Totals" } }
+
+                                th class="topheader" { i { "Totals" } }
                     }
                     tr {
                         @let z_vec = vec!["Tee Time (CT)", "Holes Compl.", "Score", ];
