@@ -1,0 +1,9 @@
+Cargo.lock
+db_password.txt
+docs/
+Dockerfile
+.env
+examples/
+target/
+.trunk/
+.vscode/
