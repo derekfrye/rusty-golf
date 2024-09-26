@@ -5,6 +5,7 @@ mod model {
     pub mod model;
 }
 mod templates {
+    pub mod admin;
     pub mod index;
     pub mod scores;
 }
@@ -21,7 +22,9 @@ use model::db;
 use model::model::CacheMap;
 use serde_json::json;
 use std::collections::HashMap;
+use std::env;
 use std::sync::Arc;
+use templates::admin::AlphaNum14;
 
 use tokio::sync::RwLock;
 
@@ -43,6 +46,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(cache_map.clone()))
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
+            .route("/admin", web::get().to(admin))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
     .bind("0.0.0.0:8081")?
@@ -135,5 +139,77 @@ async fn scores(
             }
         }
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
+    }
+}
+
+async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
+    let token_str = query
+        .get("token")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
+    // let mut token: AlphaNum14 = AlphaNum14::default();
+    let token: AlphaNum14 = match AlphaNum14::parse(&token_str) {
+        Ok(id) => id,
+        Err(_) => AlphaNum14::default(),
+    };
+
+    let player_vec = vec![
+        templates::admin::Player {
+            id: 1,
+            name: "Player1".to_string(),
+        },
+        templates::admin::Player {
+            id: 2,
+            name: "Player2".to_string(),
+        },
+    ];
+    let bettor_vec = vec![
+        templates::admin::Bettor {
+            uid: 1,
+            name: "Bettor1".to_string(),
+        },
+        templates::admin::Bettor {
+            uid: 2,
+            name: "Bettor2".to_string(),
+        },
+    ];
+
+    let body = r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Unauthorized</title>
+        <style>
+            body { font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center; padding: 50px; }
+            h1 { color: #333; }
+            p { color: #666; }
+        </style>
+    </head>
+    <body>
+        <h1>401 Unauthorized</h1>
+    </body>
+    </html>
+    "#;
+
+    match env::var("TOKEN") {
+        Ok(tokena) => {
+            if tokena != token.value() {
+                return HttpResponse::Unauthorized()
+                    .content_type("text/html; charset=utf-8")
+                    .body(body);
+            } else {
+                let markup = crate::templates::admin::render_page(&player_vec, &bettor_vec);
+
+                HttpResponse::Ok()
+                    .content_type("text/html")
+                    .body(markup.into_string())
+            }
+        }
+        Err(_) => {
+            return HttpResponse::Unauthorized()
+                .content_type("text/html; charset=utf-8")
+                .body(body);
+        }
     }
 }

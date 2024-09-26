@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  rust:
+    image: djf/rusty-golf
+    container_name: rusty-golf
+    ports:
+      - 8088:8081
+    environment:
+      - DB_HOST=192.168.2.1
+      - DB_PORT=5432
+      - DB_USER=dbuser
+      - DB_PASSWORD=/secrets/db_password
+      - DB_NAME=golf
+    volumes:
+      - ./db_password.txt:/secrets/db_password:ro,z
