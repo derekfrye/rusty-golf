@@ -1,14 +1,10 @@
-use crate::model::CacheMap;
-use crate::model::ScoreData;
-// use crate::espn::{IntStat, StringStat};
-use crate::model::{Bettors, Scores};
-use std::time::Instant;
-// use crate::Scores;
-// use crate::Bettors;
-// use serde::{Deserialize, Serialize};
+use crate::model::cache::{get_or_create_cache, xya};
+use crate::model::db::get_golfers_from_db;
+use crate::model::espn::fetch_scores_from_espn;
+use crate::model::model::{Bettors, Cache, CacheMap, ScoreData, Scores};
+
 use std::collections::HashMap;
-// mod cache;
-// mod espn;
+use std::time::Instant;
 
 pub async fn get_data_for_scores_page(
     event_id: i32,
@@ -16,18 +12,18 @@ pub async fn get_data_for_scores_page(
     cache_map: &CacheMap,
     use_cache: bool,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
-    let cache = crate::cache::get_or_create_cache(event_id, year, cache_map.clone()).await;
+    let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
-        if let Ok(cache) = crate::cache::xya(cache) {
+        if let Ok(cache) = xya(cache) {
             return Ok(cache);
         }
     }
 
     // reviewed, ok now for debugging
-    let active_golfers = crate::db::get_golfers_from_db(event_id).await?;
+    let active_golfers = get_golfers_from_db(event_id).await?;
     let start_time = Instant::now();
     // reviewed, ok now for debugging
-    let scores = crate::espn::fetch_scores_from_espn(active_golfers.clone(), year, event_id).await;
+    let scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id).await;
 
     // ok
     let mut golfers_and_scores: Vec<Scores> = scores
@@ -103,7 +99,7 @@ pub async fn get_data_for_scores_page(
     let mut cache = cache_map.write().await;
     cache.insert(
         key,
-        crate::model::Cache {
+        Cache {
             data: Some(total_cache.clone()),
             cached_time: chrono::Utc::now().to_rfc3339(),
         },

@@ -1,5 +1,4 @@
-target
+/personal
+/Cargo.lock
 .env
-Cargo.lock
-db_password.txt
-docker-compose.yml
+target

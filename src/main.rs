@@ -1,21 +1,24 @@
-mod db;
-mod espn;
-// mod scores;
-mod cache;
-mod model;
-mod score;
+mod model {
+    pub mod cache;
+    pub mod db;
+    pub mod espn;
+    pub mod model;
+}
 mod templates {
     pub mod index;
     pub mod scores;
 }
+mod score;
 
-use crate::model::CacheMap;
+// use crate::model::CacheMap;
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 // use chrono::{DateTime, Utc};
 use actix_files::Files;
 
+use model::db;
+use model::model::CacheMap;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -42,28 +45,31 @@ async fn main() -> std::io::Result<()> {
             .route("/scores", web::get().to(scores))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
-    .bind("0.0.0.0:8083")?
+    .bind("0.0.0.0:8081")?
     .run()
     .await
 }
 
-// async fn group_by_scores(scores: Vec<Scores>) -> HashMap<i32, Vec<Scores>> {
-//     let mut grouped_scores = HashMap::new();
-//     for score in scores {
-//         grouped_scores
-//             .entry(score.group)
-//             .or_insert(Vec::new())
-//             .push(score);
-//     }
-//     grouped_scores
-// }
+async fn index(query: web::Query<HashMap<String, String>>) -> impl Responder {
+    let event_str = query
+        .get("event")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
+    let mut title = "Scoreboard".to_string();
+    let _: i32 = match event_str.parse() {
+        Ok(id) => {
+            title = db::get_title_from_db(id)
+                .await
+                .unwrap_or("Scoreboard".to_string());
+            id
+        }
+        Err(_) => {
+            0 // or any default value you prefer
+        }
+    };
 
-// async fn seq(count: usize) -> Vec<usize> {
-//     (0..count).collect()
-// }
-
-async fn index() -> impl Responder {
-    let markup = crate::templates::index::render_index_template();
+    let markup = crate::templates::index::render_index_template(title);
     HttpResponse::Ok()
         .content_type("text/html")
         .body(markup.into_string())

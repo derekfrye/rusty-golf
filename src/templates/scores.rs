@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::model::{ScoreData, Scores, SummaryScore, SummaryScores};
+use crate::model::model::{ScoreData, Scores, SummaryScore, SummaryScores};
 
 use maud::{html, Markup};
 
@@ -17,7 +17,7 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
 fn render_scoreboard(data: &ScoreData) -> Markup {
     html! {
         @if !data.score_struct.is_empty(){
-            h3 { "Scoreboard" }
+
             p class="refresh" {
                 "Last refreshed from ESPN " (data.last_refresh) " ago."
             }
