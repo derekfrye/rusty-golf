@@ -1,6 +1,5 @@
-use std::collections::{BTreeMap, HashMap};
-
-use crate::model::model::{ScoreData, Scores, SummaryScore, SummaryScores};
+use crate::controller::score::{group_by_bettor_name_and_round, group_by_scores};
+use crate::model::model::ScoreData;
 
 use maud::{html, Markup};
 
@@ -215,98 +214,4 @@ fn render_score_detail(data: &ScoreData) -> Markup {
             }
         }
     }
-}
-
-fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
-    let mut grouped_scores: HashMap<usize, Vec<Scores>> = HashMap::new();
-
-    for score in scores {
-        grouped_scores
-            .entry(score.group as usize)
-            .or_insert_with(Vec::new)
-            .push(score);
-    }
-
-    let x = sort_scores(grouped_scores);
-
-    x
-}
-
-fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<Scores>)> {
-    let mut sorted_scores: Vec<(usize, Vec<Scores>)> = grouped_scores.into_iter().collect();
-
-    sorted_scores.sort_by_key(|(group, _)| *group); // Sort by the `group` key
-
-    sorted_scores
-}
-
-fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
-    // key = bettor, value = hashmap of rounds and the corresponding score
-    let mut rounds_by_bettor_storing_score_val: HashMap<String, Vec<(isize, isize)>> =
-        HashMap::new();
-
-    // Accumulate scores by bettor and round
-    for score in scores {
-        let bettor_name = &score.bettor_name;
-
-        // for debug watching
-        // let golfers_name = &score.golfer_name;
-        // let _ = golfers_name.len();
-
-        for (round_idx, round_score) in score.detailed_statistics.scores.iter().enumerate() {
-            let a_single_bettors_scores = rounds_by_bettor_storing_score_val
-                .entry(bettor_name.clone())
-                .or_insert_with(Vec::new);
-            a_single_bettors_scores.push((round_idx.try_into().unwrap(), round_score.val as isize));
-
-            // for debug watching
-            // let golfers_namex = &score.golfer_name;
-            // let _ = golfers_namex.len();
-        }
-    }
-
-    let mut summary_scores = SummaryScores {
-        summary_scores: Vec::new(),
-    };
-    let mut bettor_names: Vec<String> = Vec::new();
-
-    // Preserves order of bettors
-    for score in scores {
-        let bettor_name = &score.bettor_name;
-        if rounds_by_bettor_storing_score_val.contains_key(bettor_name)
-            && !bettor_names.contains(bettor_name)
-        {
-            bettor_names.push(bettor_name.clone());
-        }
-    }
-
-    // Preserves order of bettors
-    // this actually just needs to sum all the scores where the rounds are 0, store that val, sum all scores where rounds are 1, store that value, etc
-    for bettor_name in &bettor_names {
-        if let Some(_) = rounds_by_bettor_storing_score_val.get(bettor_name) {
-            let res1 = rounds_by_bettor_storing_score_val
-                .get(bettor_name)
-                .unwrap()
-                .iter();
-
-            let result = res1
-                .fold(BTreeMap::new(), |mut acc, &(k, v)| {
-                    *acc.entry(k).or_insert(0) += v;
-                    acc
-                })
-                .into_iter()
-                .collect::<Vec<(isize, isize)>>();
-
-            let (computed_rounds, new_scores): (Vec<isize>, Vec<isize>) =
-                result.iter().cloned().unzip();
-
-            summary_scores.summary_scores.push(SummaryScore {
-                bettor_name: bettor_name.clone(),
-                computed_rounds,
-                new_scores,
-            });
-        }
-    }
-
-    summary_scores
 }

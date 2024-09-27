@@ -1,16 +1,18 @@
 mod model {
-    pub mod cache;
     pub mod db;
-    pub mod espn;
     pub mod model;
     pub mod model_admin;
 }
 mod templates {
     pub mod admin;
     pub mod index;
-    pub mod scores;
+    pub mod score;
 }
-mod score;
+mod controller {
+    pub mod cache;
+    pub mod espn;
+    pub mod score;
+}
 
 use model::model_admin::AlphaNum14;
 use model::db;
@@ -125,13 +127,13 @@ async fn scores(
     };
 
     let total_cache =
-        crate::score::get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache).await;
+        crate::controller::score::get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache).await;
     match total_cache {
         Ok(cache) => {
             if json {
                 HttpResponse::Ok().json(cache)
             } else {
-                let markup = crate::templates::scores::render_scores_template(&cache);
+                let markup = crate::templates::score::render_scores_template(&cache);
                 HttpResponse::Ok()
                     .content_type("text/html")
                     .body(markup.into_string())

@@ -73,12 +73,7 @@ pub fn render_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -> Markup {
     }
 }
 
-pub  fn admin(
-    players: Vec<Player>,
-    bettors: Vec<Bettor>,
-    data: String,
-) -> Markup {
-
+pub fn admin(players: Vec<Player>, bettors: Vec<Bettor>, data: String) -> Markup {
     // Deserialize the data
     let data: Vec<RowData> = match serde_json::from_str(&data) {
         Ok(d) => d,

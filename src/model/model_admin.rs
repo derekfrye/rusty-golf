@@ -1,5 +1,5 @@
 use regex::Regex;
-use serde::{Deserialize, Deserializer,};
+use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
