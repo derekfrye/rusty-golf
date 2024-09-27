@@ -2,8 +2,28 @@
 document.getElementById('add-row').addEventListener('click', function() {
     var tbody = document.getElementById('table-body');
     var newRow = tbody.rows[0].cloneNode(true);
+
+    // Add delete button to the new row
+    var deleteCell = document.createElement('td');
+    var deleteButton = document.createElement('button');
+    deleteButton.innerHTML = 'Delete';
+    deleteButton.classList.add('delete-row');
+    deleteCell.appendChild(deleteButton);
+    newRow.appendChild(deleteCell);
+
     tbody.appendChild(newRow);
     newRow.classList.add('animate');
+});
+
+// Handle row deletion with a smooth animation
+document.getElementById('table-body').addEventListener('click', function(event) {
+    if (event.target && event.target.classList.contains('delete-row')) {
+        var row = event.target.closest('tr');
+        row.classList.add('animate-out'); // Add the class for fade-out animation
+        setTimeout(function() {
+            row.remove(); // Remove the row after the animation ends
+        }, 300); // Adjust the time to match your CSS animation duration
+    }
 });
 
 // Handle form submission using htmx.ajax
@@ -23,8 +43,14 @@ document.getElementById('submit').addEventListener('click', function() {
         data.push(rowData);
     });
 
+    // Get the token from the URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var token = urlParams.get('token');
+
+    // Prepare the params for the ajax call, including the token
     var params = {
-        data: JSON.stringify(data)
+        data: JSON.stringify(data),
+        token: token // Add the token to the params
     };
 
     var queryString = new URLSearchParams(params).toString();

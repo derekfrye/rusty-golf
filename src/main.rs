@@ -3,6 +3,7 @@ mod model {
     pub mod db;
     pub mod espn;
     pub mod model;
+    pub mod model_admin;
 }
 mod templates {
     pub mod admin;
@@ -11,20 +12,18 @@ mod templates {
 }
 mod score;
 
-// use crate::model::CacheMap;
+use model::model_admin::AlphaNum14;
+use model::db;
+use model::model::CacheMap;
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 // use chrono::{DateTime, Utc};
 use actix_files::Files;
-
-use model::db;
-use model::model::CacheMap;
 use serde_json::json;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
-use templates::admin::AlphaNum14;
 
 use tokio::sync::RwLock;
 
@@ -148,28 +147,31 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
         .unwrap_or(&String::new())
         .trim()
         .to_string();
+
     // let mut token: AlphaNum14 = AlphaNum14::default();
     let token: AlphaNum14 = match AlphaNum14::parse(&token_str) {
         Ok(id) => id,
         Err(_) => AlphaNum14::default(),
     };
 
+let data = query.get("data").unwrap_or(&String::new()).trim().to_string();
+
     let player_vec = vec![
-        templates::admin::Player {
+        model::model_admin::Player {
             id: 1,
             name: "Player1".to_string(),
         },
-        templates::admin::Player {
+        model::model_admin::Player {
             id: 2,
             name: "Player2".to_string(),
         },
     ];
     let bettor_vec = vec![
-        templates::admin::Bettor {
+        model::model_admin::Bettor {
             uid: 1,
             name: "Bettor1".to_string(),
         },
-        templates::admin::Bettor {
+        model::model_admin::Bettor {
             uid: 2,
             name: "Bettor2".to_string(),
         },
@@ -193,17 +195,25 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
     "#;
 
     match env::var("TOKEN") {
-        Ok(tokena) => {
-            if tokena != token.value() {
+        Ok(env_token) => {
+            if env_token != token.value() {
                 return HttpResponse::Unauthorized()
                     .content_type("text/html; charset=utf-8")
                     .body(body);
             } else {
-                let markup = crate::templates::admin::render_page(&player_vec, &bettor_vec);
+                if data.is_empty() {
+                    let markup = crate::templates::admin::render_page(&player_vec, &bettor_vec);
 
-                HttpResponse::Ok()
-                    .content_type("text/html")
-                    .body(markup.into_string())
+                    HttpResponse::Ok()
+                        .content_type("text/html")
+                        .body(markup.into_string())
+                }
+                else {
+                    let markup_from_admin = crate::templates::admin::admin( player_vec, bettor_vec,  data);
+                    HttpResponse::Ok()
+                        .content_type("text/html")
+                        .body(markup_from_admin.into_string())
+                }
             }
         }
         Err(_) => {
