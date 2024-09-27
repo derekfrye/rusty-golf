@@ -1,5 +1,6 @@
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer,};
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -14,9 +15,6 @@ pub struct Bettor {
 }
 
 #[derive(Debug)]
-pub struct AlphaNum14(String);
-
-#[derive(Debug)]
 #[allow(dead_code)]
 pub struct PlayerBettorRow {
     pub row_entry: i32,
@@ -28,12 +26,24 @@ pub struct PlayerBettorRow {
 #[derive(Deserialize, Debug)]
 pub struct RowData {
     pub row_entry: i32,
-    #[serde(rename = "player.id")]
+    #[serde(rename = "player.id", deserialize_with = "deserialize_int_or_string")]
     pub player_id: i32,
-    #[serde(rename = "bettor.id")]
+    #[serde(rename = "bettor.id", deserialize_with = "deserialize_int_or_string")]
     pub bettor_id: i32,
+    #[serde(deserialize_with = "deserialize_int_or_string")]
     pub round: i32,
 }
+
+fn deserialize_int_or_string<'de, D>(deserializer: D) -> Result<i32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    i32::from_str(&s).map_err(serde::de::Error::custom)
+}
+
+#[derive(Debug)]
+pub struct AlphaNum14(String);
 
 impl AlphaNum14 {
     pub fn new(input: &str) -> Option<Self> {
