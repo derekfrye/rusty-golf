@@ -5,12 +5,41 @@ services:
     image: djf/rusty-golf
     container_name: rusty-golf
     ports:
-      - 8088:8081
+      - 9000:8081
     environment:
-      - DB_HOST=192.168.2.1
+      - DB_HOST=10.8.0.201
       - DB_PORT=5432
-      - DB_USER=dbuser
+      - DB_USER=golfuser
       - DB_PASSWORD=/secrets/db_password
       - DB_NAME=golf
     volumes:
       - ./db_password.txt:/secrets/db_password:ro,z
+      - rusty_golf_pg_data:/pgdata
+  postgres:
+    image: postgres:17.0
+    container_name: golf-db
+    environment:
+      POSTGRES_PASSWORD: /run/secrets/db_password
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      PGDATA: /pgdata
+    ports:
+      - 9001:5432
+    networks:
+      rusty-golf:
+        ipv4_address: 10.8.0.201
+    volumes:
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:z # runs on first initdb
+    secrets:
+       - db_password
+
+secrets:
+   db_password:
+     file: db_password.txt
+
+volumes:
+  rusty_golf_pg_data:
+    external: true
+
+networks:
+  rusty-golf:
+    external: true

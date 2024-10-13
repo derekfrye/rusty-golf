@@ -4,7 +4,9 @@ mod model {
     pub mod model_admin;
 }
 mod templates {
-    pub mod admin;
+    pub mod admin {
+        pub mod admin;
+    }
     pub mod index;
     pub mod score;
 }
@@ -204,14 +206,14 @@ let data = query.get("data").unwrap_or(&String::new()).trim().to_string();
                     .body(body);
             } else {
                 if data.is_empty() {
-                    let markup = crate::templates::admin::render_page(&player_vec, &bettor_vec);
+                    let markup = crate::templates::admin::admin::render_page(&player_vec, &bettor_vec);
 
                     HttpResponse::Ok()
                         .content_type("text/html")
                         .body(markup.into_string())
                 }
                 else {
-                    let markup_from_admin = crate::templates::admin::admin( player_vec, bettor_vec,  data);
+                    let markup_from_admin = crate::templates::admin::admin::admin( player_vec, bettor_vec,  data);
                     HttpResponse::Ok()
                         .content_type("text/html")
                         .body(markup_from_admin.into_string())

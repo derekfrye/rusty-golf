@@ -4,6 +4,17 @@ Rusty golf is web app that displays a single-page scoreboard of golf scores for 
 
 ## Getting started
 
+## Setup
+```shell
+git clone https://github.com/derekfrye/rusty-golf.git
+cd rusty-golf/examples
+podman build --tag djf/rusty-golf -f Dockerfile .
+tr -dc '[:print:]' < /dev/urandom | head -c 10 > db_password.txt
+podman volume create rusty_golf_pg_data
+podman network create --driver bridge --subnet=10.8.0.0/16 --ipv6 --subnet fd00:ace1::/48 rusty-golf
+
+```
+
 ## Debugging
 If you create a `.env` file in the root of this project with these parameters, it'll work with debugging. The first four are strings, and the last should be a number.
 ```text
