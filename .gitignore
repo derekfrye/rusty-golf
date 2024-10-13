@@ -2,3 +2,4 @@
 /Cargo.lock
 .env
 target
+/examples/db_password.txt
