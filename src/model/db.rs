@@ -1,7 +1,7 @@
-use crate::model::model::{ResultStatus, Scores, Statistic};
+use crate::model::model::{ ResultStatus, Scores, Statistic };
 use std::env;
-use tokio::time::{timeout, Duration};
-use tokio_postgres::{tls::NoTlsStream, Config, NoTls, Socket};
+use tokio::time::{ timeout, Duration };
+use tokio_postgres::{ tls::NoTlsStream, Config, NoTls, Row, Socket };
 
 struct ConnectionParams {
     db_user: String,
@@ -20,8 +20,9 @@ pub struct DatabaseResult<T> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DatabaseSetupState {
     NoConnection,
-    NoRelations,
+    MissingRelations,
     StandardResult,
+    QueryError,
 }
 
 impl ConnectionParams {
@@ -47,13 +48,10 @@ impl ConnectionParams {
     }
 
     pub async fn return_client_and_connection(
-        &mut self,
+        &mut self
     ) -> Result<
-        (
-            tokio_postgres::Client,
-            tokio_postgres::Connection<Socket, NoTlsStream>,
-        ),
-        Box<dyn std::error::Error>,
+        (tokio_postgres::Client, tokio_postgres::Connection<Socket, NoTlsStream>),
+        Box<dyn std::error::Error>
     > {
         let mut config = Config::new();
         self.read_password_from_file().unwrap();
@@ -79,82 +77,117 @@ impl ConnectionParams {
 }
 
 pub async fn test_is_db_setup() -> Result<DatabaseSetupState, Box<dyn std::error::Error>> {
-    let mut conn_params = ConnectionParams::new();
-    let x = conn_params.return_client_and_connection().await;
+    let mut result = DatabaseSetupState::NoConnection;
+    let table_names = vec!["event", "golfstatistic", "player", "golfuser", "event_user_player", "eup_statistic"];
 
-    match x {
-        Ok((client, conn)) => {
-            tokio::spawn(async move {
-                if let Err(e) = conn.await {
-                    eprintln!("connection error: {}", e);
-                }
-            });
+    for table in &table_names {
+        let state = check_table_exists(table).await;
+        match state {
+            Err(e) => {
+                eprintln!("Failed in {}, {}: {}", file!(), line!(), e);
+                return Ok(DatabaseSetupState::NoConnection);
+            }
+            Ok(s) => {
+                result = s;
+            }
+        }
+    }
 
-            let row = client
-                .query_one("SELECT count(*) from event;", &[])
-                .await
-                .unwrap();
-            let one: i32 = row.get(0);
+    Ok(result)
+}
 
-            if one == 1 {
-                Ok(DatabaseSetupState::NoRelations)
+async fn check_table_exists(
+    table_name: &str
+) -> Result<DatabaseSetupState, Box<dyn std::error::Error>> {
+    let query = format!("SELECT 1 FROM {};", table_name);
+    let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[];
+    let result = general_query_structure(&query, query_params).await;
+
+    match result {
+        Ok(r) => {
+            if r.state == DatabaseSetupState::QueryError {
+                Ok(DatabaseSetupState::MissingRelations)
             } else {
-                Err("Database not setup".into())
+                Ok(r.state)
             }
         }
         Err(e) => {
-            eprintln!(
-                "Failed to connect in test_is_db_setup: {}, db_host: {}",
-                e, conn_params.db_host
-            );
-            // Err(e)
+            eprintln!("Failed in {}, {}: {}", file!(), line!(), e);
             Ok(DatabaseSetupState::NoConnection)
         }
     }
 }
 
 pub async fn get_title_from_db(
-    event_id: i32,
+    event_id: i32
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-    let mut conn_params = ConnectionParams::new();
-    let x = conn_params.return_client_and_connection().await;
+    let query = "SELECT eventname FROM sp_get_event_name($1)";
+    let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
+    let result = general_query_structure(query, query_params).await;
+    let mut dbresult = DatabaseResult {
+        state: DatabaseSetupState::StandardResult,
+        message: "".to_string(),
+    };
 
-    match x {
-        Ok((client, conn)) => {
-            tokio::spawn(async move {
-                if let Err(e) = conn.await {
-                    eprintln!("connection error: {}", e);
-                }
-            });
-
-            let row = client
-                .query_one("SELECT eventname FROM sp_get_event_name($1)", &[&event_id])
-                .await
-                .unwrap();
-
-            let title: String = row.get(0);
-            Ok(DatabaseResult {
-                state: DatabaseSetupState::StandardResult,
-                message: title,
-            })
+    match result {
+        Ok(r) => {
+            if r.state == DatabaseSetupState::StandardResult {
+                dbresult.message = r.message[0].get(0);
+            }
         }
-        Err(e) => {
-            eprintln!(
-                "Failed to connect in test_is_db_setup: {}, db_host: {}",
-                e, conn_params.db_host
-            );
-            // Err(e)
-            Ok(DatabaseResult {
-                state: DatabaseSetupState::NoConnection,
-                message: "Database not setup".to_string(),
-            })
-        }
+        Err(_) => {}
     }
+    Ok(dbresult)
 }
 
 pub async fn get_golfers_from_db(
-    event_id: i32,
+    event_id: i32
 ) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
+    let query =
+        "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
+    let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
+    let result = general_query_structure(query, query_params).await;
+    let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
+        state: DatabaseSetupState::StandardResult,
+        message: vec![],
+    };
+
+    match result {
+        Ok(r) => {
+            if r.state == DatabaseSetupState::StandardResult {
+                let rows = r.message;
+                let players = rows
+                    .iter()
+                    .map(|row| Scores {
+                        // parse column 0 as an int32
+                        group: row.get::<_, i64>(0),
+                        golfer_name: row.get(1),
+                        bettor_name: row.get(2),
+                        eup_id: row.get::<_, i64>(3),
+                        espn_id: row.get::<_, i64>(4),
+                        detailed_statistics: Statistic {
+                            eup_id: row.get::<_, i64>(3),
+                            rounds: vec![],
+                            scores: vec![],
+                            tee_times: vec![],
+                            holes_completed: vec![],
+                            success_fail: ResultStatus::NoData,
+                            total_score: 0,
+                        },
+                    })
+                    .collect();
+                dbresult.message = players;
+            }
+        }
+        Err(_) => {}
+    }
+    Ok(dbresult)
+}
+
+async fn general_query_structure(
+    query: &str,
+    query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)]
+) -> Result<DatabaseResult<Vec<Row>>, Box<dyn std::error::Error>> {
     let mut conn_params = ConnectionParams::new();
     let x = conn_params.return_client_and_connection().await;
 
@@ -166,45 +199,25 @@ pub async fn get_golfers_from_db(
                 }
             });
 
-            let rows = client
-                .query(
-                    "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id",
-                    &[&event_id]
-                ).await
-                .unwrap();
-
-            let players = rows
-                .iter()
-                .map(|row| Scores {
-                    // parse column 0 as an int32
-                    group: row.get::<_, i64>(0),
-                    golfer_name: row.get(1),
-                    bettor_name: row.get(2),
-                    eup_id: row.get::<_, i64>(3),
-                    espn_id: row.get::<_, i64>(4),
-                    detailed_statistics: Statistic {
-                        eup_id: row.get::<_, i64>(3),
-                        rounds: vec![],
-                        scores: vec![],
-                        tee_times: vec![],
-                        holes_completed: vec![],
-                        success_fail: ResultStatus::NoData,
-                        total_score: 0,
-                    },
-                })
-                .collect();
-
-            Ok(DatabaseResult {
-                state: DatabaseSetupState::StandardResult,
-                message: players,
-            })
+            let row = client.query(query, query_params).await;
+            match row {
+                Ok(row) => {
+                    Ok(DatabaseResult {
+                        state: DatabaseSetupState::StandardResult,
+                        message: row,
+                    })
+                }
+                Err(e) => {
+                    eprintln!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                    Ok(DatabaseResult {
+                        state: DatabaseSetupState::QueryError,
+                        message: vec![],
+                    })
+                }
+            }
         }
         Err(e) => {
-            eprintln!(
-                "Failed to connect in test_is_db_setup: {}, db_host: {}",
-                e, conn_params.db_host
-            );
-            // Err(e)
+            eprintln!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
             Ok(DatabaseResult {
                 state: DatabaseSetupState::NoConnection,
                 message: vec![],
