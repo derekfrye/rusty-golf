@@ -21,28 +21,6 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}",
-            "environment": [
-                {
-                    "name": "DB_USER",
-                    "value": "your_db_user"
-                },
-                {
-                    "name": "DB_PASSWORD",
-                    "value": "your_db_password"
-                },
-                {
-                    "name": "DB_HOST",
-                    "value": "your_db_host"
-                },
-                {
-                    "name": "DB_NAME",
-                    "value": "your_db_name"
-                },
-                {
-                    "name": "DB_PORT",
-                    "value": "your_db_port"
-                }
-            ],
         },
         {
             "type": "lldb",

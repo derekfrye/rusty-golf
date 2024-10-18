@@ -22,7 +22,14 @@ pub async fn get_data_for_scores_page(
     }
 
     // reviewed, ok now for debugging
-    let active_golfers = get_golfers_from_db(event_id).await?;
+    let aactive_golfers = get_golfers_from_db(event_id).await;
+    let active_golfers = match aactive_golfers {
+        Ok(active_golfers) => active_golfers.message,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
     let start_time = Instant::now();
     // reviewed, ok now for debugging
     let scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id).await;
@@ -83,7 +90,7 @@ pub async fn get_data_for_scores_page(
             3 => "SEEN BETTER DAYS".to_string(),
             4 => "NOT A CHANCE".to_string(),
             _ => "WORST OF THE WORST".to_string(),
-        }
+        };
     }
 
     let time_since = start_time.elapsed();

@@ -6,7 +6,8 @@ use std::collections::HashMap;
 // use serde_json::json;
 
 // Render the main page
-pub fn render_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -> Markup {
+pub async fn render_default_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -> Markup {
+    let admin_00 = crate::templates::admin::admin00::render_default_page().await;
     html! {
         (maud::DOCTYPE)
         html {
@@ -55,6 +56,9 @@ pub fn render_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -> Markup {
                 button type="button" id="add-row" { "Add Row" }
                 button type="button" id="submit" { "Submit" }
                 div id="results" {}
+                div id="admin-00" {
+                    (admin_00)
+                }
                 script src="static/admin.js" {}
                 // Optional CSS for animation
                 style {
@@ -73,7 +77,7 @@ pub fn render_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -> Markup {
     }
 }
 
-pub fn admin(players: Vec<Player>, bettors: Vec<Bettor>, data: String) -> Markup {
+pub fn display_received_data(players: Vec<Player>, bettors: Vec<Bettor>, data: String) -> Markup {
     // Deserialize the data
     let data: Vec<RowData> = match serde_json::from_str(&data) {
         Ok(d) => d,
