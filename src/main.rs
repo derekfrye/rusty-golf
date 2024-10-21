@@ -45,14 +45,6 @@ async fn main() -> std::io::Result<()> {
         );
     }
 
-    // for (key, value) in std::env::vars() {
-    //     println!("{}: {}", key, value);
-    // }
-
-    // // now print working directory
-    // let cwd = std::env::current_dir().unwrap();
-    // println!("Current working directory: {}", cwd.display());
-
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
 
     HttpServer::new(move || {
@@ -75,7 +67,7 @@ async fn index(query: web::Query<HashMap<String, String>>) -> impl Responder {
             let title_test = db::get_title_from_db(id).await;
             match title_test {
                 Ok(t) => {
-                    if t.db_last_exec_state == db::DatabaseSetupState::StandardResult {
+                    if t.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully {
                         title = t.return_result.clone();
                     }
                 }
@@ -199,6 +191,7 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
     </html>
     "#;
 
+    // check query string token against the token this container was started with
     match env::var("TOKEN") {
         Ok(env_token) => {
             if env_token != token.value() {

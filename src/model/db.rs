@@ -1,7 +1,7 @@
-use crate::model::model::{ ResultStatus, Scores, Statistic };
+use crate::model::model::{ResultStatus, Scores, Statistic};
 use std::env;
-use tokio::time::{ timeout, Duration };
-use tokio_postgres::{ tls::NoTlsStream, Config, NoTls, Row, Socket };
+use tokio::time::{timeout, Duration};
+use tokio_postgres::{tls::NoTlsStream, Config, NoTls, Row, Socket};
 
 struct ConnectionParams {
     db_user: String,
@@ -15,7 +15,7 @@ struct ConnectionParams {
 pub enum DatabaseSetupState {
     NoConnection,
     MissingRelations,
-    StandardResult,
+    QueryReturnedSuccessfully,
     QueryError,
 }
 
@@ -61,10 +61,13 @@ impl ConnectionParams {
     }
 
     pub async fn return_client_and_connection(
-        &mut self
+        &mut self,
     ) -> Result<
-        (tokio_postgres::Client, tokio_postgres::Connection<Socket, NoTlsStream>),
-        Box<dyn std::error::Error>
+        (
+            tokio_postgres::Client,
+            tokio_postgres::Connection<Socket, NoTlsStream>,
+        ),
+        Box<dyn std::error::Error>,
     > {
         let mut config = Config::new();
         self.read_password_from_file().unwrap();
@@ -98,7 +101,7 @@ pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn s
         "player",
         "golfuser",
         "event_user_player",
-        "eup_statistic"
+        "eup_statistic",
     ];
 
     for table in &table_names {
@@ -123,7 +126,7 @@ pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn s
 }
 
 async fn check_table_exists(
-    table_name: &str
+    table_name: &str,
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
     let query = format!("SELECT 1 FROM {};", table_name);
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[];
@@ -136,7 +139,7 @@ async fn check_table_exists(
             dbresult.error_message = r.error_message;
             dbresult.db_last_exec_state = r.db_last_exec_state;
             match r.db_last_exec_state {
-                DatabaseSetupState::StandardResult => {
+                DatabaseSetupState::QueryReturnedSuccessfully => {
                     dbresult.return_result = "Table exists".to_string();
                 }
                 DatabaseSetupState::QueryError => {
@@ -161,7 +164,7 @@ async fn check_table_exists(
 }
 
 pub async fn get_title_from_db(
-    event_id: i32
+    event_id: i32,
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
     let query = "SELECT eventname FROM sp_get_event_name($1)";
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
@@ -170,7 +173,7 @@ pub async fn get_title_from_db(
 
     match result {
         Ok(r) => {
-            if r.db_last_exec_state == DatabaseSetupState::StandardResult {
+            if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
                 dbresult.return_result = r.return_result[0].get(0);
             }
         }
@@ -184,14 +187,14 @@ pub async fn get_title_from_db(
 }
 
 pub async fn get_golfers_from_db(
-    event_id: i32
+    event_id: i32,
 ) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
     let query =
         "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
     let result = general_query_structure(query, query_params).await;
     let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
-        db_last_exec_state: DatabaseSetupState::StandardResult,
+        db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
         return_result: vec![],
         error_message: None,
         table_or_function_name: "sp_get_player_names".to_string(),
@@ -199,7 +202,7 @@ pub async fn get_golfers_from_db(
 
     match result {
         Ok(r) => {
-            if r.db_last_exec_state == DatabaseSetupState::StandardResult {
+            if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
                 let rows = r.return_result;
                 let players = rows
                     .iter()
@@ -235,7 +238,7 @@ pub async fn get_golfers_from_db(
 
 async fn general_query_structure(
     query: &str,
-    query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)]
+    query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
 ) -> Result<DatabaseResult<Vec<Row>>, Box<dyn std::error::Error>> {
     let mut conn_params = ConnectionParams::new();
     let x = conn_params.return_client_and_connection().await;
@@ -250,13 +253,12 @@ async fn general_query_structure(
 
             let row = client.query(query, query_params).await;
             match row {
-                Ok(row) =>
-                    Ok(DatabaseResult {
-                        db_last_exec_state: DatabaseSetupState::StandardResult,
-                        return_result: row,
-                        error_message: None,
-                        table_or_function_name: query.to_string(),
-                    }),
+                Ok(row) => Ok(DatabaseResult {
+                    db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
+                    return_result: row,
+                    error_message: None,
+                    table_or_function_name: query.to_string(),
+                }),
                 Err(e) => {
                     let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
                     Ok(DatabaseResult {
