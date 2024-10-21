@@ -11,18 +11,31 @@ struct ConnectionParams {
     db_port: String,
 }
 
-#[derive(Debug, Clone)]
-pub struct DatabaseResult<T> {
-    pub state: DatabaseSetupState,
-    pub message: T,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DatabaseSetupState {
     NoConnection,
     MissingRelations,
     StandardResult,
     QueryError,
+}
+
+#[derive(Debug, Clone)]
+pub struct DatabaseResult<T> {
+    pub db_last_exec_state: DatabaseSetupState,
+    pub return_result: T,
+    pub error_message: Option<String>,
+    pub table_or_function_name: String,
+}
+
+impl<T> DatabaseResult<T> {
+    pub fn default() -> DatabaseResult<String> {
+        DatabaseResult {
+            db_last_exec_state: DatabaseSetupState::NoConnection,
+            return_result: "".to_string(),
+            error_message: None,
+            table_or_function_name: "".to_string(),
+        }
+    }
 }
 
 impl ConnectionParams {
@@ -76,46 +89,75 @@ impl ConnectionParams {
     }
 }
 
-pub async fn test_is_db_setup() -> Result<DatabaseSetupState, Box<dyn std::error::Error>> {
-    let mut result = DatabaseSetupState::NoConnection;
-    let table_names = vec!["event", "golfstatistic", "player", "golfuser", "event_user_player", "eup_statistic"];
+pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
+    let mut dbresults = vec![];
+    // let mut result = DatabaseSetupState::NoConnection;
+    let table_names = vec![
+        "event",
+        "golfstatistic",
+        "player",
+        "golfuser",
+        "event_user_player",
+        "eup_statistic"
+    ];
 
     for table in &table_names {
+        let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+        dbresult.table_or_function_name = table.to_string();
         let state = check_table_exists(table).await;
         match state {
             Err(e) => {
-                eprintln!("Failed in {}, {}: {}", file!(), line!(), e);
-                return Ok(DatabaseSetupState::NoConnection);
+                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                dbresult.error_message = Some(emessage);
             }
             Ok(s) => {
-                result = s;
+                dbresult.return_result = s.return_result;
+                dbresult.db_last_exec_state = s.db_last_exec_state;
+                dbresult.error_message = s.error_message;
             }
         }
+        dbresults.push(dbresult);
     }
 
-    Ok(result)
+    Ok(dbresults)
 }
 
 async fn check_table_exists(
     table_name: &str
-) -> Result<DatabaseSetupState, Box<dyn std::error::Error>> {
+) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
     let query = format!("SELECT 1 FROM {};", table_name);
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[];
     let result = general_query_structure(&query, query_params).await;
+    let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+    dbresult.table_or_function_name = table_name.to_string();
 
     match result {
         Ok(r) => {
-            if r.state == DatabaseSetupState::QueryError {
-                Ok(DatabaseSetupState::MissingRelations)
-            } else {
-                Ok(r.state)
+            dbresult.error_message = r.error_message;
+            dbresult.db_last_exec_state = r.db_last_exec_state;
+            match r.db_last_exec_state {
+                DatabaseSetupState::StandardResult => {
+                    dbresult.return_result = "Table exists".to_string();
+                }
+                DatabaseSetupState::QueryError => {
+                    dbresult.return_result = "Table does not exist".to_string();
+                    dbresult.db_last_exec_state = DatabaseSetupState::MissingRelations;
+                }
+                DatabaseSetupState::NoConnection => {
+                    dbresult.return_result = "Can't connect to db".to_string();
+                }
+                _ => {
+                    dbresult.return_result = "Table does not exist".to_string();
+                }
             }
         }
         Err(e) => {
-            eprintln!("Failed in {}, {}: {}", file!(), line!(), e);
-            Ok(DatabaseSetupState::NoConnection)
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            dbresult.error_message = Some(emessage);
+            dbresult.db_last_exec_state = DatabaseSetupState::NoConnection;
         }
     }
+    Ok(dbresult)
 }
 
 pub async fn get_title_from_db(
@@ -124,19 +166,20 @@ pub async fn get_title_from_db(
     let query = "SELECT eventname FROM sp_get_event_name($1)";
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
     let result = general_query_structure(query, query_params).await;
-    let mut dbresult = DatabaseResult {
-        state: DatabaseSetupState::StandardResult,
-        message: "".to_string(),
-    };
+    let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
     match result {
         Ok(r) => {
-            if r.state == DatabaseSetupState::StandardResult {
-                dbresult.message = r.message[0].get(0);
+            if r.db_last_exec_state == DatabaseSetupState::StandardResult {
+                dbresult.return_result = r.return_result[0].get(0);
             }
         }
-        Err(_) => {}
+        Err(e) => {
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            dbresult.error_message = Some(emessage);
+        }
     }
+
     Ok(dbresult)
 }
 
@@ -148,14 +191,16 @@ pub async fn get_golfers_from_db(
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
     let result = general_query_structure(query, query_params).await;
     let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
-        state: DatabaseSetupState::StandardResult,
-        message: vec![],
+        db_last_exec_state: DatabaseSetupState::StandardResult,
+        return_result: vec![],
+        error_message: None,
+        table_or_function_name: "sp_get_player_names".to_string(),
     };
 
     match result {
         Ok(r) => {
-            if r.state == DatabaseSetupState::StandardResult {
-                let rows = r.message;
+            if r.db_last_exec_state == DatabaseSetupState::StandardResult {
+                let rows = r.return_result;
                 let players = rows
                     .iter()
                     .map(|row| Scores {
@@ -176,11 +221,15 @@ pub async fn get_golfers_from_db(
                         },
                     })
                     .collect();
-                dbresult.message = players;
+                dbresult.return_result = players;
             }
         }
-        Err(_) => {}
+        Err(e) => {
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            dbresult.error_message = Some(emessage);
+        }
     }
+
     Ok(dbresult)
 }
 
@@ -201,26 +250,31 @@ async fn general_query_structure(
 
             let row = client.query(query, query_params).await;
             match row {
-                Ok(row) => {
+                Ok(row) =>
                     Ok(DatabaseResult {
-                        state: DatabaseSetupState::StandardResult,
-                        message: row,
-                    })
-                }
+                        db_last_exec_state: DatabaseSetupState::StandardResult,
+                        return_result: row,
+                        error_message: None,
+                        table_or_function_name: query.to_string(),
+                    }),
                 Err(e) => {
-                    eprintln!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                    let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
                     Ok(DatabaseResult {
-                        state: DatabaseSetupState::QueryError,
-                        message: vec![],
+                        db_last_exec_state: DatabaseSetupState::QueryError,
+                        return_result: vec![],
+                        error_message: Some(emessage),
+                        table_or_function_name: query.to_string(),
                     })
                 }
             }
         }
         Err(e) => {
-            eprintln!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
             Ok(DatabaseResult {
-                state: DatabaseSetupState::NoConnection,
-                message: vec![],
+                db_last_exec_state: DatabaseSetupState::NoConnection,
+                return_result: vec![],
+                error_message: Some(emessage),
+                table_or_function_name: query.to_string(),
             })
         }
     }

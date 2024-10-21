@@ -24,7 +24,7 @@ pub async fn get_data_for_scores_page(
     // reviewed, ok now for debugging
     let aactive_golfers = get_golfers_from_db(event_id).await;
     let active_golfers = match aactive_golfers {
-        Ok(active_golfers) => active_golfers.message,
+        Ok(active_golfers) => active_golfers.return_result,
         Err(e) => {
             return Err(e);
         }

@@ -1,4 +1,4 @@
-use crate::model::model_admin::{Bettor, Player, PlayerBettorRow, RowData};
+use crate::model::admin_model::{Bettor, Player, PlayerBettorRow, RowData};
 
 // use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 // Render the main page
 pub async fn render_default_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -> Markup {
-    let admin_00 = crate::templates::admin::admin00::render_default_page().await;
+    let admin_00 = crate::controller::templates::admin::admin00::render_default_page().await;
     html! {
         (maud::DOCTYPE)
         html {

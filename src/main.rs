@@ -1,23 +1,23 @@
 mod model {
     pub mod db;
     pub mod model;
-    pub mod model_admin;
-}
-mod templates {
-    pub mod admin {
-        pub mod admin;
-        pub mod admin00;
-    }
-    pub mod index;
-    pub mod score;
+    pub mod admin_model;
 }
 mod controller {
     pub mod cache;
     pub mod espn;
     pub mod score;
+    pub mod templates {
+        pub mod admin {
+            pub mod admin;
+            pub mod admin00;
+        }
+        pub mod index;
+        pub mod score;
+    }
 }
 
-use model::model_admin::AlphaNum14;
+use model::admin_model::AlphaNum14;
 use model::db;
 use model::model::CacheMap;
 
@@ -40,7 +40,8 @@ async fn main() -> std::io::Result<()> {
         dbg!(
             dotenv_path.unwrap().to_str(),
             dotenv::var("TOKEN").unwrap(),
-            dotenv::var("DB_HOST").unwrap()
+            dotenv::var("DB_HOST").unwrap(),
+            dotenv::var("DB_PORT").unwrap(),
         );
     }
 
@@ -74,8 +75,8 @@ async fn index(query: web::Query<HashMap<String, String>>) -> impl Responder {
             let title_test = db::get_title_from_db(id).await;
             match title_test {
                 Ok(t) => {
-                    if t.state == db::DatabaseSetupState::StandardResult {
-                        title = t.message.clone();
+                    if t.db_last_exec_state == db::DatabaseSetupState::StandardResult {
+                        title = t.return_result.clone();
                     }
                 }
                 Err(ref x) => {
@@ -89,7 +90,7 @@ async fn index(query: web::Query<HashMap<String, String>>) -> impl Responder {
         }
     };
 
-    let markup = crate::templates::index::render_index_template(title);
+    let markup = crate::controller::templates::index::render_index_template(title);
     HttpResponse::Ok().content_type("text/html").body(markup.into_string())
 }
 
@@ -140,7 +141,7 @@ async fn scores(
             if json {
                 HttpResponse::Ok().json(cache)
             } else {
-                let markup = crate::templates::score::render_scores_template(&cache);
+                let markup = crate::controller::templates::score::render_scores_template(&cache);
                 HttpResponse::Ok().content_type("text/html").body(markup.into_string())
             }
         }
@@ -160,21 +161,21 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
     let data = query.get("data").unwrap_or(&String::new()).trim().to_string();
 
     let player_vec = vec![
-        model::model_admin::Player {
+        model::admin_model::Player {
             id: 1,
             name: "Player1".to_string(),
         },
-        model::model_admin::Player {
+        model::admin_model::Player {
             id: 2,
             name: "Player2".to_string(),
         }
     ];
     let bettor_vec = vec![
-        model::model_admin::Bettor {
+        model::admin_model::Bettor {
             uid: 1,
             name: "Bettor1".to_string(),
         },
-        model::model_admin::Bettor {
+        model::admin_model::Bettor {
             uid: 2,
             name: "Bettor2".to_string(),
         }
@@ -206,14 +207,14 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
                     .body(body);
             } else {
                 if data.is_empty() {
-                    let markup = crate::templates::admin::admin::render_default_page(
+                    let markup = crate::controller::templates::admin::admin::render_default_page(
                         &player_vec,
                         &bettor_vec
                     ).await;
 
                     HttpResponse::Ok().content_type("text/html").body(markup.into_string())
                 } else {
-                    let markup_from_admin = crate::templates::admin::admin::display_received_data(
+                    let markup_from_admin = crate::controller::templates::admin::admin::display_received_data(
                         player_vec,
                         bettor_vec,
                         data
