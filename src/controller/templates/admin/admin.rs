@@ -16,9 +16,10 @@ pub async fn render_default_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -
                 title { "Table of Entries" }
                 // Include htmx
                 script src="https://unpkg.com/htmx.org@1.9.12" {}
+                link rel="stylesheet" type="text/css" href="static/styles.css";
             }
             body {
-                table {
+                table class="hidden" {
                     thead {
                         tr {
                             th { "Player" }
@@ -53,25 +54,13 @@ pub async fn render_default_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -
                         }
                     }
                 }
-                button type="button" id="add-row" { "Add Row" }
-                button type="button" id="submit" { "Submit" }
+                button type="button" id="add-row" class="hidden" { "Add Row" }
+                button type="button" id="submit" class="hidden" { "Submit" }
                 div id="results" {}
                 div id="admin-00" {
                     (admin_00)
                 }
                 script src="static/admin.js" {}
-                // Optional CSS for animation
-                style {
-                    r#"
-                    .animate {
-                        animation: fadeIn 0.5s;
-                    }
-                    @keyframes fadeIn {
-                        from { opacity: 0; }
-                        to { opacity: 1; }
-                    }
-                    "#
-                }
             }
         }
     }

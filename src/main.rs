@@ -156,6 +156,7 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
         .unwrap_or(&String::new())
         .trim()
         .to_string();
+    let times_run = query.get("times_run").unwrap_or(&String::new()).trim().to_string();
 
     let player_vec = vec![
         model::admin_model::Player {
@@ -208,12 +209,21 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
                 if !missing_tables.is_empty() {
                     let markup_from_admin =
                         crate::controller::templates::admin::admin00::create_tables(
-                            missing_tables
+                            missing_tables,
+                            times_run,
                         ).await;
+
+                        // dbg!("markup_from_admin", &markup_from_admin.times_run_int);
+
+                        let header = json!({
+                            "reenablebutton": "1",
+                            "times_run": markup_from_admin.times_run_int
+                        });
+
                     HttpResponse::Ok()
                         .content_type("text/html")
-                        .insert_header(("HX-Trigger", "reenablebutton")) // Add the HX-Trigger header
-                        .body(markup_from_admin.into_string())
+                        .insert_header(("HX-Trigger", header.to_string())) // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in admin.js)
+                        .body(markup_from_admin.html.into_string())
                 } else if data.is_empty() {
                     let markup = crate::controller::templates::admin::admin::render_default_page(
                         &player_vec,

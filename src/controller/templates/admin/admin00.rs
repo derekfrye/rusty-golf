@@ -1,7 +1,16 @@
-use crate::model::{ admin_model::MissingTables, db::{ self, test_is_db_setup, TABLE_NAMES } };
+use crate::model::{
+    admin_model::{ MissingTables, TimesRun },
+    db::{ self, test_is_db_setup, TABLE_NAMES },
+};
 
 use maud::{ html, Markup };
-use serde_json::json;
+use serde_json::{ json, Value };
+
+pub struct CreateTableReturn {
+    pub html: Markup,
+    pub times_run: Value,
+    pub times_run_int: i32,
+}
 
 // Render the main page
 pub async fn render_default_page() -> Markup {
@@ -23,6 +32,8 @@ pub async fn render_default_page() -> Markup {
         json_data = json!(missing_tables);
     }
 
+    let times_run = json!({ "times_run": 0 });
+
     html! {
         @for dbresult in &are_db_tables_setup {
             @let message = format!("db result: {:?}, table name: {}, db err msg: {}"
@@ -35,6 +46,10 @@ pub async fn render_default_page() -> Markup {
 
         script type="application/json" id="admin00_missing_tables" {
             (json_data)
+        }
+
+        script type="application/json" id="times_run" {
+            { (times_run) }
         }
 
         @if all_tables_setup {
@@ -52,13 +67,29 @@ pub async fn render_default_page() -> Markup {
     }
 }
 
-pub async fn create_tables(data: String) -> Markup {
+pub async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
+    let mut result = CreateTableReturn {
+        html: html!(p { "No data" }),
+        times_run: json!({ "times_run": 0 }),
+        times_run_int: 0,
+    };
     let data: Vec<MissingTables> = match serde_json::from_str(&data) {
         Ok(d) => d,
         Err(e) => {
-            return html! {
-                p { "Invalid data: " (e) }
-            };
+            result.html = html! {
+                p { "Invalid table data: " (e) }};
+
+            return result;
+        }
+    };
+
+    let times_run_from_json = match parse_into_times_run(&times_run) {
+        Some(d) => d,
+        None => {
+            let str = format!("Invalid times_run data: {}", times_run);
+            result.html = html! {
+                p { (str) }};
+            return result;
         }
     };
 
@@ -69,9 +100,36 @@ pub async fn create_tables(data: String) -> Markup {
         .filter(|x| TABLE_NAMES.contains(&x.missing_table.as_str()))
         .collect();
 
-    html! {
+    let times_run_int = times_run_from_json.times_run + 1;
+    result.times_run = json!({ "times_run": times_run_int });
+    result.times_run_int = times_run_int;
+
+    result.html =
+        html! {
+        p { "You've run this function " (result.times_run) " times" }
         @for table in data {
             p { "Creating table: " (table.missing_table) }
+        }
+    };
+    result
+}
+
+fn parse_into_times_run(input: &str) -> Option<TimesRun> {
+    match serde_json::from_str::<TimesRun>(input) {
+        Ok(single_run) => Some(single_run),
+        Err(_) => {
+            // If single parse fails, try to parse as Vec<TimesRun>
+            match serde_json::from_str::<Vec<TimesRun>>(input) {
+                Ok(mut runs) => {
+                    // If the Vec is not empty, return the first element
+                    if !runs.is_empty() {
+                        Some(runs.remove(0))
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None, // If both deserializations fail, return None
+            }
         }
     }
 }

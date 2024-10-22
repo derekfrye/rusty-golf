@@ -1,5 +1,6 @@
 use regex::Regex;
-use serde::{Deserialize, Deserializer};
+use serde::{ de, Deserialize, Deserializer };
+use serde_json::Value;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -24,6 +25,12 @@ pub struct PlayerBettorRow {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct TimesRun {
+        #[serde(deserialize_with = "deserialize_int_or_string")]
+    pub times_run: i32,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct MissingTables {
     pub missing_table: String,
 }
@@ -43,8 +50,16 @@ fn deserialize_int_or_string<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    i32::from_str(&s).map_err(serde::de::Error::custom)
+    let value = Value::deserialize(deserializer)?;
+
+    match value {
+        Value::Number(num) => num
+            .as_i64()
+            .map(|n| n as i32)
+            .ok_or_else(|| de::Error::custom("Invalid number for i32")),
+        Value::String(s) => i32::from_str(&s).map_err(de::Error::custom),
+        _ => Err(de::Error::custom("Expected a string or number")),
+    }
 }
 
 #[derive(Debug)]
