@@ -24,6 +24,11 @@ pub struct PlayerBettorRow {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct MissingTables {
+    pub missing_table: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct RowData {
     pub row_entry: i32,
     #[serde(rename = "player.id", deserialize_with = "deserialize_int_or_string")]

@@ -60,3 +60,36 @@ document.getElementById('submit').addEventListener('click', function() {
         swap: 'innerHTML'
     });
 });
+
+// Handle admin00 table creation
+document.getElementById('create-missing-tables').addEventListener('click', function() {
+    var button = this;
+    // Disable the button to prevent multiple clicks
+    button.disabled = true;
+    // Get the data from the script tag
+    var scriptTag = document.getElementById('admin00_missing_tables').textContent;
+    const unescapedData = scriptTag.replace(/&quot;/g, '"');
+    var data = JSON.parse(unescapedData);
+
+    // Get the token from the URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var token = urlParams.get('token');
+
+    // Prepare the params for the AJAX call, including the token
+    var params = {
+        admin00_missing_tables: JSON.stringify(data),
+        token: token // Add the token to the params
+    };
+
+    var queryString = new URLSearchParams(params).toString();
+
+    htmx.ajax('GET', 'admin?' + queryString, {
+        target: '#create-table-results',
+        swap: 'innerHTML',
+    });
+});
+
+document.body.addEventListener("reenablebutton", function(evt){
+    var button = document.getElementById('create-missing-tables');
+    button.disabled = false;
+});

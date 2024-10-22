@@ -41,7 +41,7 @@ async fn main() -> std::io::Result<()> {
             dotenv_path.unwrap().to_str(),
             dotenv::var("TOKEN").unwrap(),
             dotenv::var("DB_HOST").unwrap(),
-            dotenv::var("DB_PORT").unwrap(),
+            dotenv::var("DB_PORT").unwrap()
         );
     }
 
@@ -151,6 +151,11 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
     };
 
     let data = query.get("data").unwrap_or(&String::new()).trim().to_string();
+    let missing_tables = query
+        .get("admin00_missing_tables")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
 
     let player_vec = vec![
         model::admin_model::Player {
@@ -199,7 +204,17 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
                     .content_type("text/html; charset=utf-8")
                     .body(body);
             } else {
-                if data.is_empty() {
+                // authorized
+                if !missing_tables.is_empty() {
+                    let markup_from_admin =
+                        crate::controller::templates::admin::admin00::create_tables(
+                            missing_tables
+                        ).await;
+                    HttpResponse::Ok()
+                        .content_type("text/html")
+                        .insert_header(("HX-Trigger", "reenablebutton")) // Add the HX-Trigger header
+                        .body(markup_from_admin.into_string())
+                } else if data.is_empty() {
                     let markup = crate::controller::templates::admin::admin::render_default_page(
                         &player_vec,
                         &bettor_vec
@@ -207,11 +222,12 @@ async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
 
                     HttpResponse::Ok().content_type("text/html").body(markup.into_string())
                 } else {
-                    let markup_from_admin = crate::controller::templates::admin::admin::display_received_data(
-                        player_vec,
-                        bettor_vec,
-                        data
-                    );
+                    let markup_from_admin =
+                        crate::controller::templates::admin::admin::display_received_data(
+                            player_vec,
+                            bettor_vec,
+                            data
+                        );
                     HttpResponse::Ok()
                         .content_type("text/html")
                         .body(markup_from_admin.into_string())
