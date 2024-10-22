@@ -55,7 +55,7 @@ document.getElementById('submit').addEventListener('click', function() {
 
     var queryString = new URLSearchParams(params).toString();
 
-    htmx.ajax('GET', '/admin?' + queryString, {
+    htmx.ajax('GET', 'admin?' + queryString, {
         target: '#results',
         swap: 'innerHTML'
     });

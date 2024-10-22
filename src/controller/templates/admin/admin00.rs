@@ -1,4 +1,4 @@
-use crate::model::{ admin_model::MissingTables, db::{ self, test_is_db_setup } };
+use crate::model::{ admin_model::MissingTables, db::{ self, test_is_db_setup, TABLE_NAMES } };
 
 use maud::{ html, Markup };
 use serde_json::json;
@@ -61,7 +61,14 @@ pub async fn create_tables(data: String) -> Markup {
             };
         }
     };
-    // let admin_00 = crate::controller::templates::admin::admin00::render_default_page().await;
+
+    // data validation: we only want to create tables where we match on table names
+    // otherwise who knows wth we're creating in our db
+    let data: Vec<MissingTables> = data
+        .into_iter()
+        .filter(|x| TABLE_NAMES.contains(&x.missing_table.as_str()))
+        .collect();
+
     html! {
         @for table in data {
             p { "Creating table: " (table.missing_table) }

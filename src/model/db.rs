@@ -3,6 +3,15 @@ use std::env;
 use tokio::time::{timeout, Duration};
 use tokio_postgres::{tls::NoTlsStream, Config, NoTls, Row, Socket};
 
+pub const TABLE_NAMES: &[&str] = &[
+    "event",
+    "golfstatistic",
+    "player",
+    "golfuser",
+    "event_user_player",
+    "eup_statistic",
+];
+
 struct ConnectionParams {
     db_user: String,
     db_password: String,
@@ -94,17 +103,8 @@ impl ConnectionParams {
 
 pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
     let mut dbresults = vec![];
-    // let mut result = DatabaseSetupState::NoConnection;
-    let table_names = vec![
-        "event",
-        "golfstatistic",
-        "player",
-        "golfuser",
-        "event_user_player",
-        "eup_statistic",
-    ];
 
-    for table in &table_names {
+    for table in TABLE_NAMES{
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
         dbresult.table_or_function_name = table.to_string();
         let state = check_table_exists(table).await;
