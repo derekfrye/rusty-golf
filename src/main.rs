@@ -11,6 +11,7 @@ mod controller {
         pub mod admin {
             pub mod admin;
             pub mod admin00;
+            pub mod admin0x;
         }
         pub mod index;
         pub mod score;

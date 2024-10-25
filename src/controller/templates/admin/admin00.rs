@@ -14,6 +14,29 @@ pub struct CreateTableReturn {
 
 // Render the main page
 pub async fn render_default_page() -> Markup {
+    let admin_00 = render_create_table_results().await;
+    html! {
+        (maud::DOCTYPE)
+        html {
+            head {
+                meta charset="utf-8";
+                title { "Golf Admin Setup Page" }
+                // Include htmx
+                script src="https://unpkg.com/htmx.org@1.9.12" {}
+                script src="static/admin.js" {}
+                link rel="stylesheet" type="text/css" href="static/styles.css";
+            }
+            body {
+                div id="results" {}
+                div id="admin-00" {
+                    (admin_00)
+                }
+            }
+        }
+    }
+}
+
+async fn render_create_table_results() -> Markup {
     let are_db_tables_setup = test_is_db_setup().await.unwrap();
 
     let all_tables_setup = are_db_tables_setup
