@@ -104,7 +104,7 @@ impl ConnectionParams {
 pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
     let mut dbresults = vec![];
 
-    for table in TABLE_NAMES{
+    for table in TABLE_NAMES {
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
         dbresult.table_or_function_name = table.to_string();
         let state = check_table_exists(table).await;

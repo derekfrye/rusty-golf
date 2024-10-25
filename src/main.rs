@@ -17,7 +17,7 @@ mod controller {
     }
 }
 
-use model::admin_model::AlphaNum14;
+use controller::templates::admin::admin;
 use model::db;
 use model::model::CacheMap;
 
@@ -27,7 +27,6 @@ use actix_web::{ web, App, HttpResponse, HttpServer, Responder };
 use actix_files::Files;
 use serde_json::json;
 use std::collections::HashMap;
-use std::env;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
@@ -142,110 +141,5 @@ async fn scores(
 }
 
 async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
-    let token_str = query.get("token").unwrap_or(&String::new()).trim().to_string();
-
-    // let mut token: AlphaNum14 = AlphaNum14::default();
-    let token: AlphaNum14 = match AlphaNum14::parse(&token_str) {
-        Ok(id) => id,
-        Err(_) => AlphaNum14::default(),
-    };
-
-    let data = query.get("data").unwrap_or(&String::new()).trim().to_string();
-    let missing_tables = query
-        .get("admin00_missing_tables")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
-    let times_run = query.get("times_run").unwrap_or(&String::new()).trim().to_string();
-
-    let player_vec = vec![
-        model::admin_model::Player {
-            id: 1,
-            name: "Player1".to_string(),
-        },
-        model::admin_model::Player {
-            id: 2,
-            name: "Player2".to_string(),
-        }
-    ];
-    let bettor_vec = vec![
-        model::admin_model::Bettor {
-            uid: 1,
-            name: "Bettor1".to_string(),
-        },
-        model::admin_model::Bettor {
-            uid: 2,
-            name: "Bettor2".to_string(),
-        }
-    ];
-
-    let body =
-        r#"
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Unauthorized</title>
-        <style>
-            body { font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center; padding: 50px; }
-            h1 { color: #333; }
-            p { color: #666; }
-        </style>
-    </head>
-    <body>
-        <h1>401 Unauthorized</h1>
-    </body>
-    </html>
-    "#;
-
-    // check query string token against the token this container was started with
-    match env::var("TOKEN") {
-        Ok(env_token) => {
-            if env_token != token.value() {
-                return HttpResponse::Unauthorized()
-                    .content_type("text/html; charset=utf-8")
-                    .body(body);
-            } else {
-                // authorized
-                if !missing_tables.is_empty() {
-                    let markup_from_admin =
-                        crate::controller::templates::admin::admin00::create_tables(
-                            missing_tables,
-                            times_run,
-                        ).await;
-
-                        // dbg!("markup_from_admin", &markup_from_admin.times_run_int);
-
-                        let header = json!({
-                            "reenablebutton": "1",
-                            "times_run": markup_from_admin.times_run_int
-                        });
-
-                    HttpResponse::Ok()
-                        .content_type("text/html")
-                        .insert_header(("HX-Trigger", header.to_string())) // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in admin.js)
-                        .body(markup_from_admin.html.into_string())
-                } else if data.is_empty() {
-                    let markup = crate::controller::templates::admin::admin::render_default_page(
-                        &player_vec,
-                        &bettor_vec
-                    ).await;
-
-                    HttpResponse::Ok().content_type("text/html").body(markup.into_string())
-                } else {
-                    let markup_from_admin =
-                        crate::controller::templates::admin::admin::display_received_data(
-                            player_vec,
-                            bettor_vec,
-                            data
-                        );
-                    HttpResponse::Ok()
-                        .content_type("text/html")
-                        .body(markup_from_admin.into_string())
-                }
-            }
-        }
-        Err(_) => {
-            return HttpResponse::Unauthorized().content_type("text/html; charset=utf-8").body(body);
-        }
-    }
+    admin::router(query).await
 }

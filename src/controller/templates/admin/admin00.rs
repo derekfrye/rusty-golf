@@ -1,10 +1,10 @@
 use crate::model::{
-    admin_model::{ MissingTables, TimesRun },
-    db::{ self, test_is_db_setup, TABLE_NAMES },
+    admin_model::{MissingTables, TimesRun},
+    db::{self, test_is_db_setup, TABLE_NAMES},
 };
 
-use maud::{ html, Markup };
-use serde_json::{ json, Value };
+use maud::{html, Markup};
+use serde_json::{json, Value};
 
 pub struct CreateTableReturn {
     pub html: Markup,
@@ -59,7 +59,7 @@ pub async fn render_default_page() -> Markup {
             hx-trigger="reenablebutton from:body"
             id="create-missing-tables"
             {
-                "Create missing tables" 
+                "Create missing tables"
             }
         }
 
@@ -77,7 +77,7 @@ pub async fn create_tables(data: String, times_run: String) -> CreateTableReturn
         Ok(d) => d,
         Err(e) => {
             result.html = html! {
-                p { "Invalid table data: " (e) }};
+            p { "Invalid table data: " (e) }};
 
             return result;
         }
@@ -88,7 +88,7 @@ pub async fn create_tables(data: String, times_run: String) -> CreateTableReturn
         None => {
             let str = format!("Invalid times_run data: {}", times_run);
             result.html = html! {
-                p { (str) }};
+            p { (str) }};
             return result;
         }
     };
@@ -104,8 +104,7 @@ pub async fn create_tables(data: String, times_run: String) -> CreateTableReturn
     result.times_run = json!({ "times_run": times_run_int });
     result.times_run_int = times_run_int;
 
-    result.html =
-        html! {
+    result.html = html! {
         p { "You've run this function " (result.times_run) " times" }
         @for table in data {
             p { "Creating table: " (table.missing_table) }

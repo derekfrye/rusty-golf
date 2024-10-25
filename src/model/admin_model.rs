@@ -1,5 +1,5 @@
 use regex::Regex;
-use serde::{ de, Deserialize, Deserializer };
+use serde::{de, Deserialize, Deserializer};
 use serde_json::Value;
 use std::str::FromStr;
 
@@ -26,7 +26,7 @@ pub struct PlayerBettorRow {
 
 #[derive(Deserialize, Debug)]
 pub struct TimesRun {
-        #[serde(deserialize_with = "deserialize_int_or_string")]
+    #[serde(deserialize_with = "deserialize_int_or_string")]
     pub times_run: i32,
 }
 
