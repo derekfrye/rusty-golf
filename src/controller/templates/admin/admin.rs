@@ -2,9 +2,9 @@ use crate::model::{ self, admin_model::AlphaNum14 };
 
 use actix_web::{ web, HttpResponse };
 // use actix_web::{web, HttpResponse};
-use maud::{ html, Markup };
+// use maud::{ html, Markup };
 use serde_json::json;
-use std::{ collections::HashMap, env, string };
+use std::{ collections::HashMap, env, };
 // use serde_json::json;
 
 const UNAUTHORIZED_BODY: &str =
@@ -34,6 +34,7 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
         Err(_) => AlphaNum14::default(),
     };
 
+    let p = query.get("p").unwrap_or(&String::new()).trim().to_string();
     let data = query.get("data").unwrap_or(&String::new()).trim().to_string();
     let missing_tables = query
         .get("admin00_missing_tables")
@@ -73,10 +74,15 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
                     .body(UNAUTHORIZED_BODY);
             } else {
                 // authorized
-                // admin00, we need to create tables
-                if !missing_tables.is_empty() {
-                    // get_html_for_creat_tables(missing_tables,times_run).await
-
+                // missing_tables is populated by admin.js, so when empty it means user browsed to this admin page rather than js submitting to it
+                // display admin00
+                if  p=="00" {
+                    if !missing_tables.is_empty() {
+                      get_html_for_creat_tables(missing_tables,times_run).await
+                    }else{
+                    let x=crate::controller::templates::admin::admin00::render_default_page().await;
+                    HttpResponse::Ok().content_type("text/html").body(x.into_string())
+                    }
                 //
                 // admin0x, render the page to create data
                 } else if data.is_empty() {
@@ -109,9 +115,6 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
     }
 }
 
-async fn admin00(missing_tables:String,times_run: String) -> HttpResponse {
-    let default_page = crate::controller::templates::admin::admin00::render_default_page().await;
-}
 
 async fn get_html_for_creat_tables(missing_tables:String,times_run: String) -> HttpResponse {
     let markup_from_admin =

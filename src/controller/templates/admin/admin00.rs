@@ -23,7 +23,7 @@ pub async fn render_default_page() -> Markup {
                 title { "Golf Admin Setup Page" }
                 // Include htmx
                 script src="https://unpkg.com/htmx.org@1.9.12" {}
-                script src="static/admin.js" {}
+                script src="static/admin00.js" {}
                 link rel="stylesheet" type="text/css" href="static/styles.css";
             }
             body {

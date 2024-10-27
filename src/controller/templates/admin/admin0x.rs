@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::model::admin_model::{ Bettor, Player, PlayerBettorRow, RowData};
+use crate::model::admin_model::{Bettor, Player, PlayerBettorRow, RowData};
 
 use maud::{html, Markup};
 

@@ -69,12 +69,11 @@ document.getElementById('create-missing-tables').addEventListener('click', funct
     // Get the data from the script tag
     var scriptTag = document.getElementById('admin00_missing_tables').textContent;
     const unescapedData = scriptTag.replace(/&quot;/g, '"');
-    var data = JSON.parse(unescapedData);
-
+    var admin_missing_table_json = JSON.parse(unescapedData);
 
     var timesRunContent = document.getElementById('times_run').textContent;
     const unescapedData1 = timesRunContent.replace(/&quot;/g, '"');
-    var data1 = JSON.parse(unescapedData1);
+    var times_run_as_json = JSON.parse(unescapedData1);
 
     // Get the token from the URL
     var urlParams = new URLSearchParams(window.location.search);
@@ -83,8 +82,8 @@ document.getElementById('create-missing-tables').addEventListener('click', funct
     // Prepare the params for the AJAX call, including the token
     var params = {
         // name your params how they'll appear in your router
-        admin00_missing_tables: JSON.stringify(data),
-        times_run: JSON.stringify(data1),
+        admin00_missing_tables: JSON.stringify(admin_missing_table_json),
+        times_run: JSON.stringify(times_run_as_json),
         token: token // Add the token to the params
     };
 
@@ -105,10 +104,6 @@ document.body.addEventListener("reenablebutton", function (evt) {
 document.body.addEventListener("times_run", function (evt) {
     // evt.detail will contain the payload passed in the HX-Trigger header
     const timesRun = evt.detail.value;
-    //  alert("timesRun: " + timesRun);
-    // const unescapedData = timesRun.replace(/&quot;/g, '"');
-    // var data = JSON.parse(unescapedData);
-    // var timesRunx = data.times_run;
     
     // Find the element by its id
     const timesRunElement = document.getElementById("times_run");
@@ -118,10 +113,6 @@ document.body.addEventListener("times_run", function (evt) {
 
     // Update the inner HTML of the element with the value from the event
     if (timesRunElement) {
-        // timesRunElement.innerHTML = `You've run this ${timesRun} times`;
-        // console.log(data);
-        // let's stringify the data
         timesRunElement.innerHTML = JSON.stringify(data);
-        // timesRunElement.innerHTML = data.toString();
     }
 });
