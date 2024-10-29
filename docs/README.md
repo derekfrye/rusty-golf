@@ -17,7 +17,7 @@ python -m webbrowser http://localhost:9000/admin
 ```
 
 ## Debugging
-If you create a `.env` file in the *root* of this project, it's a great way to do debugging (vscode debugging works great). Just note, there's a `.dockerignore` which will exclude it from being built into a container. Update the `<values>` below based on your specific environment.
+If you create a `.env` file in the *root* of this project[^1], it's a great way to do debugging (vscode debugging works great). Just note, there's a `.dockerignore` which will exclude it from being built into a container. Update the `<values>` below based on your specific environment.
 ```text
 DB_USER=<string>
 DB_PASSWORD=<string>
@@ -27,8 +27,8 @@ DB_PORT=<integers>
 TOKEN=<14-character, comprised of ascii alphabet characters and/or numbers>
 ```
 
-Where's the *root* of the project? Right after you clone from github, create a `.env` file alongside the `LICENSE` file like so:
-<pre>
+[^1]: Where's the *root* of the project? Right after you clone from github, create a `.env` file alongside the `LICENSE` file like so:
+<code><pre>
 .
 ├── Cargo.toml
 ├── Dockerfile
@@ -42,5 +42,4 @@ Where's the *root* of the project? Right after you clone from github, create a `
 ├── LICENSE
 ├── src
 │   ├── controller
-...
-</pre>
+...</pre></code>
