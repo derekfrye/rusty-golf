@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.addEventListener("reenablebutton", function (evt) {
+        // fired by HX-Trigger header
         var button = document.getElementById('create-missing-tables');
         button.disabled = false;
         // alert("myEvent was triggered!");

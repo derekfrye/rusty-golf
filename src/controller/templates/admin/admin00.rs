@@ -1,10 +1,13 @@
+use std::collections::HashMap;
+
 use crate::model::{
-    admin_model::{MissingTables, TimesRun},
-    db::{self, test_is_db_setup, TABLE_NAMES},
+    admin_model::{ MissingTables, TimesRun },
+    db::{ self, test_is_db_setup, TABLE_NAMES },
 };
 
-use maud::{html, Markup};
-use serde_json::{json, Value};
+use actix_web::{ web, HttpResponse };
+use maud::{ html, Markup };
+use serde_json::{ json, Value };
 
 pub struct CreateTableReturn {
     pub html: Markup,
@@ -14,7 +17,8 @@ pub struct CreateTableReturn {
 
 // Render the main page
 pub async fn render_default_page() -> Markup {
-    let admin_00 = render_create_table_results().await;
+    let admin_00 = do_tables_exist().await;
+    
     html! {
         (maud::DOCTYPE)
         html {
@@ -36,7 +40,7 @@ pub async fn render_default_page() -> Markup {
     }
 }
 
-async fn render_create_table_results() -> Markup {
+async fn do_tables_exist() -> Markup {
     let are_db_tables_setup = test_is_db_setup().await.unwrap();
 
     let all_tables_setup = are_db_tables_setup
@@ -90,7 +94,32 @@ async fn render_create_table_results() -> Markup {
     }
 }
 
-pub async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
+pub async fn get_html_for_create_tables(
+    query: web::Query<HashMap<String, String>>
+) -> HttpResponse {
+    let missing_tables = query
+        .get("admin00_missing_tables")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
+    let times_run = query.get("times_run").unwrap_or(&String::new()).trim().to_string();
+
+    let markup_from_admin = create_tables(missing_tables, times_run).await;
+
+    // dbg!("markup_from_admin", &markup_from_admin.times_run_int);
+
+    let header =
+        json!({"reenablebutton": "1",
+               "times_run": markup_from_admin.times_run_int
+        });
+
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .insert_header(("HX-Trigger", header.to_string())) // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in admin.js)
+        .body(markup_from_admin.html.into_string())
+}
+
+async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     let mut result = CreateTableReturn {
         html: html!(p { "No data" }),
         times_run: json!({ "times_run": 0 }),
@@ -127,7 +156,8 @@ pub async fn create_tables(data: String, times_run: String) -> CreateTableReturn
     result.times_run = json!({ "times_run": times_run_int });
     result.times_run_int = times_run_int;
 
-    result.html = html! {
+    result.html =
+        html! {
         p { "You've run this function " (result.times_run) " times" }
         @for table in data {
             p { "Creating table: " (table.missing_table) }

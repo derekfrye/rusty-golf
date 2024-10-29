@@ -1,11 +1,14 @@
+use crate::model::admin_model::{ Bettor, Player, PlayerBettorRow, RowData };
+
+use actix_web::web;
+use maud::{ html, Markup };
 use std::collections::HashMap;
 
-use crate::model::admin_model::{Bettor, Player, PlayerBettorRow, RowData};
-
-use maud::{html, Markup};
-
 // Render the main page
-pub async fn render_default_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -> Markup {
+pub async fn render_default_page() -> Markup {
+    let players = Player::test_data();
+    let bettors = Bettor::test_data();
+
     html! {
         (maud::DOCTYPE)
         html {
@@ -61,7 +64,10 @@ pub async fn render_default_page(players: &Vec<Player>, bettors: &Vec<Bettor>) -
     }
 }
 
-pub fn display_received_data(players: Vec<Player>, bettors: Vec<Bettor>, data: String) -> Markup {
+pub fn display_received_data(query: web::Query<HashMap<String, String>>) -> Markup {
+    let players = Player::test_data();
+    let bettors = Bettor::test_data();
+    let data = query.get("data").unwrap_or(&String::new()).trim().to_string();
     // Deserialize the data
     let data: Vec<RowData> = match serde_json::from_str(&data) {
         Ok(d) => d,
@@ -73,8 +79,14 @@ pub fn display_received_data(players: Vec<Player>, bettors: Vec<Bettor>, data: S
     };
 
     // Create HashMaps for quick ID lookup
-    let player_map: HashMap<i32, &Player> = players.iter().map(|p| (p.id, p)).collect();
-    let bettor_map: HashMap<i32, &Bettor> = bettors.iter().map(|b| (b.uid, b)).collect();
+    let player_map: HashMap<i32, &Player> = players
+        .iter()
+        .map(|p| (p.id, p))
+        .collect();
+    let bettor_map: HashMap<i32, &Bettor> = bettors
+        .iter()
+        .map(|b| (b.uid, b))
+        .collect();
 
     let mut player_bettor_rows = Vec::new();
 

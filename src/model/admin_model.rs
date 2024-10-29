@@ -1,5 +1,5 @@
 use regex::Regex;
-use serde::{de, Deserialize, Deserializer};
+use serde::{ de, Deserialize, Deserializer };
 use serde_json::Value;
 use std::str::FromStr;
 
@@ -13,6 +13,24 @@ pub struct Player {
 pub struct Bettor {
     pub uid: i32,
     pub name: String,
+}
+
+impl Player {
+    pub fn test_data() -> Vec<Self> {
+        vec![
+            Player { id: 1, name: "Player1".to_string() },
+            Player { id: 2, name: "Player2".to_string() }
+        ]
+    }
+}
+
+impl Bettor {
+    pub fn test_data() -> Vec<Self> {
+        vec![
+            Bettor { uid: 1, name: "Bettor1".to_string() },
+            Bettor { uid: 2, name: "Bettor2".to_string() }
+        ]
+    }
 }
 
 #[derive(Debug)]
@@ -47,16 +65,16 @@ pub struct RowData {
 }
 
 fn deserialize_int_or_string<'de, D>(deserializer: D) -> Result<i32, D::Error>
-where
-    D: Deserializer<'de>,
+    where D: Deserializer<'de>
 {
     let value = Value::deserialize(deserializer)?;
 
     match value {
-        Value::Number(num) => num
-            .as_i64()
-            .map(|n| n as i32)
-            .ok_or_else(|| de::Error::custom("Invalid number for i32")),
+        Value::Number(num) =>
+            num
+                .as_i64()
+                .map(|n| n as i32)
+                .ok_or_else(|| de::Error::custom("Invalid number for i32")),
         Value::String(s) => i32::from_str(&s).map_err(de::Error::custom),
         _ => Err(de::Error::custom("Expected a string or number")),
     }
