@@ -17,7 +17,7 @@ pub struct CreateTableReturn {
 
 // Render the main page
 pub async fn render_default_page() -> Markup {
-    let admin_00 = do_tables_exist().await;
+    let do_tables_exist = do_tables_exist().await;
     
     html! {
         (maud::DOCTYPE)
@@ -33,7 +33,7 @@ pub async fn render_default_page() -> Markup {
             body {
                 div id="results" {}
                 div id="admin-00" {
-                    (admin_00)
+                    (do_tables_exist)
                 }
             }
         }
@@ -81,6 +81,11 @@ async fn do_tables_exist() -> Markup {
 
         @if all_tables_setup {
             p { "All tables are setup" }
+            button
+            id="goto-admin-01"
+            {
+                "Next: Check database functions"
+            }
         } @else {
             button
             hx-trigger="reenablebutton from:body"
@@ -155,6 +160,8 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     let times_run_int = times_run_from_json.times_run + 1;
     result.times_run = json!({ "times_run": times_run_int });
     result.times_run_int = times_run_int;
+
+    let actual_table_creation = db::create_tables(data.clone()).await;
 
     result.html =
         html! {

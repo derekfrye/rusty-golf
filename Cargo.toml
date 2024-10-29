@@ -20,6 +20,7 @@ maud = "0.26"
 actix-files = "0.6"
 actix-rt = "2.5"
 regex = "1"
+function_name = "0.3"
 
 
 [dependencies.tokio-util]
