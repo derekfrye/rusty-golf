@@ -28,18 +28,19 @@ TOKEN=<14-character, comprised of ascii alphabet characters and/or numbers>
 ```
 
 [^1]: Where's the *root* of the project? Right after you clone from github, create a `.env` file alongside the `LICENSE` file like so:
-<code><pre>
-.
-├── Cargo.toml
-├── Dockerfile
-├── docs
-│   └── README.md
-<b>├── .env</b>
-├── examples
-│   ├── docker-compose.yml
-│   ├── Dockerfile -> ../Dockerfile
-│   └── init_db.sql
-├── LICENSE
-├── src
-│   ├── controller
-...</pre></code>
+    <pre>
+    .
+    ├── Cargo.toml
+    ├── Dockerfile
+    ├── docs
+    │   └── README.md
+    <b>├── .env</b>
+    ├── examples
+    │   ├── docker-compose.yml
+    │   ├── Dockerfile -> ../Dockerfile
+    │   └── init_db.sql
+    ├── LICENSE
+    ├── src
+    │   ├── controller
+    ...
+    </pre>
