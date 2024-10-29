@@ -1,6 +1,6 @@
 # Rusty golf
 
-Rusty golf is web app that displays a single-page scoreboard of golf scores for your family golf tournament. 
+Rusty golf is web app that displays a single-page scoreboard for your family golf tournaments. It stores configuration in a postgres database. There's an admin panel, so there's no need to raw-dog the configuration SQL[^1].
 
 ## Getting started
 
@@ -18,7 +18,7 @@ python -m webbrowser http://localhost:9000/admin
 ```
 
 ## Debugging
-If you create a `.env` file in the *root* of this project[^1], it's a great way to do debugging (vscode debugging works great). Note, there's a `.dockerignore` which will exclude it from container build. Specify the `<values>` below in the `.env` based on your needs.
+If you create a `.env` file in the *root* of this project[^2], it's a great way to do debugging (vscode debugging works great). Note, there's a `.dockerignore` which will exclude it from container build. Specify the `<values>` below in the `.env` based on your needs.
 ```text
 DB_USER=<string>
 DB_PASSWORD=<string>
@@ -28,7 +28,9 @@ DB_PORT=<integers>
 TOKEN=<14-character, composed of ascii alphabet characters and/or numbers>
 ```
 
-[^1]: Where's the *root* of the project? Right after you clone from github, create a `.env` file alongside the `LICENSE` file like so:
+[^1]: Well.. *eventually* you'll exclusively use the admin interface for configuration. Right now that's just an aspiration.
+
+[^2]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode.
     <pre>
     .
     ├── Cargo.toml
