@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::model::{
     admin_model::{ MissingTables, TimesRun },
-    db::{ self, test_is_db_setup, TABLE_NAMES },
+    db::{ self, test_is_db_setup, TABLES_AND_CREATE_SQL },
 };
 
 use actix_web::{ web, HttpResponse };
@@ -18,7 +18,7 @@ pub struct CreateTableReturn {
 // Render the main page
 pub async fn render_default_page() -> Markup {
     let do_tables_exist = do_tables_exist().await;
-    
+
     html! {
         (maud::DOCTYPE)
         html {
@@ -62,7 +62,7 @@ async fn do_tables_exist() -> Markup {
     let times_run = json!({ "times_run": 0 });
 
     html! {
-        @for dbresult in &are_db_tables_setup {
+        @for dbresult in are_db_tables_setup.iter().filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully) {
             @let message = format!("db result: {:?}, table name: {}, db err msg: {}"
                 , dbresult.db_last_exec_state
                 , dbresult.table_or_function_name
@@ -115,8 +115,8 @@ pub async fn get_html_for_create_tables(
 
     let header =
         json!({"reenablebutton": "1",
-               "times_run": markup_from_admin.times_run_int
-        });
+           "times_run": markup_from_admin.times_run_int
+    });
 
     HttpResponse::Ok()
         .content_type("text/html")
@@ -133,8 +133,9 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     let data: Vec<MissingTables> = match serde_json::from_str(&data) {
         Ok(d) => d,
         Err(e) => {
+            let message = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
             result.html = html! {
-            p { "Invalid table data: " (e) }};
+            p { "Invalid table data: " (message) }};
 
             return result;
         }
@@ -154,21 +155,65 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     // otherwise who knows wth we're creating in our db
     let data: Vec<MissingTables> = data
         .into_iter()
-        .filter(|x| TABLE_NAMES.contains(&x.missing_table.as_str()))
+        .filter(|x| {
+            TABLES_AND_CREATE_SQL.iter()
+                .map(|x| x.0)
+                .collect::<Vec<_>>()
+                .contains(&x.missing_table.as_str())
+        })
         .collect();
 
     let times_run_int = times_run_from_json.times_run + 1;
     result.times_run = json!({ "times_run": times_run_int });
     result.times_run_int = times_run_int;
 
-    let actual_table_creation = db::create_tables(data.clone()).await;
+    let actual_table_creation = db::create_tables(data.clone(), db::CheckType::Table).await;
+
+    let message: String;
+    match actual_table_creation {
+        Ok(x) => {
+            if x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully {
+                message = "Tables created successfully".to_string();
+            } else {
+                message = format!(
+                    "Tables created, but with errors. {}, {}",
+                    x.error_message.unwrap_or("".to_string()),
+                    x.table_or_function_name
+                );
+            }
+        }
+        Err(e) => {
+            message = format!("Error creating tables: {:?}", e);
+        }
+    }
+
+    let actual_constraint_creation = db::create_tables(
+        data.clone(),
+        db::CheckType::Constraint
+    ).await;
+    let message2: String;
+    match actual_constraint_creation {
+        Ok(x) => {
+            if x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully {
+                message2 = "Tables created successfully".to_string();
+            } else {
+                message2 = format!(
+                    "Tables created, but with errors. {}, {}",
+                    x.error_message.unwrap_or("".to_string()),
+                    x.table_or_function_name
+                );
+            }
+        }
+        Err(e) => {
+            message2 = format!("Error creating tables: {:?}", e);
+        }
+    }
 
     result.html =
         html! {
         p { "You've run this function " (result.times_run) " times" }
-        @for table in data {
-            p { "Creating table: " (table.missing_table) }
-        }
+        p { "Creating tables output: " (message) }
+        p { "Creating tables output: " (message2) }
     };
     result
 }

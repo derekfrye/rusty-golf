@@ -1,27 +1,29 @@
 use crate::model::model::{ ResultStatus, Scores, Statistic };
+use ::function_name::named;
 use std::env;
 use tokio::time::{ timeout, Duration };
 use tokio_postgres::{ tls::NoTlsStream, Config, NoTls, Row, Socket };
-use ::function_name::named;
 
 use super::admin_model::MissingTables;
 
-pub const TABLE_NAMES: &[&str] = &[
-    "event",
-    "golfstatistic",
-    "player",
-    "golfuser",
-    "event_user_player",
-    "eup_statistic",
+pub const TABLES_AND_CREATE_SQL: &[(&str, &str, &str, &str)] = &[
+    ("event", include_str!("sql/schema/00_event.sql"), "", ""),
+    ("golfstatistic", include_str!("sql/schema/01_golfstatistic.sql"), "", ""),
+    ("player", include_str!("sql/schema/02_player.sql"), "", ""),
+    ("golfuser", include_str!("sql/schema/03_golfuser.sql"), "", ""),
+    ("event_user_player", include_str!("sql/schema/04_event_user_player.sql"), "", ""),
+    ("eup_statistic", include_str!("sql/schema/05_eup_statistic.sql"), "", ""),
 ];
 
-const TABLES_AND_CREATE_SQL: &[(&str, &str)] = &[
-    ("event", include_str!("sql/00_event.sql")),
-    ("golfstatistic", include_str!("sql/01_golfstatistic.sql")),
-    ("player", include_str!("sql/02_player.sql")),
-    ("golfuser", include_str!("sql/03_golfuser.sql")),
-    ("event_user_player", include_str!("sql/04_event_user_player.sql")),
-    ("eup_statistic", include_str!("sql/05_eup_statistic.sql")),
+pub const TABLES_AND_CONSTRAINTS: &[(&str, &str, &str, &str)] = &[
+    ("player", "UNIQUE", "unq_name", include_str!("sql/constraints/01_player.sql")),
+    ("player", "UNIQUE", "unq_espn_id", include_str!("sql/constraints/02_player.sql")),
+    (
+        "event_user_player",
+        "UNIQUE",
+        "unq_event_id_user_id_player_id",
+        include_str!("sql/constraints/03_event_user_player.sql"),
+    ),
 ];
 
 struct ConnectionParams {
@@ -40,19 +42,36 @@ pub enum DatabaseSetupState {
     QueryError,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum CheckType {
+    Table,
+    Constraint,
+}
+
 #[derive(Debug, Clone)]
-pub struct DatabaseResult<T> {
+pub struct DatabaseResult<T: Default> {
     pub db_last_exec_state: DatabaseSetupState,
     pub return_result: T,
     pub error_message: Option<String>,
     pub table_or_function_name: String,
 }
 
-impl<T> DatabaseResult<T> {
-    pub fn default() -> DatabaseResult<String> {
+impl<T: Default> DatabaseResult<T> {
+    pub fn default() -> DatabaseResult<T> {
         DatabaseResult {
             db_last_exec_state: DatabaseSetupState::NoConnection,
-            return_result: "".to_string(),
+            return_result: Default::default(),
+            error_message: None,
+            table_or_function_name: "".to_string(),
+        }
+    }
+}
+
+impl Default for DatabaseResult<Vec<Row>> {
+    fn default() -> Self {
+        DatabaseResult {
+            db_last_exec_state: DatabaseSetupState::NoConnection,
+            return_result: vec![],
             error_message: None,
             table_or_function_name: "".to_string(),
         }
@@ -113,10 +132,10 @@ impl ConnectionParams {
 pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
     let mut dbresults = vec![];
 
-    for table in TABLE_NAMES {
+    for table in TABLES_AND_CREATE_SQL.iter() {
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
-        dbresult.table_or_function_name = table.to_string();
-        let state = check_table_exists(&table.missing_table).await;
+        dbresult.table_or_function_name = table.0.to_string();
+        let state = check_table_exists(table.0, CheckType::Table).await;
         match state {
             Err(e) => {
                 let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
@@ -135,83 +154,149 @@ pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn s
 }
 
 #[named]
-pub async fn create_tables(
-    tables: Vec<MissingTables>
+async fn create_tbl(
+    ddl: &[(&str, &str, &str, &str)],
+    table: String,
+    check_type: CheckType
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-    for table in tables.iter().take_while(|x| TABLE_NAMES.contains(&x.missing_table.as_str())) {
-        let state = check_table_exists(table).await;
-        match state {
-            Err(e) => {
-                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                return Ok(DatabaseResult {
-                    db_last_exec_state: DatabaseSetupState::NoConnection,
-                    return_result: "Table not created".to_string(),
-                    error_message: Some(emessage),
-                    table_or_function_name: function_name!().to_string(),
-                });
-            }
-            Ok(s) => {
-                if s.db_last_exec_state == DatabaseSetupState::MissingRelations {
-                    let query = TABLES_AND_CREATE_SQL.iter()
-                        .find(|x| x.0 == table)
-                        .unwrap().1;
-                    let result = general_query_structure(&query, &[]).await;
-                    match result {
-                        Ok(r) => {
-                            if
-                                r.db_last_exec_state ==
-                                DatabaseSetupState::QueryReturnedSuccessfully
-                            {
-                                continue;
-                            } else {
-                                let emessage = format!(
-                                    "Failed in {}, {}: {}",
-                                    std::file!(),
-                                    std::line!(),
-                                    r.error_message.clone().unwrap_or("".to_string())
-                                );
-                                return Ok(DatabaseResult {
-                                    db_last_exec_state: DatabaseSetupState::QueryError,
-                                    return_result: "Table not created".to_string(),
-                                    error_message: Some(emessage),
-                                    table_or_function_name: function_name!().to_string(),
-                                });
-                            }
-                        }
-                        Err(e) => {
+    let state = check_table_exists(&table, check_type).await;
+    let mut return_result: DatabaseResult<String> = DatabaseResult::<String>::default();
+    return_result.table_or_function_name = function_name!().to_string();
+    match state {
+        Err(e) => {
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            return_result.db_last_exec_state = DatabaseSetupState::NoConnection;
+            return_result.error_message = Some(emessage);
+        }
+        Ok(s) => {
+            if s.db_last_exec_state == DatabaseSetupState::MissingRelations {
+                let query = ddl
+                    .iter()
+                    .find(|x| x.0 == table)
+                    .unwrap().1;
+                let result = exec_general_query(&query, &[]).await;
+                match result {
+                    Ok(r) => {
+                        if r.db_last_exec_state != DatabaseSetupState::QueryReturnedSuccessfully {
                             let emessage = format!(
                                 "Failed in {}, {}: {}",
                                 std::file!(),
                                 std::line!(),
-                                e
+                                r.error_message.clone().unwrap_or("".to_string())
                             );
-                            return Ok(DatabaseResult {
-                                db_last_exec_state: DatabaseSetupState::QueryError,
-                                return_result: "Table not created".to_string(),
-                                error_message: Some(emessage),
-                                table_or_function_name: function_name!().to_string(),
-                            });
+                            return_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                            return_result.error_message = Some(emessage);
+                            return_result.table_or_function_name = r.table_or_function_name;
                         }
                     }
+                    Err(e) => {
+                        let emessage = format!(
+                            "Failed in {}, {}: {}",
+                            std::file!(),
+                            std::line!(),
+                            e
+                        );
+                        return_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                        return_result.error_message = Some(emessage);
+                    }
+                }
+            } else {
+                return_result = s;
+            }
+        }
+    }
+    Ok(return_result)
+}
+
+#[named]
+pub async fn create_tables(
+    tables: Vec<MissingTables>,
+    check_type: CheckType
+) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
+    let mut return_result: DatabaseResult<String> = DatabaseResult::<String>::default();
+    return_result.table_or_function_name = function_name!().to_string();
+
+    if check_type == CheckType::Table {
+        for table in tables
+            .iter()
+            .take_while(|xa| {
+                TABLES_AND_CREATE_SQL.iter().any(|af| af.0 == xa.missing_table.as_str())
+            }) {
+            let create_table_attempt = create_tbl(
+                TABLES_AND_CREATE_SQL,
+                table.missing_table.clone(),
+                CheckType::Table
+            ).await;
+            match create_table_attempt {
+                Ok(a) => {
+                    if a.db_last_exec_state != DatabaseSetupState::QueryReturnedSuccessfully {
+                        return_result = a;
+                        break;
+                    }
+                }
+                Err(e) => {
+                    let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                    return_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                    return_result.error_message = Some(emessage);
+                    break;
+                }
+            }
+        }
+    } else {
+        for table in TABLES_AND_CONSTRAINTS.iter() {
+            let create_table_attempt = create_tbl(
+                TABLES_AND_CONSTRAINTS,
+                table.0.to_string(),
+                CheckType::Constraint
+            ).await;
+            match create_table_attempt {
+                Ok(a) => {
+                    if a.db_last_exec_state != DatabaseSetupState::QueryReturnedSuccessfully {
+                        return_result = a;
+                        break;
+                    }
+                }
+                Err(e) => {
+                    let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                    return_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                    return_result.error_message = Some(emessage);
+                    break;
                 }
             }
         }
     }
 
-    Ok(DatabaseResult {
-        db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
-        return_result: "Tables created".to_string(),
-        error_message: None,
-        table_or_function_name: function_name!().to_string(),
-    })
+    Ok(return_result)
 }
 
 async fn check_table_exists(
-    table_name: &str
+    table_name: &str,
+    check_type: CheckType
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-    let query = format!("SELECT 1 FROM {};", table_name);
-    let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[];
-    let result = general_query_structure(&query, query_params).await;
+    let query: String;
+    let query_params_storage: Vec<&(dyn tokio_postgres::types::ToSql + Sync)>;
+    let constraint_type: &str;
+    let constraint_name: &str;
+    if check_type == CheckType::Table {
+        query = format!("SELECT 1 FROM {} LIMIT 1;", table_name);
+        query_params_storage = vec![];
+    } else {
+        query = format!(
+            "SELECT 1 FROM information_schema.table_constraints WHERE table_name = $1 AND constraint_type = $2 and constraint_name = $3 LIMIT 1;"
+        );
+        constraint_type = TABLES_AND_CONSTRAINTS.iter()
+            .find(|x| x.0 == table_name)
+            .unwrap().1;
+        constraint_name = TABLES_AND_CONSTRAINTS.iter()
+            .find(|x| x.0 == table_name)
+            .unwrap().2;
+        query_params_storage = vec![&table_name, &constraint_type, &constraint_name];
+    }
+
+    dbg!(&query);
+
+    let query_params = &query_params_storage[..];
+    let result = exec_general_query(&query, query_params).await;
     let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
     dbresult.table_or_function_name = table_name.to_string();
 
@@ -221,7 +306,17 @@ async fn check_table_exists(
             dbresult.db_last_exec_state = r.db_last_exec_state;
             match r.db_last_exec_state {
                 DatabaseSetupState::QueryReturnedSuccessfully => {
-                    dbresult.return_result = "Table exists".to_string();
+                    if check_type == CheckType::Table {
+                        dbresult.return_result = "Table exists".to_string();
+                    } else if r.return_result.len() > 0 && !r.return_result[0].is_empty() {
+                        let xx: String = r.return_result[0].get(0);
+                        if xx == "1" {
+                            dbresult.return_result = "Constraint exists".to_string();
+                        } else {
+                            dbresult.return_result = "Constraint does not exist".to_string();
+                            dbresult.db_last_exec_state = DatabaseSetupState::MissingRelations;
+                        }
+                    }
                 }
                 DatabaseSetupState::QueryError => {
                     dbresult.return_result = "Table does not exist".to_string();
@@ -249,7 +344,7 @@ pub async fn get_title_from_db(
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
     let query = "SELECT eventname FROM sp_get_event_name($1)";
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
-    let result = general_query_structure(query, query_params).await;
+    let result = exec_general_query(query, query_params).await;
     let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
     match result {
@@ -273,7 +368,7 @@ pub async fn get_golfers_from_db(
     let query =
         "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
     let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
-    let result = general_query_structure(query, query_params).await;
+    let result = exec_general_query(query, query_params).await;
     let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
         db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
         return_result: vec![],
@@ -317,12 +412,14 @@ pub async fn get_golfers_from_db(
     Ok(dbresult)
 }
 
-async fn general_query_structure(
+async fn exec_general_query(
     query: &str,
     query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)]
 ) -> Result<DatabaseResult<Vec<Row>>, Box<dyn std::error::Error>> {
     let mut conn_params = ConnectionParams::new();
     let x = conn_params.return_client_and_connection().await;
+    let mut result = DatabaseResult::<Vec<Row>>::default();
+    result.table_or_function_name = query.to_string();
 
     match x {
         Ok((client, conn)) => {
@@ -333,33 +430,36 @@ async fn general_query_structure(
             });
 
             let row = client.query(query, query_params).await;
+
+            if
+                cfg!(debug_assertions) &&
+                query.contains("constraint_type") &&
+                query_params.len() >= 3 &&
+                format!("{:?}", query_params[2]).trim_matches('"') == r#"unq_name"# &&
+                format!("{:?}", query_params[0]).trim_matches('"') == r#"player"#
+            {
+                println!("here.");
+            }
+
             match row {
-                Ok(row) =>
-                    Ok(DatabaseResult {
-                        db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
-                        return_result: row,
-                        error_message: None,
-                        table_or_function_name: query.to_string(),
-                    }),
+                Ok(row) => {
+                    result.db_last_exec_state = DatabaseSetupState::QueryReturnedSuccessfully;
+                    result.return_result = row;
+                    result.error_message = None;
+                }
                 Err(e) => {
                     let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                    Ok(DatabaseResult {
-                        db_last_exec_state: DatabaseSetupState::QueryError,
-                        return_result: vec![],
-                        error_message: Some(emessage),
-                        table_or_function_name: query.to_string(),
-                    })
+                    result.db_last_exec_state = DatabaseSetupState::QueryError;
+                    result.error_message = Some(emessage);
                 }
             }
         }
         Err(e) => {
             let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-            Ok(DatabaseResult {
-                db_last_exec_state: DatabaseSetupState::NoConnection,
-                return_result: vec![],
-                error_message: Some(emessage),
-                table_or_function_name: query.to_string(),
-            })
+            result.db_last_exec_state = DatabaseSetupState::NoConnection;
+            result.error_message = Some(emessage);
         }
     }
+
+    Ok(result)
 }

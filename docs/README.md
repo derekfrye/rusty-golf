@@ -18,7 +18,7 @@ python -m webbrowser http://localhost:9000/admin
 ```
 
 ## Debugging
-If you create a `.env` file in the *root* of this project[^2], it's a great way to do debugging (vscode debugging works great). Note, there's a `.dockerignore` which will exclude it from container build. Specify the `<values>` below in the `.env` based on your needs.
+If you create a `.env` file in the *root* of this project[^2], it's a great way to do debugging (vscode debugging works great). Note, there's a `.dockerignore` which will exclude it from container build. Specify the `<values>` below in the `.env` based on your needs. If you're using the setup steps above, make sure your DB_PORT and DB_HOST match the entries in `examples/docker-compose.yml`.
 ```text
 DB_USER=<string>
 DB_PASSWORD=<string>

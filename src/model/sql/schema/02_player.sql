@@ -6,10 +6,7 @@ CREATE TABLE player (
     ins_ts TIMESTAMP NOT NULL DEFAULT now()
     );
 
---alter table player alter column name set data type text;
-ALTER TABLE player ADD CONSTRAINT unq_name UNIQUE (name);
 
-ALTER TABLE player ADD CONSTRAINT unq_espn_id UNIQUE (espn_id);
 
 /*
 SELECT espn_id,
