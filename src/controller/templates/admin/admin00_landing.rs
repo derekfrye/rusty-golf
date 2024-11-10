@@ -27,13 +27,16 @@ pub async fn render_default_page() -> Markup {
                 title { "Golf Admin Setup Page" }
                 // Include htmx
                 script src="https://unpkg.com/htmx.org@1.9.12" {}
-                script src="static/admin00.js" {}
+                // script src="static/admin00.js" {}
                 link rel="stylesheet" type="text/css" href="static/styles.css";
             }
             body {
                 div id="results" {}
                 div id="admin-00" {
                     (do_tables_exist)
+                }
+                button hx-get="/admin?admin01_tables" {
+                    "Next: Check database tables"
                 }
             }
         }

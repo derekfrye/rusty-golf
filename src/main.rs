@@ -1,7 +1,7 @@
 mod model {
+    pub mod admin_model;
     pub mod db;
     pub mod model;
-    pub mod admin_model;
 }
 mod controller {
     pub mod cache;
@@ -9,9 +9,10 @@ mod controller {
     pub mod score;
     pub mod templates {
         pub mod admin {
-            pub mod router;
+            pub mod admin00_landing;
             pub mod admin01_tables;
             pub mod admin0x;
+            pub mod router;
         }
         pub mod index;
         pub mod score;
@@ -23,7 +24,7 @@ use model::db;
 use model::model::CacheMap;
 
 use actix_web::web::Data;
-use actix_web::{ web, App, HttpResponse, HttpServer, Responder };
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 // use chrono::{DateTime, Utc};
 use actix_files::Files;
 use serde_json::json;
@@ -55,12 +56,17 @@ async fn main() -> std::io::Result<()> {
             .route("/admin", web::get().to(admin))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
-        .bind("0.0.0.0:8081")?
-        .run().await
+    .bind("0.0.0.0:8081")?
+    .run()
+    .await
 }
 
 async fn index(query: web::Query<HashMap<String, String>>) -> impl Responder {
-    let event_str = query.get("event").unwrap_or(&String::new()).trim().to_string();
+    let event_str = query
+        .get("event")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
     let mut title = "Scoreboard".to_string();
     let _: i32 = match event_str.parse() {
         Ok(id) => {
@@ -83,20 +89,25 @@ async fn index(query: web::Query<HashMap<String, String>>) -> impl Responder {
     };
 
     let markup = crate::controller::templates::index::render_index_template(title);
-    HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(markup.into_string())
 }
 
 async fn scores(
     cache_map: Data<CacheMap>,
-    query: web::Query<HashMap<String, String>>
+    query: web::Query<HashMap<String, String>>,
 ) -> impl Responder {
-    let event_str = query.get("event").unwrap_or(&String::new()).trim().to_string();
+    let event_str = query
+        .get("event")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
     let event_id: i32 = match event_str.parse() {
         Ok(id) => id,
         Err(_) => {
-            return HttpResponse::BadRequest().json(
-                json!({"error": "espn event parameter is required"})
-            );
+            return HttpResponse::BadRequest()
+                .json(json!({"error": "espn event parameter is required"}));
         }
     };
 
@@ -104,19 +115,26 @@ async fn scores(
     let year: i32 = match year_str.parse() {
         Ok(y) => y,
         Err(_) => {
-            return HttpResponse::BadRequest().json(
-                json!({"error": "yr (year) parameter is required"})
-            );
+            return HttpResponse::BadRequest()
+                .json(json!({"error": "yr (year) parameter is required"}));
         }
     };
 
-    let cache_str = query.get("cache").unwrap_or(&String::new()).trim().to_string();
+    let cache_str = query
+        .get("cache")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
     let cache: bool = match cache_str.parse() {
         Ok(c) => c,
         Err(_) => true,
     };
 
-    let json_str = query.get("json").unwrap_or(&String::new()).trim().to_string();
+    let json_str = query
+        .get("json")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
     let json: bool = match json_str.parse() {
         Ok(j) => j,
         Err(_) => false,
@@ -126,15 +144,18 @@ async fn scores(
         event_id,
         year,
         cache_map.get_ref(),
-        cache
-    ).await;
+        cache,
+    )
+    .await;
     match total_cache {
         Ok(cache) => {
             if json {
                 HttpResponse::Ok().json(cache)
             } else {
                 let markup = crate::controller::templates::score::render_scores_template(&cache);
-                HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+                HttpResponse::Ok()
+                    .content_type("text/html")
+                    .body(markup.into_string())
             }
         }
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
