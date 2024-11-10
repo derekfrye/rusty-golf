@@ -10,7 +10,7 @@ mod controller {
     pub mod templates {
         pub mod admin {
             pub mod admin;
-            pub mod admin00;
+            pub mod admin0a;
             pub mod admin0x;
         }
         pub mod index;

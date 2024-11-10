@@ -3,7 +3,7 @@ use crate::model::admin_model::AlphaNum14;
 use actix_web::{web, HttpResponse};
 use std::{collections::HashMap, env};
 
-use super::admin00::get_html_for_create_tables;
+use super::admin0a::get_html_for_create_tables;
 
 const UNAUTHORIZED_BODY: &str = r#"
     <!DOCTYPE html>
@@ -52,7 +52,7 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
                     if query.contains_key("admin00_missing_tables") {
                         get_html_for_create_tables(query).await
                     } else {
-                        let x = crate::controller::templates::admin::admin00::render_default_page()
+                        let x = crate::controller::templates::admin::admin0a::render_default_page()
                             .await;
                         HttpResponse::Ok()
                             .content_type("text/html")

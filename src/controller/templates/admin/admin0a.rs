@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use crate::model::{
-    admin_model::{ MissingTables, TimesRun },
-    db::{ self, test_is_db_setup, TABLES_AND_CREATE_SQL },
+    admin_model::{MissingTables, TimesRun},
+    db::{self, test_is_db_setup, TABLES_AND_CREATE_SQL},
 };
 
-use actix_web::{ web, HttpResponse };
-use maud::{ html, Markup };
-use serde_json::{ json, Value };
+use actix_web::{web, HttpResponse};
+use maud::{html, Markup};
+use serde_json::{json, Value};
 
 pub struct CreateTableReturn {
     pub html: Markup,
@@ -100,21 +100,24 @@ async fn do_tables_exist() -> Markup {
 }
 
 pub async fn get_html_for_create_tables(
-    query: web::Query<HashMap<String, String>>
+    query: web::Query<HashMap<String, String>>,
 ) -> HttpResponse {
     let missing_tables = query
         .get("admin00_missing_tables")
         .unwrap_or(&String::new())
         .trim()
         .to_string();
-    let times_run = query.get("times_run").unwrap_or(&String::new()).trim().to_string();
+    let times_run = query
+        .get("times_run")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
 
     let markup_from_admin = create_tables(missing_tables, times_run).await;
 
     // dbg!("markup_from_admin", &markup_from_admin.times_run_int);
 
-    let header =
-        json!({"reenablebutton": "1",
+    let header = json!({"reenablebutton": "1",
            "times_run": markup_from_admin.times_run_int
     });
 
@@ -156,7 +159,8 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     let data: Vec<MissingTables> = data
         .into_iter()
         .filter(|x| {
-            TABLES_AND_CREATE_SQL.iter()
+            TABLES_AND_CREATE_SQL
+                .iter()
                 .map(|x| x.0)
                 .collect::<Vec<_>>()
                 .contains(&x.missing_table.as_str())
@@ -187,18 +191,16 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
         }
     }
 
-    let actual_constraint_creation = db::create_tables(
-        data.clone(),
-        db::CheckType::Constraint
-    ).await;
+    let actual_constraint_creation =
+        db::create_tables(data.clone(), db::CheckType::Constraint).await;
     let message2: String;
     match actual_constraint_creation {
         Ok(x) => {
             if x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully {
-                message2 = "Tables created successfully".to_string();
+                message2 = "Table constraints created successfully".to_string();
             } else {
                 message2 = format!(
-                    "Tables created, but with errors. {}, {}",
+                    "Table constraints created, but with errors. {}, {}",
                     x.error_message.unwrap_or("".to_string()),
                     x.table_or_function_name
                 );
@@ -209,11 +211,10 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
         }
     }
 
-    result.html =
-        html! {
+    result.html = html! {
         p { "You've run this function " (result.times_run) " times" }
         p { "Creating tables output: " (message) }
-        p { "Creating tables output: " (message2) }
+        p { "Creating table constraints output: " (message2) }
     };
     result
 }
