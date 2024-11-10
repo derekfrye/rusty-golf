@@ -1,9 +1,9 @@
-use crate::model::admin_model::AlphaNum14;
+use crate::model::admin_model::{AdminPage, AlphaNum14};
 
 use actix_web::{web, HttpResponse};
 use std::{collections::HashMap, env};
 
-use super::admin0a::get_html_for_create_tables;
+use super::admin01_tables::get_html_for_create_tables;
 
 const UNAUTHORIZED_BODY: &str = r#"
     <!DOCTYPE html>
@@ -34,7 +34,14 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
         Ok(id) => id,
         Err(_) => AlphaNum14::default(),
     };
-    let p = query.get("p").unwrap_or(&String::new()).trim().to_string();
+    let admin_page = AdminPage::parse(
+        query
+            .get("p")
+            .unwrap_or(&String::new())
+            .trim()
+            .to_string()
+            .as_str(),
+    );
 
     // check query string token against the token this container was started with
     match env::var("TOKEN") {
@@ -47,12 +54,11 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
             } else {
                 // authorized
                 // missing_tables is populated by admin.js, so when empty it means user browsed to this admin page rather than js submitting to it
-                // display admin00
-                if p == "00" {
-                    if query.contains_key("admin00_missing_tables") {
+                if admin_page == AdminPage::TablesAndConstraints {
+                    if query.contains_key("admin01_missing_tables") {
                         get_html_for_create_tables(query).await
                     } else {
-                        let x = crate::controller::templates::admin::admin0a::render_default_page()
+                        let x = crate::controller::templates::admin::admin01_tables::render_default_page()
                             .await;
                         HttpResponse::Ok()
                             .content_type("text/html")
@@ -60,7 +66,7 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
                     }
                     //
                     // admin0x, render the page to create data
-                } else if p == "0x" {
+                } else if admin_page == AdminPage::ZeroX {
                     if query.contains_key("data") {
                         let markup_from_admin =
                             crate::controller::templates::admin::admin0x::display_received_data(

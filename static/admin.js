@@ -61,13 +61,13 @@ document.getElementById('submit').addEventListener('click', function () {
     });
 });
 
-// Handle admin00 table creation
+// Handle admin01 table creation
 document.getElementById('create-missing-tables').addEventListener('click', function () {
     var button = this;
     // Disable the button to prevent multiple clicks
     button.disabled = true;
     // Get the data from the script tag
-    var scriptTag = document.getElementById('admin00_missing_tables').textContent;
+    var scriptTag = document.getElementById('admin01_missing_tables').textContent;
     const unescapedData = scriptTag.replace(/&quot;/g, '"');
     var admin_missing_table_json = JSON.parse(unescapedData);
 
@@ -82,7 +82,7 @@ document.getElementById('create-missing-tables').addEventListener('click', funct
     // Prepare the params for the AJAX call, including the token
     var params = {
         // name your params how they'll appear in your router
-        admin00_missing_tables: JSON.stringify(admin_missing_table_json),
+        admin01_missing_tables: JSON.stringify(admin_missing_table_json),
         times_run: JSON.stringify(times_run_as_json),
         token: token // Add the token to the params
     };

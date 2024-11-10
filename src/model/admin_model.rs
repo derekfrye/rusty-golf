@@ -1,5 +1,5 @@
 use regex::Regex;
-use serde::{de, Deserialize, Deserializer};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::str::FromStr;
 
@@ -119,6 +119,24 @@ impl AlphaNum14 {
             Ok(alpha_num)
         } else {
             Err("Invalid input".to_string())
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq)]
+pub enum AdminPage {
+    Start,
+    TablesAndConstraints,
+    ZeroX,
+}
+
+impl AdminPage {
+    pub fn parse(input: &str) -> Self {
+        match input {
+            "00" => AdminPage::Start,
+            "01" => AdminPage::TablesAndConstraints,
+            "0x" => AdminPage::ZeroX,
+            _ => AdminPage::Start,
         }
     }
 }
