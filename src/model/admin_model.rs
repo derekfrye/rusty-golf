@@ -125,7 +125,7 @@ impl AlphaNum14 {
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum AdminPage {
-    Start,
+    Landing,
     TablesAndConstraints,
     ZeroX,
 }
@@ -133,10 +133,10 @@ pub enum AdminPage {
 impl AdminPage {
     pub fn parse(input: &str) -> Self {
         match input {
-            "00" => AdminPage::Start,
+            "00" => AdminPage::Landing,
             "01" => AdminPage::TablesAndConstraints,
             "0x" => AdminPage::ZeroX,
-            _ => AdminPage::Start,
+            _ => AdminPage::Landing,
         }
     }
 }

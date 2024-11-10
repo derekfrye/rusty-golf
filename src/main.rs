@@ -9,7 +9,7 @@ mod controller {
     pub mod score;
     pub mod templates {
         pub mod admin {
-            pub mod admin;
+            pub mod router;
             pub mod admin01_tables;
             pub mod admin0x;
         }
@@ -18,7 +18,7 @@ mod controller {
     }
 }
 
-use controller::templates::admin::admin;
+use controller::templates::admin::router;
 use model::db;
 use model::model::CacheMap;
 
@@ -142,5 +142,5 @@ async fn scores(
 }
 
 async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
-    admin::router(query).await
+    router::router(query).await
 }
