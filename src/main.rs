@@ -1,27 +1,28 @@
-mod model {
-    pub mod admin_model;
-    pub mod db;
-    pub mod model;
+mod model;
+mod db;
+mod admin {
+    pub mod view {
+        pub mod admin00_landing;
+        pub mod admin01_tables;
+        pub mod admin0x;
+    }
+    pub mod model {
+        pub mod admin_model;
+    }
+    pub mod router;
 }
 mod controller {
     pub mod cache;
     pub mod espn;
     pub mod score;
-    pub mod templates {
-        pub mod admin {
-            pub mod admin00_landing;
-            pub mod admin01_tables;
-            pub mod admin0x;
-            pub mod router;
-        }
-        pub mod index;
-        pub mod score;
-    }
+}
+mod view {
+    pub mod index;
+    pub mod score;
 }
 
-use controller::templates::admin::router;
-use model::db;
-use model::model::CacheMap;
+use admin::router;
+use model::CacheMap;
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -90,7 +91,7 @@ async fn index(query: web::Query<HashMap<String, String>>) -> impl Responder {
         }
     };
 
-    let markup = crate::controller::templates::index::render_index_template(title);
+    let markup = crate::view::index::render_index_template(title);
     HttpResponse::Ok()
         .content_type("text/html")
         .body(markup.into_string())
@@ -154,7 +155,7 @@ async fn scores(
             if json {
                 HttpResponse::Ok().json(cache)
             } else {
-                let markup = crate::controller::templates::score::render_scores_template(&cache);
+                let markup = crate::view::score::render_scores_template(&cache);
                 HttpResponse::Ok()
                     .content_type("text/html")
                     .body(markup.into_string())

@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use crate::model::model::{
-    IntStat, PlayerJsonResponse, ResultStatus, Scores, Statistic, StringStat,
-};
+use crate::model::{IntStat, PlayerJsonResponse, ResultStatus, Scores, Statistic, StringStat};
 use chrono::DateTime;
 use reqwest::Client;
 // use serde::{Deserialize, Serialize};

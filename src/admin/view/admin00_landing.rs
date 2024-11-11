@@ -1,4 +1,7 @@
-use crate::{model::admin_model::{AdminPage, AlphaNum14}, HTMX_PATH};
+use crate::{
+    admin::model::admin_model::{AdminPage, AlphaNum14},
+    HTMX_PATH,
+};
 
 use maud::{html, Markup};
 

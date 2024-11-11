@@ -1,5 +1,5 @@
 use crate::controller::score::{group_by_bettor_name_and_round, group_by_scores};
-use crate::model::model::ScoreData;
+use crate::model::ScoreData;
 
 use maud::{html, Markup};
 

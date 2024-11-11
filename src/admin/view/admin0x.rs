@@ -1,4 +1,7 @@
-use crate::{model::admin_model::{Bettor, Player, PlayerBettorRow, RowData}, HTMX_PATH};
+use crate::{
+    admin::model::admin_model::{Bettor, Player, PlayerBettorRow, RowData},
+    HTMX_PATH,
+};
 
 use actix_web::web;
 use maud::{html, Markup};
@@ -64,7 +67,7 @@ pub async fn render_default_page() -> Markup {
     }
 }
 
-pub fn display_received_data(query: web::Query<HashMap<String, String>>) -> Markup {
+pub fn render_received_data(query: web::Query<HashMap<String, String>>) -> Markup {
     let players = Player::test_data();
     let bettors = Bettor::test_data();
     let data = query

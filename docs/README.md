@@ -28,6 +28,10 @@ DB_PORT=<integers>
 TOKEN=<14-character, composed of ascii alphabet characters and/or numbers>
 ```
 
+## How we use `htmx`
+
+See [htmx documentation](htmx.md) for how we use `htmx`.
+
 [^1]: Well.. *eventually* you'll exclusively use the admin interface for configuration. Right now that's just an aspiration.
 
 [^2]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode.

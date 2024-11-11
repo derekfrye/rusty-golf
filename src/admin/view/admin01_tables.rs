@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::{model::{
-    admin_model::{MissingTables, TimesRun},
+use crate::{
+    admin::model::admin_model::{MissingTables, TimesRun},
     db::{self, test_is_db_setup, TABLES_AND_CREATE_SQL},
-}, HTMX_PATH};
+    HTMX_PATH,
+};
 
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
@@ -99,7 +100,7 @@ async fn do_tables_exist() -> Markup {
     }
 }
 
-pub async fn get_html_for_create_tables(
+pub async fn http_response_for_create_tables(
     query: web::Query<HashMap<String, String>>,
 ) -> HttpResponse {
     let missing_tables = query

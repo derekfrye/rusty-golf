@@ -1,35 +1,45 @@
-use crate::model::model::{ResultStatus, Scores, Statistic};
+use crate::model::{ResultStatus, Scores, Statistic};
 use ::function_name::named;
 use std::env;
 use tokio::time::{timeout, Duration};
 use tokio_postgres::{tls::NoTlsStream, Config, NoTls, Row, Socket};
 
-use super::admin_model::MissingTables;
+use crate::admin::model::admin_model::MissingTables;
 
 pub const TABLES_AND_CREATE_SQL: &[(&str, &str, &str, &str)] = &[
-    ("event", include_str!("sql/schema/00_event.sql"), "", ""),
     (
-        "golfstatistic",
-        include_str!("sql/schema/01_golfstatistic.sql"),
+        "event",
+        include_str!("admin/model/sql/schema/00_event.sql"),
         "",
         "",
     ),
-    ("player", include_str!("sql/schema/02_player.sql"), "", ""),
+    (
+        "golfstatistic",
+        include_str!("admin/model/sql/schema/01_golfstatistic.sql"),
+        "",
+        "",
+    ),
+    (
+        "player",
+        include_str!("admin/model/sql/schema/02_player.sql"),
+        "",
+        "",
+    ),
     (
         "golfuser",
-        include_str!("sql/schema/03_golfuser.sql"),
+        include_str!("admin/model/sql/schema/03_golfuser.sql"),
         "",
         "",
     ),
     (
         "event_user_player",
-        include_str!("sql/schema/04_event_user_player.sql"),
+        include_str!("admin/model/sql/schema/04_event_user_player.sql"),
         "",
         "",
     ),
     (
         "eup_statistic",
-        include_str!("sql/schema/05_eup_statistic.sql"),
+        include_str!("admin/model/sql/schema/05_eup_statistic.sql"),
         "",
         "",
     ),
@@ -40,19 +50,19 @@ pub const TABLES_AND_CONSTRAINTS: &[(&str, &str, &str, &str)] = &[
         "player",
         "UNIQUE",
         "unq_name",
-        include_str!("sql/constraints/01_player.sql"),
+        include_str!("admin/model/sql/constraints/01_player.sql"),
     ),
     (
         "player",
         "UNIQUE",
         "unq_espn_id",
-        include_str!("sql/constraints/02_player.sql"),
+        include_str!("admin/model/sql/constraints/02_player.sql"),
     ),
     (
         "event_user_player",
         "UNIQUE",
         "unq_event_id_user_id_player_id",
-        include_str!("sql/constraints/03_event_user_player.sql"),
+        include_str!("admin/model/sql/constraints/03_event_user_player.sql"),
     ),
 ];
 

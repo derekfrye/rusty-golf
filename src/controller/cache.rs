@@ -1,4 +1,4 @@
-use crate::model::model::{Cache, CacheMap, ScoreData};
+use crate::model::{Cache, CacheMap, ScoreData};
 use chrono::{DateTime, Utc};
 // use serde::{Deserialize, Serialize};
 
