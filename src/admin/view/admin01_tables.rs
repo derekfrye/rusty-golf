@@ -124,7 +124,7 @@ pub async fn http_response_for_create_tables(
 
     HttpResponse::Ok()
         .content_type("text/html")
-        // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in admin.js)
+        // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in js)
         .insert_header(("HX-Trigger", header.to_string()))
         .body(markup_from_admin.html.into_string())
 }

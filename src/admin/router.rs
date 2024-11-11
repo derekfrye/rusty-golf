@@ -41,7 +41,7 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
         if query.contains_key("admin01_missing_tables") {
             http_response_for_create_tables(query).await
         } else {
-            // missing_tables is populated by admin.js, so when empty it means user browsed to this admin page rather than js submitting to it
+            // missing_tables is populated by js, so when empty it means user browsed to this admin page rather than js submitting to it
             let x = crate::admin::view::admin01_tables::render_default_page().await;
             HttpResponse::Ok()
                 .content_type("text/html")

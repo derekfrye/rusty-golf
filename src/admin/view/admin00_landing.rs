@@ -18,7 +18,6 @@ pub async fn render_default_page(token: AlphaNum14) -> Markup {
                 title { "Golf Admin Setup Page" }
                 // Include htmx
                 script src=(HTMX_PATH) defer {}
-                // script src="static/admin00.js" {}
                 link rel="preload" href="static/styles.css" as="style" onload="this.rel='stylesheet'";
             }
             body {

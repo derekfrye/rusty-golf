@@ -61,7 +61,7 @@ pub async fn render_default_page() -> Markup {
                 button type="button" id="add-row" class="hidden" { "Add Row" }
                 button type="button" id="submit" class="hidden" { "Submit" }
                 div id="results" {}
-                script src="static/admin.js" {}
+                // script src="static/admin.js" {}
             }
         }
     }
