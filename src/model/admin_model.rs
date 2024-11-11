@@ -123,7 +123,7 @@ impl AlphaNum14 {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug)]
 pub enum AdminPage {
     Landing,
     TablesAndConstraints,
@@ -137,6 +137,14 @@ impl AdminPage {
             "01" => AdminPage::TablesAndConstraints,
             "0x" => AdminPage::ZeroX,
             _ => AdminPage::Landing,
+        }
+    }
+
+    pub fn get_page_number(&self) -> &str {
+        match self {
+            AdminPage::Landing => "00",
+            AdminPage::TablesAndConstraints => "01",
+            AdminPage::ZeroX => "0x",
         }
     }
 }

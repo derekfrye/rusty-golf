@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::model::{
+use crate::{model::{
     admin_model::{MissingTables, TimesRun},
     db::{self, test_is_db_setup, TABLES_AND_CREATE_SQL},
-};
+}, HTMX_PATH};
 
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
@@ -26,13 +26,13 @@ pub async fn render_default_page() -> Markup {
                 meta charset="utf-8";
                 title { "Golf Admin Setup Page" }
                 // Include htmx
-                script src="https://unpkg.com/htmx.org@1.9.12" {}
-                script src="static/admin01.js" {}
-                link rel="stylesheet" type="text/css" href="static/styles.css";
+                script src=(HTMX_PATH) defer {}
+                script src="static/admin01.js" defer {}
+                link rel="preload" href="static/styles.css" as="style" onload="this.rel='stylesheet'";
             }
             body {
                 div id="results" {}
-                div id="admin-00" {
+                div id="admin-01" {
                     (do_tables_exist)
                 }
             }
@@ -123,7 +123,8 @@ pub async fn get_html_for_create_tables(
 
     HttpResponse::Ok()
         .content_type("text/html")
-        .insert_header(("HX-Trigger", header.to_string())) // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in admin.js)
+        // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in admin.js)
+        .insert_header(("HX-Trigger", header.to_string()))
         .body(markup_from_admin.html.into_string())
 }
 

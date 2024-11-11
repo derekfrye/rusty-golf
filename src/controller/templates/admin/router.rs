@@ -5,41 +5,6 @@ use std::{collections::HashMap, env};
 
 use super::admin01_tables::get_html_for_create_tables;
 
-const UNAUTHORIZED_BODY: &str = r#"
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Unauthorized</title>
-        <style>
-            body { font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center; padding: 50px; }
-            h1 { color: #333; }
-            p { color: #666; }
-        </style>
-    </head>
-    <body>
-        <h1>401 Unauthorized</h1>
-    </body>
-    </html>
-    "#;
-
-const INVALID_ADMIN_BODY: &str = r#"
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Invalid page</title>
-        <style>
-            body { font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center; padding: 50px; }
-            h1 { color: #333; }
-            p { color: #666; }
-        </style>
-    </head>
-    <body>
-        <h1>Sorry, we can't find that admin page.</h1>
-        <p>Check your <pre>p</pre> parameter.</p>
-    </body>
-    </html>
-    "#;
-
 pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse {
     let token_str = query
         .get("token")
@@ -99,7 +64,7 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
         }
     } else if admin_page == AdminPage::Landing {
         let markup =
-            crate::controller::templates::admin::admin00_landing::render_default_page().await;
+            crate::controller::templates::admin::admin00_landing::render_default_page(token).await;
         HttpResponse::Ok()
             .content_type("text/html")
             .body(markup.into_string())
@@ -109,3 +74,38 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
             .body(INVALID_ADMIN_BODY)
     }
 }
+
+const UNAUTHORIZED_BODY: &str = r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Unauthorized</title>
+        <style>
+            body { font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center; padding: 50px; }
+            h1 { color: #333; }
+            p { color: #666; }
+        </style>
+    </head>
+    <body>
+        <h1>401 Unauthorized</h1>
+    </body>
+    </html>
+    "#;
+
+const INVALID_ADMIN_BODY: &str = r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Invalid page</title>
+        <style>
+            body { font-family: Arial, sans-serif; background-color: #f4f4f4; text-align: center; padding: 50px; }
+            h1 { color: #333; }
+            p { color: #666; }
+        </style>
+    </head>
+    <body>
+        <h1>Sorry, we can't find that admin page.</h1>
+        <p>Check your <pre>p</pre> parameter.</p>
+    </body>
+    </html>
+    "#;

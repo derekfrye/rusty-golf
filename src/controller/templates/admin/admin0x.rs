@@ -1,4 +1,4 @@
-use crate::model::admin_model::{Bettor, Player, PlayerBettorRow, RowData};
+use crate::{model::admin_model::{Bettor, Player, PlayerBettorRow, RowData}, HTMX_PATH};
 
 use actix_web::web;
 use maud::{html, Markup};
@@ -16,8 +16,8 @@ pub async fn render_default_page() -> Markup {
                 meta charset="utf-8";
                 title { "Golf Admin 0x" }
                 // Include htmx
-                script src="https://unpkg.com/htmx.org@1.9.12" {}
-                link rel="stylesheet" type="text/css" href="static/styles.css";
+                script src=(HTMX_PATH) defer {}
+                link rel="preload" href="static/styles.css" as="style" onload="this.rel='stylesheet'";
             }
             body {
                 table class="hidden" {

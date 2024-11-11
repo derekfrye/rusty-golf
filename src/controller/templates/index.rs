@@ -1,5 +1,7 @@
 use maud::{html, Markup};
 
+use crate::HTMX_PATH;
+
 pub fn render_index_template(title: String) -> Markup {
     html! {
         (maud::DOCTYPE)
@@ -8,9 +10,9 @@ pub fn render_index_template(title: String) -> Markup {
             meta name="viewport" content="width=device-width, initial-scale=1.0";
             link rel="stylesheet" type="text/css" href="static/styles.css";
             title { (title) }
-            script src="https://unpkg.com/htmx.org@1.9.12" {}
-            script src="static/tablesort.js" {}
-            script src="static/params.js" {}
+            script src=(HTMX_PATH) defer {}
+            script src="static/tablesort.js" defer {}
+            script src="static/params.js" defer {}
         }
         body {
             h1 {

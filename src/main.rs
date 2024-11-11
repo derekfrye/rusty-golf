@@ -33,6 +33,8 @@ use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
+const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let dotenv_path = dotenv::dotenv();
