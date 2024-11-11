@@ -23,9 +23,7 @@ pub async fn render_default_page(token: AlphaNum14) -> Markup {
             body {
                 div id="results" {}
                 a href=(nn) {
-                    button {
                         "1. Check database tables"
-                    }
                 }
             }
         }
