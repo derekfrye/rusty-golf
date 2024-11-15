@@ -21,6 +21,7 @@ actix-files = "0.6"
 actix-rt = "2.5"
 regex = "1"
 function_name = "0.3"
+deadpool-postgres = "0.14"
 
 
 [dependencies.tokio-util]

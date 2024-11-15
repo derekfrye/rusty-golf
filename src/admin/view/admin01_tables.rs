@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::{MissingTables, TimesRun},
-    db::{self, test_is_db_setup, CheckType, TABLES_AND_DDL},
+    admin::model::admin_model::{MissingDbObjects, TimesRun},
+   db::db::{self, CheckType},
     HTMX_PATH,
 };
 
@@ -10,15 +10,25 @@ use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
 
+#[derive(Debug, Clone, Copy)]
 pub struct CreateTableReturn {
     pub html: Markup,
     pub times_run: Value,
     pub times_run_int: i32,
 }
+impl CreateTableReturn{
+
+pub fn new() -> Self {
+    Self {
+        html: html!(p { "No data" }),
+        times_run: json!({ "times_run": 0 }),
+        times_run_int: 0,
+    }
+}
 
 // Render the main page
 pub async fn render_default_page() -> Markup {
-    let do_tables_exist = do_tables_exist(true).await;
+    let do_tables_exist = do_tables_exist(true, CheckType::Table).await;
 
     html! {
         (maud::DOCTYPE)
@@ -42,53 +52,103 @@ pub async fn render_default_page() -> Markup {
 }
 
 pub async fn check_if_tables_exist() -> Markup {
-    let do_tables_exist = do_tables_exist(false).await;
+    let do_tables_exist = do_tables_exist(false, CheckType::Table).await;
     do_tables_exist
 }
 
-async fn do_tables_exist(detailed_output: bool, check_type: CheckType ) -> Markup {
-    let are_db_tables_setup = test_is_db_setup().await.unwrap();
+pub async fn check_if_constraints_exist() -> Markup {
+    let do_tables_exist = do_tables_exist(false, CheckType::Constraint).await;
+    do_tables_exist
+}
 
-    let all_tables_setup = are_db_tables_setup
+async fn do_tables_exist(detailed_output: bool, check_type: CheckType) -> Markup {
+    let db_obj_setup_state = test_is_db_setup(&check_type).await.unwrap();
+
+    let all_objs_setup_successfully = db_obj_setup_state
         .iter()
         .all(|x| x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully);
 
     let mut json_data = json!([]);
     let mut last_message = String::new();
-    if !all_tables_setup {
-        let missing_tables = are_db_tables_setup
+    if !all_objs_setup_successfully {
+        let missing_objs = db_obj_setup_state
             .iter()
             .filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully);
 
-        match missing_tables.clone().into_iter().last() {
+        match missing_objs.clone().into_iter().last() {
             Some(x) => {
                 last_message = x.error_message.clone().unwrap_or("".to_string());
             }
             None => {}
         }
 
-        let list_of_missing_tables: Vec<_> = missing_tables
-            .map(|x| json!({ "missing_table": x.table_or_function_name.clone() }))
+        let list_of_missing_objs: Vec<_> = missing_objs
+            .map(|x| json!({ "missing_object": x.db_object_name.clone() }))
             .collect();
 
         // Serialize the array of missing tables to JSON
-        json_data = json!(list_of_missing_tables);
+        json_data = json!(list_of_missing_objs);
     }
+
+    struct CheckTypeData<'a> {
+        missing_item_id: &'a str,
+        all_items_setup_p: &'a str,
+        all_items_not_setup_p: String,
+        create_missing_obj_id: &'a str,
+        create_missing_obj_p: &'a str,
+        create_obj_results_id: &'a str,
+    }
+
+    fn get_check_type_data<'a>(check_type: &CheckType, last_message: &str) -> CheckTypeData<'a> {
+        match check_type {
+            CheckType::Table => CheckTypeData {
+                missing_item_id: "admin01_missing_tables",
+                all_items_setup_p: "All tables are setup.",
+                all_items_not_setup_p: format!(
+                    "Not all tables are setup. Last error: {}",
+                    last_message
+                ),
+                create_missing_obj_id: "create-missing-tables",
+                create_missing_obj_p: "Create missing tables",
+                create_obj_results_id: "create-table-results",
+            },
+            CheckType::Constraint => CheckTypeData {
+                missing_item_id: "admin01_missing_constraints",
+                all_items_setup_p: "All constraints are setup.",
+                all_items_not_setup_p: format!(
+                    "Not all constraints are setup. Last error: {}",
+                    last_message
+                ),
+                create_missing_obj_id: "create-missing-constraints",
+                create_missing_obj_p: "Create missing constraints",
+                create_obj_results_id: "create-constraint-results",
+            },
+        }
+    }
+
+    let data = get_check_type_data(&check_type, &last_message);
+
+    let missing_item_id = data.missing_item_id;
+    let all_items_setup_p = data.all_items_setup_p;
+    let all_items_not_setup_p = data.all_items_not_setup_p;
+    let create_missing_obj_id = data.create_missing_obj_id;
+    let create_missing_obj_p = data.create_missing_obj_p;
+    let create_obj_results_id = data.create_obj_results_id;
 
     let times_run = json!({ "times_run": 0 });
 
     html! {
         @if detailed_output {
-            @for dbresult in are_db_tables_setup.iter().filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully) {
+            @for dbresult in db_obj_setup_state.iter().filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully) {
                 @let message = format!("db result: {:?}, table name: {}, db err msg: {}"
                     , dbresult.db_last_exec_state
-                    , dbresult.table_or_function_name
+                    , dbresult.db_object_name
                     , dbresult.error_message.clone().unwrap_or("".to_string())
                 );
                 p { (message) }
             }
 
-            script type="application/json" id="admin01_missing_tables" {
+            script type="application/json" id=(missing_item_id) {
                 (json_data)
             }
 
@@ -97,20 +157,20 @@ async fn do_tables_exist(detailed_output: bool, check_type: CheckType ) -> Marku
             }
         }
 
-        @if all_tables_setup {
-            p { "All tables are setup." }
+        @if all_objs_setup_successfully {
+            p { (all_items_setup_p) }
         } @else {
             @if detailed_output {
              button
                 data-hx-trigger="reenablebutton from:body"
-                id="create-missing-tables"
+                id=(create_missing_obj_id)
                 {
-                    "Create missing tables"
+                    (create_missing_obj_p)
                 }
-                div id="create-table-results"  {}
+                div id=(create_obj_results_id)  {}
             }
             @else {
-                p { "Not all tables are setup. Last error: " (last_message) }
+                p { (all_items_not_setup_p) }
             }
         }
     }
@@ -153,7 +213,7 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
         times_run: json!({ "times_run": 0 }),
         times_run_int: 0,
     };
-    let data: Vec<MissingTables> = match serde_json::from_str(&data) {
+    let data: Vec<MissingDbObjects> = match serde_json::from_str(&data) {
         Ok(d) => d,
         Err(e) => {
             let message = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
@@ -176,14 +236,14 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
 
     // data validation: we only want to create tables where we match on table names
     // otherwise who knows wth we're creating in our db
-    let data: Vec<MissingTables> = data
+    let data: Vec<MissingDbObjects> = data
         .into_iter()
         .filter(|x| {
             TABLES_AND_DDL
                 .iter()
                 .map(|x| x.0)
                 .collect::<Vec<_>>()
-                .contains(&x.missing_table.as_str())
+                .contains(&x.missing_object.as_str())
         })
         .collect();
 
@@ -191,18 +251,18 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     result.times_run = json!({ "times_run": times_run_int });
     result.times_run_int = times_run_int;
 
-    let actual_table_creation = db::create_tables(data.clone(), db::CheckType::Table).await;
+    let actual_table_creation =create_tables(data.clone(),CheckType::Table).await;
 
     let message: String;
     match actual_table_creation {
         Ok(x) => {
-            if x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully {
+            if x.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
                 message = "Tables created successfully".to_string();
             } else {
                 message = format!(
                     "Tables created, but with errors. {}, {}",
                     x.error_message.unwrap_or("".to_string()),
-                    x.table_or_function_name
+                    x.db_object_name
                 );
             }
         }
@@ -212,17 +272,17 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     }
 
     let actual_constraint_creation =
-        db::create_tables(data.clone(), db::CheckType::Constraint).await;
+        db::create_tables(data.clone(),CheckType::Constraint).await;
     let message2: String;
     match actual_constraint_creation {
         Ok(x) => {
-            if x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully {
+            if x.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
                 message2 = "Table constraints created successfully".to_string();
             } else {
                 message2 = format!(
                     "Table constraints created, but with errors. {}, {}",
                     x.error_message.unwrap_or("".to_string()),
-                    x.table_or_function_name
+                    x.db_object_name
                 );
             }
         }
@@ -257,4 +317,5 @@ fn parse_into_times_run(input: &str) -> Option<TimesRun> {
             }
         }
     }
+}
 }

@@ -47,8 +47,8 @@ impl Bettor {
 
 // we need this to deserialize the json, even though it seems trivial, it's needed for data validation
 #[derive(Deserialize, Debug, Clone)]
-pub struct MissingTables {
-    pub missing_table: String,
+pub struct MissingDbObjects {
+    pub missing_object: String,
 }
 
 #[derive(Debug)]

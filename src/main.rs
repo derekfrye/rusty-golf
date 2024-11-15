@@ -1,5 +1,8 @@
 mod model;
-mod db;
+mod db{
+    pub mod query;
+    pub mod db;
+}
 mod admin {
     pub mod view {
         pub mod admin00_landing;
@@ -21,7 +24,7 @@ mod view {
     pub mod score;
 }
 
-use admin::router;
+use admin::router::{self, AdminRouter};
 use model::CacheMap;
 
 use actix_web::web::Data;
@@ -39,6 +42,7 @@ const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let dotenv_path = dotenv::dotenv();
+    let router = router::AdminRouter::new();
     // print the filename it loaded from
     if dotenv::dotenv().is_ok() {
         dbg!(
@@ -56,6 +60,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(cache_map.clone()))
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
+            .app_data(Data::new(router))
             .route("/admin", web::get().to(admin))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
@@ -164,7 +169,7 @@ async fn scores(
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
 }
+async fn admin(query: web::Query<HashMap<String, String>>, router: Data<AdminRouter>) -> HttpResponse {
 
-async fn admin(query: web::Query<HashMap<String, String>>) -> HttpResponse {
-    router::router(query).await
+    router.router(query).await
 }

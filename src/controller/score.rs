@@ -1,6 +1,6 @@
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::db::get_golfers_from_db;
+use crate::db::db::get_golfers_from_db;
 use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, SummaryScore, SummaryScores};
 
 use std::collections::{BTreeMap, HashMap};
