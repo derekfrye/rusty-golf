@@ -173,8 +173,8 @@ impl ConnectionParams {
 }
 
 #[named]
-/// Check if tables are setup. Does not check if constraints are setup; assumes those were created during table creation.
-pub async fn test_is_db_setup() -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
+/// Check if tables or constraints are setup.
+pub async fn test_is_db_setup(check_type: CheckType) -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
     let mut dbresults = vec![];
 
     for table in TABLES_AND_CREATE_SQL.iter() {

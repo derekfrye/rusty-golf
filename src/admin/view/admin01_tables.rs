@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     admin::model::admin_model::{MissingTables, TimesRun},
-    db::{self, test_is_db_setup, TABLES_AND_CREATE_SQL},
+    db::{self, test_is_db_setup, CheckType, TABLES_AND_CREATE_SQL},
     HTMX_PATH,
 };
 
@@ -46,7 +46,7 @@ pub async fn check_if_tables_exist() -> Markup {
     do_tables_exist
 }
 
-async fn do_tables_exist(detailed_output: bool) -> Markup {
+async fn do_tables_exist(detailed_output: bool, check_type: CheckType ) -> Markup {
     let are_db_tables_setup = test_is_db_setup().await.unwrap();
 
     let all_tables_setup = are_db_tables_setup
@@ -56,23 +56,23 @@ async fn do_tables_exist(detailed_output: bool) -> Markup {
     let mut json_data = json!([]);
     let mut last_message = String::new();
     if !all_tables_setup {
-        let missing_tablesx = are_db_tables_setup
+        let missing_tables = are_db_tables_setup
             .iter()
             .filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully);
 
-        match missing_tablesx.clone().into_iter().last() {
+        match missing_tables.clone().into_iter().last() {
             Some(x) => {
                 last_message = x.error_message.clone().unwrap_or("".to_string());
             }
             None => {}
         }
 
-        let missing_tables: Vec<_> = missing_tablesx
+        let list_of_missing_tables: Vec<_> = missing_tables
             .map(|x| json!({ "missing_table": x.table_or_function_name.clone() }))
             .collect();
 
         // Serialize the array of missing tables to JSON
-        json_data = json!(missing_tables);
+        json_data = json!(list_of_missing_tables);
     }
 
     let times_run = json!({ "times_run": 0 });
@@ -232,7 +232,7 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     }
 
     result.html = html! {
-        p { "You've run this function " (result.times_run) " times" }
+        p { "You've run this function " (result.times_run_int) " times." }
         p { "Creating tables output: " (message) }
         p { "Creating table constraints output: " (message2) }
     };
