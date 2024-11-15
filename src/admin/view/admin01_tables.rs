@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     admin::model::admin_model::{MissingTables, TimesRun},
-    db::{self, test_is_db_setup, CheckType, TABLES_AND_CREATE_SQL},
+    db::{self, test_is_db_setup, CheckType, TABLES_AND_DDL},
     HTMX_PATH,
 };
 
@@ -179,7 +179,7 @@ async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     let data: Vec<MissingTables> = data
         .into_iter()
         .filter(|x| {
-            TABLES_AND_CREATE_SQL
+            TABLES_AND_DDL
                 .iter()
                 .map(|x| x.0)
                 .collect::<Vec<_>>()

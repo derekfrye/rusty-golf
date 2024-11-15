@@ -6,7 +6,7 @@ use tokio_postgres::{tls::NoTlsStream, Config, NoTls, Row, Socket};
 
 use crate::admin::model::admin_model::MissingTables;
 
-pub const TABLES_AND_CREATE_SQL: &[(&str, &str, &str, &str)] = &[
+pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
     (
         "event",
         include_str!("admin/model/sql/schema/00_event.sql"),
@@ -45,7 +45,7 @@ pub const TABLES_AND_CREATE_SQL: &[(&str, &str, &str, &str)] = &[
     ),
 ];
 
-pub const TABLES_AND_CONSTRAINTS: &[(&str, &str, &str, &str)] = &[
+pub const TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL: &[(&str, &str, &str, &str)] = &[
     (
         "player",
         "UNIQUE",
@@ -177,7 +177,7 @@ impl ConnectionParams {
 pub async fn test_is_db_setup(check_type: CheckType) -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
     let mut dbresults = vec![];
 
-    for table in TABLES_AND_CREATE_SQL.iter() {
+    for table in TABLES_AND_DDL.iter() {
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
         dbresult.table_or_function_name = table.0.to_string();
         let state = check_table_exists(table.0, CheckType::Table, function_name!()).await;
@@ -261,12 +261,12 @@ pub async fn create_tables(
 
     if check_type == CheckType::Table {
         for table in tables.iter().take_while(|xa| {
-            TABLES_AND_CREATE_SQL
+            TABLES_AND_DDL
                 .iter()
                 .any(|af| af.0 == xa.missing_table.as_str())
         }) {
             let create_table_attempt = create_tbl(
-                TABLES_AND_CREATE_SQL,
+                TABLES_AND_DDL,
                 table.missing_table.clone(),
                 CheckType::Table,
             )
@@ -289,9 +289,9 @@ pub async fn create_tables(
 
         return_result.db_last_exec_state = DatabaseSetupState::QueryReturnedSuccessfully;
     } else {
-        for table in TABLES_AND_CONSTRAINTS.iter() {
+        for table in TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL.iter() {
             let create_constraint_attempt = create_tbl(
-                TABLES_AND_CONSTRAINTS,
+                TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL,
                 table.0.to_string(),
                 CheckType::Constraint,
             )
@@ -335,12 +335,12 @@ async fn check_table_exists(
         query = format!(
             "SELECT 1 FROM information_schema.table_constraints WHERE table_name = $1 AND constraint_type = $2 and constraint_name = $3 LIMIT 1;"
         );
-        constraint_type = TABLES_AND_CONSTRAINTS
+        constraint_type = TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL
             .iter()
             .find(|x| x.0 == table_name)
             .unwrap()
             .1;
-        constraint_name = TABLES_AND_CONSTRAINTS
+        constraint_name = TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL
             .iter()
             .find(|x| x.0 == table_name)
             .unwrap()
