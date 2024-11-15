@@ -1,6 +1,7 @@
 use crate::admin::model::admin_model::{AdminPage, AlphaNum14};
 
 use actix_web::{web, HttpResponse};
+use maud::PreEscaped;
 use std::{collections::HashMap, env};
 
 use super::view::admin01_tables::http_response_for_create_tables;
@@ -26,50 +27,46 @@ pub async fn router(query: web::Query<HashMap<String, String>>) -> HttpResponse 
             .as_str(),
     );
 
+    let returned_html_content: PreEscaped<String>;
     // the token determines authorized access or not
     // see README if you're trying to figure out how to set this
     if let Ok(env_token) = env::var("TOKEN") {
         // unauthorized
         if env_token != token.value() {
-            return HttpResponse::Unauthorized()
-                .content_type("text/html; charset=utf-8")
-                .body(UNAUTHORIZED_BODY);
+            returned_html_content = PreEscaped(UNAUTHORIZED_BODY.to_string());
+            return HttpResponse::Ok()
+                .content_type("text/html")
+                .body(returned_html_content.into_string());
         }
     }
-
-    if admin_page == AdminPage::TablesAndConstraints {
-        if query.contains_key("admin01_missing_tables") {
-            http_response_for_create_tables(query).await
-        } else {
-            // missing_tables is populated by js, so when empty it means user browsed to this admin page rather than js submitting to it
-            let x = crate::admin::view::admin01_tables::render_default_page().await;
-            HttpResponse::Ok()
-                .content_type("text/html")
-                .body(x.into_string())
-        }
+    // default page if p is empty in query string
+    if admin_page == AdminPage::Landing {
+        returned_html_content = crate::admin::view::admin00_landing::render_default_page(token).await;
     } else if admin_page == AdminPage::ZeroX {
         if query.contains_key("data") {
-            let markup_from_admin = crate::admin::view::admin0x::render_received_data(query);
-            HttpResponse::Ok()
-                .content_type("text/html")
-                .body(markup_from_admin.into_string())
+            returned_html_content = crate::admin::view::admin0x::render_received_data(query);
         } else {
-            let markup = crate::admin::view::admin0x::render_default_page().await;
-
-            HttpResponse::Ok()
-                .content_type("text/html")
-                .body(markup.into_string())
+            returned_html_content = crate::admin::view::admin0x::render_default_page().await;
         }
-    } else if admin_page == AdminPage::Landing {
-        let markup = crate::admin::view::admin00_landing::render_default_page(token).await;
-        HttpResponse::Ok()
-            .content_type("text/html")
-            .body(markup.into_string())
+    } else if admin_page == AdminPage::TablesAndConstraints {
+        if query.contains_key("admin01_missing_tables") {
+            // we have special headers in this response
+            return http_response_for_create_tables(query).await;
+        } else if query.contains_key("from_landing_page") {
+            // we're on the main landing page, and checking if the db tables exist
+            returned_html_content = crate::admin::view::admin01_tables::check_if_tables_exist().await;
+        } else {
+            // admin01_missing_tables is populated by js when user already on this page
+            // so if empty it means we need to render default page
+            returned_html_content = crate::admin::view::admin01_tables::render_default_page().await;
+        }
     } else {
-        HttpResponse::Ok()
-            .content_type("text/html; charset=utf-8")
-            .body(INVALID_ADMIN_BODY)
+        returned_html_content = PreEscaped(INVALID_ADMIN_BODY.to_string());
     }
+
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(returned_html_content.into_string())
 }
 
 const UNAUTHORIZED_BODY: &str = r#"

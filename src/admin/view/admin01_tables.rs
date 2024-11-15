@@ -18,7 +18,7 @@ pub struct CreateTableReturn {
 
 // Render the main page
 pub async fn render_default_page() -> Markup {
-    let do_tables_exist = do_tables_exist().await;
+    let do_tables_exist = do_tables_exist(true).await;
 
     html! {
         (maud::DOCTYPE)
@@ -41,7 +41,12 @@ pub async fn render_default_page() -> Markup {
     }
 }
 
-async fn do_tables_exist() -> Markup {
+pub async fn check_if_tables_exist() -> Markup {
+    let do_tables_exist = do_tables_exist(false).await;
+    do_tables_exist
+}
+
+async fn do_tables_exist(detailed_output: bool) -> Markup {
     let are_db_tables_setup = test_is_db_setup().await.unwrap();
 
     let all_tables_setup = are_db_tables_setup
@@ -49,10 +54,20 @@ async fn do_tables_exist() -> Markup {
         .all(|x| x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully);
 
     let mut json_data = json!([]);
+    let mut last_message = String::new();
     if !all_tables_setup {
-        let missing_tables: Vec<_> = are_db_tables_setup
+        let missing_tablesx = are_db_tables_setup
             .iter()
-            .filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully)
+            .filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully);
+
+        match missing_tablesx.clone().into_iter().last() {
+            Some(x) => {
+                last_message = x.error_message.clone().unwrap_or("".to_string());
+            }
+            None => {}
+        }
+
+        let missing_tables: Vec<_> = missing_tablesx
             .map(|x| json!({ "missing_table": x.table_or_function_name.clone() }))
             .collect();
 
@@ -63,43 +78,45 @@ async fn do_tables_exist() -> Markup {
     let times_run = json!({ "times_run": 0 });
 
     html! {
-        @for dbresult in are_db_tables_setup.iter().filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully) {
-            @let message = format!("db result: {:?}, table name: {}, db err msg: {}"
-                , dbresult.db_last_exec_state
-                , dbresult.table_or_function_name
-                , dbresult.error_message.clone().unwrap_or("".to_string())
-            );
-            p { (message) }
-        }
+        @if detailed_output {
+            @for dbresult in are_db_tables_setup.iter().filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully) {
+                @let message = format!("db result: {:?}, table name: {}, db err msg: {}"
+                    , dbresult.db_last_exec_state
+                    , dbresult.table_or_function_name
+                    , dbresult.error_message.clone().unwrap_or("".to_string())
+                );
+                p { (message) }
+            }
 
-        script type="application/json" id="admin01_missing_tables" {
-            (json_data)
-        }
+            script type="application/json" id="admin01_missing_tables" {
+                (json_data)
+            }
 
-        script type="application/json" id="times_run" {
-            { (times_run) }
+            script type="application/json" id="times_run" {
+                { (times_run) }
+            }
         }
 
         @if all_tables_setup {
-            p { "All tables are setup" }
-            button
-            id="goto-admin-01"
-            {
-                "Next: Check database functions"
-            }
+            p { "All tables are setup." }
         } @else {
-            button
-            hx-trigger="reenablebutton from:body"
-            id="create-missing-tables"
-            {
-                "Create missing tables"
+            @if detailed_output {
+             button
+                data-hx-trigger="reenablebutton from:body"
+                id="create-missing-tables"
+                {
+                    "Create missing tables"
+                }
+                div id="create-table-results"  {}
+            }
+            @else {
+                p { "Not all tables are setup. Last error: " (last_message) }
             }
         }
-
-        div id="create-table-results"  {}
     }
 }
 
+/// Return bit of html indicating if tables created, plus some headers to trigger htmx
 pub async fn http_response_for_create_tables(
     query: web::Query<HashMap<String, String>>,
 ) -> HttpResponse {
@@ -114,21 +131,22 @@ pub async fn http_response_for_create_tables(
         .trim()
         .to_string();
 
-    let markup_from_admin = create_tables(missing_tables, times_run).await;
+    let create_tables_html = create_tables(missing_tables, times_run).await;
 
     // dbg!("markup_from_admin", &markup_from_admin.times_run_int);
 
     let header = json!({"reenablebutton": "1",
-           "times_run": markup_from_admin.times_run_int
+           "times_run": create_tables_html.times_run_int
     });
 
     HttpResponse::Ok()
         .content_type("text/html")
         // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in js)
         .insert_header(("HX-Trigger", header.to_string()))
-        .body(markup_from_admin.html.into_string())
+        .body(create_tables_html.html.into_string())
 }
 
+/// try creating the tables and return small bit of html for outcome
 async fn create_tables(data: String, times_run: String) -> CreateTableReturn {
     let mut result = CreateTableReturn {
         html: html!(p { "No data" }),
