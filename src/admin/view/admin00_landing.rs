@@ -21,10 +21,17 @@ pub async fn render_default_page(token: AlphaNum14) -> Markup {
                 link rel="preload" href="static/styles.css" as="style" onload="this.rel='stylesheet'";
             }
             body {
+                div class="grid-container" {
+                    div id="landing_grid_1" {"checking 1..."}
+                    div id="landing_grid_2" {"checking 2..."}
+                    div id="landing_grid_3" {"checking 3..."}
+                    div id="landing_grid_4" {"checking 4..."}
+                }
                 div id="results" {}
                 a href=(nn) {
                         "1. Check database tables"
                 }
+                script src="static/admin_landing.js" defer {}
             }
         }
     }

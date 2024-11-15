@@ -162,3 +162,25 @@ p.refresh {
 .hidden {
     display: none;
 }
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    grid-template-rows: auto auto;  /* Two rows */
+    gap: 10px;                      /* Space between cells */
+    margin-bottom: 20px;            /* Space below the grid */
+}
+
+.grid-container > div {
+    background-color: #fff;         /* White background */
+    padding: 20px;                  /* Space inside cells */
+    border: 1px solid #ddd;         /* Light gray border */
+    text-align: center;             /* Center text horizontally */
+    font-size: 16px;                /* Adjust font size as needed */
+    color: #333;                    /* Text color matching existing scheme */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+}
+
+.grid-container > div#landing_grid_1 {
+    /* Additional styles for the first cell if needed */
+}

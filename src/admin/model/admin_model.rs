@@ -131,6 +131,7 @@ pub enum AdminPage {
 }
 
 impl AdminPage {
+    /// Defaults to the landing page
     pub fn parse(input: &str) -> Self {
         match input {
             "00" => AdminPage::Landing,
