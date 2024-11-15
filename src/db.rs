@@ -358,7 +358,7 @@ async fn check_table_exists(
         && check_type == CheckType::Table
         && calling_function == "create_tbl"
     {
-        println!("here.");
+        dbg!("here.");
     }
 
     let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
@@ -505,7 +505,7 @@ async fn exec_general_query(
                 && format!("{:?}", query_params[2]).trim_matches('"') == r#"unq_name"#
                 && format!("{:?}", query_params[0]).trim_matches('"') == r#"player"#
             {
-                println!("here.");
+                dbg!("here.");
             }
 
             match row {

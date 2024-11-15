@@ -175,7 +175,7 @@ p.refresh {
     background-color: #fff;         /* White background */
     padding: 20px;                  /* Space inside cells */
     border: 1px solid #ddd;         /* Light gray border */
-    text-align: center;             /* Center text horizontally */
+    text-align: left;             /* Center text horizontally */
     font-size: 16px;                /* Adjust font size as needed */
     color: #333;                    /* Text color matching existing scheme */
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.05); /* Subtle shadow */
@@ -183,4 +183,19 @@ p.refresh {
 
 .grid-container > div#landing_grid_1 {
     /* Additional styles for the first cell if needed */
+}
+
+/* Styles for cell headers */
+.cell-header {
+    font-size: 14px;             /* Adjust font size as needed */
+    font-weight: bold;
+    text-transform: uppercase;   /* Convert text to all caps */
+    color: #777;                 /* Medium light grey font */
+    margin-bottom: 8px;          /* Space between header and body */
+}
+
+/* Styles for cell bodies */
+.cell-body {
+    font-size: 12px;             /* Adjust font size as needed */
+    color: #999;                 /* Lighter grey for body text */
 }

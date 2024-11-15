@@ -22,10 +22,22 @@ pub async fn render_default_page(token: AlphaNum14) -> Markup {
             }
             body {
                 div class="grid-container" {
-                    div id="landing_grid_1" {"checking 1..."}
-                    div id="landing_grid_2" {"checking 2..."}
-                    div id="landing_grid_3" {"checking 3..."}
-                    div id="landing_grid_4" {"checking 4..."}
+                    div id="landing_grid_1" {
+                        div id="cell_header_1" class="cell-header" { "TABLES" }
+                        div id="cell_body_1" class="cell-body" {"Checking..."}
+                    }
+                    div id="landing_grid_2" {
+                        div id="cell_header_2" class="cell-header" { "CONSTRAINTS" }
+                        div id="cell_body_2" class="cell-body" {"Checking..."}
+                    }
+                    div id="landing_grid_3" {
+                        div id="cell_header_3" class="cell-header" { "FUNCTIONS" }
+                        div id="cell_body_3" class="cell-body" {"Checking..."}
+                    }
+                    div id="landing_grid_4" {
+                        div id="cell_header_4" class="cell-header" { "SOMETHING" }
+                        div id="cell_body_4" class="cell-body" {"Checking..."}
+                    }
                 }
                 div id="results" {}
                 a href=(nn) {

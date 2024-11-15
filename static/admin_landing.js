@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Use htmx to make the GET request and swap the content into landing_grid_1
     htmx.ajax('GET', 'admin?' + queryString, {
-        target: '#landing_grid_1',
+        target: '#cell_body_1',
         swap: 'innerHTML',
     });
 });
