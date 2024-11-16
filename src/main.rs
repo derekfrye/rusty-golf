@@ -1,5 +1,5 @@
 mod model;
-mod db{
+mod db {
     // pub mod query;
     pub mod db;
 }
@@ -24,7 +24,7 @@ mod view {
     pub mod score;
 }
 
-use admin::router ;
+use admin::router;
 use db::db::{Db, DbConfigAndPool};
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use model::CacheMap;
@@ -45,9 +45,8 @@ const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    
     let dotenv_path = dotenv::dotenv();
-    
+
     // print the filename it loaded from
     if dotenv::dotenv().is_ok() {
         dbg!(
@@ -66,7 +65,7 @@ async fn main() -> std::io::Result<()> {
         // set the password to the contents of the file
         db_pwd = contents.trim().to_string();
     }
-let mut cfg = deadpool_postgres::Config::new();
+    let mut cfg = deadpool_postgres::Config::new();
     cfg.dbname = Some(env::var("DB_NAME").unwrap());
     cfg.host = Some(env::var("DB_HOST").unwrap());
     cfg.port = Some(env::var("DB_PORT").unwrap().parse::<u16>().unwrap());
@@ -76,7 +75,7 @@ let mut cfg = deadpool_postgres::Config::new();
     cfg.manager = Some(ManagerConfig {
         recycling_method: RecyclingMethod::Fast,
     });
-let dbcn = DbConfigAndPool::new(cfg).unwrap();
+    let dbcn = DbConfigAndPool::new(cfg).unwrap();
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
 
@@ -85,9 +84,7 @@ let dbcn = DbConfigAndPool::new(cfg).unwrap();
             .app_data(Data::new(cache_map.clone()))
             .app_data(Data::new(dbcn.clone()))
             .route("/", web::get().to(index))
-            
             .route("/scores", web::get().to(scores))
-            
             .route("/admin", web::get().to(admin))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
@@ -96,9 +93,11 @@ let dbcn = DbConfigAndPool::new(cfg).unwrap();
     .await
 }
 
-async fn index(query: web::Query<HashMap<String, String>>, abc: Data<DbConfigAndPool>) -> impl Responder {
-
-let mut db = Db::new(abc.get_ref().clone()).unwrap();
+async fn index(
+    query: web::Query<HashMap<String, String>>,
+    abc: Data<DbConfigAndPool>,
+) -> impl Responder {
+    let mut db = Db::new(abc.get_ref().clone()).unwrap();
 
     let event_str = query
         .get("event")
@@ -108,10 +107,11 @@ let mut db = Db::new(abc.get_ref().clone()).unwrap();
     let mut title = "Scoreboard".to_string();
     let _: i32 = match event_str.parse() {
         Ok(id) => {
-            let title_test =  db. get_title_from_db(id).await;
+            let title_test = db.get_title_from_db(id).await;
             match title_test {
                 Ok(t) => {
-                    if t.db_last_exec_state == db::db::DatabaseSetupState::QueryReturnedSuccessfully {
+                    if t.db_last_exec_state == db::db::DatabaseSetupState::QueryReturnedSuccessfully
+                    {
                         title = t.return_result.clone();
                     }
                 }
@@ -134,10 +134,10 @@ let mut db = Db::new(abc.get_ref().clone()).unwrap();
 
 async fn scores(
     cache_map: Data<CacheMap>,
-    query: web::Query<HashMap<String, String>>, abc: Data<DbConfigAndPool>,
+    query: web::Query<HashMap<String, String>>,
+    abc: Data<DbConfigAndPool>,
 ) -> impl Responder {
-
-    let  db = Db::new(abc.get_ref().clone()).unwrap();
+    let db = Db::new(abc.get_ref().clone()).unwrap();
 
     let event_str = query
         .get("event")
@@ -205,9 +205,12 @@ async fn scores(
     }
 }
 
-async fn admin(query: web::Query<HashMap<String, String>>, abc: Data<DbConfigAndPool>) -> HttpResponse {
-    let  db = Db::new(abc.get_ref().clone()).unwrap();
+async fn admin(
+    query: web::Query<HashMap<String, String>>,
+    abc: Data<DbConfigAndPool>,
+) -> HttpResponse {
+    let db = Db::new(abc.get_ref().clone()).unwrap();
     let mut router = router::AdminRouter::new();
     // let mut db = Db::new(abc.get_ref().clone()).unwrap();
-    router.router(query,db).await
+    router.router(query, db).await
 }
