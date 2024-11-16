@@ -1,6 +1,6 @@
 use deadpool_postgres::{Config, ManagerConfig, Pool, RecyclingMethod, Runtime};
-use tokio_postgres::{NoTls, Row};
 use std::env;
+use tokio_postgres::{NoTls, Row};
 
 use crate::db::db::{DatabaseResult, DatabaseSetupState};
 
@@ -26,10 +26,10 @@ impl Query {
     pub fn get_pool(&mut self) -> Result<&Pool, Box<dyn std::error::Error>> {
         if self.pool.is_none() {
             // Set default values or use environment variables
-   self.config.dbname = Some(env::var("DB_NAME").unwrap());
-   self.config.host = Some(env::var("DB_HOST").unwrap());
-   self.config.port = Some(env::var("DB_PORT").unwrap().parse::<u16>().unwrap());
-   self.config.user = Some(env::var("DB_USER").unwrap());
+            self.config.dbname = Some(env::var("DB_NAME").unwrap());
+            self.config.host = Some(env::var("DB_HOST").unwrap());
+            self.config.port = Some(env::var("DB_PORT").unwrap().parse::<u16>().unwrap());
+            self.config.user = Some(env::var("DB_USER").unwrap());
             // Handle `DB_PASSWORD` and secret file reading
             let mut db_pwd = env::var("DB_PASSWORD").unwrap_or_else(|_| "password".to_string());
             if db_pwd == "/secrets/db_password" {
@@ -110,17 +110,16 @@ impl Query {
             return_result: rows,
             error_message: None,
             db_object_name: "".to_string(),
-            conn_pool: pool.clone(),
         })
     }
-fn create_error_result<E>(&self, e: E) -> DatabaseResult<Vec<Row>>
-where
-    E: std::fmt::Display,
-{
-    let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-    let mut result = DatabaseResult::<Vec<Row>>::default();
-    result.db_last_exec_state = DatabaseSetupState::NoConnection;
-    result.error_message = Some(emessage);
-    result
-}
+    fn create_error_result<E>(&self, e: E) -> DatabaseResult<Vec<Row>>
+    where
+        E: std::fmt::Display,
+    {
+        let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+        let mut result = DatabaseResult::<Vec<Row>>::default();
+        result.db_last_exec_state = DatabaseSetupState::NoConnection;
+        result.error_message = Some(emessage);
+        result
+    }
 }

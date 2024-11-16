@@ -1,6 +1,7 @@
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::db::db::get_golfers_from_db;
+use crate::db;
+
 use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, SummaryScore, SummaryScores};
 
 use std::collections::{BTreeMap, HashMap};
@@ -11,6 +12,7 @@ pub async fn get_data_for_scores_page(
     year: i32,
     cache_map: &CacheMap,
     use_cache: bool,
+    mut db: db::db::Db,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
@@ -20,7 +22,7 @@ pub async fn get_data_for_scores_page(
     }
 
     // reviewed, ok now for debugging
-    let aactive_golfers = get_golfers_from_db(event_id).await;
+    let aactive_golfers = db.get_golfers_from_db(event_id).await;
     let active_golfers = match aactive_golfers {
         Ok(active_golfers) => active_golfers.return_result,
         Err(e) => {
