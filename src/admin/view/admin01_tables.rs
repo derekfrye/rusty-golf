@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     admin::model::admin_model::{MissingDbObjects, TimesRun},
-    db::db::{self, CheckType, Db, TABLES_AND_DDL, DatabaseSetupState},
+    db::db::{self, CheckType, DatabaseSetupState, Db, TABLES_AND_DDL},
     HTMX_PATH,
 };
 

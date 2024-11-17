@@ -22,6 +22,8 @@ actix-rt = "2.5"
 regex = "1"
 function_name = "0.3"
 deadpool-postgres = "0.14"
+sqlx = { version = "0.8", features = ["runtime-tokio", "macros", "postgres", "sqlite"] }
+#async-trait = "0.1"
 
 
 [dependencies.tokio-util]

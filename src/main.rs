@@ -2,6 +2,7 @@ mod model;
 mod db {
     // pub mod query;
     pub mod db;
+    pub mod db2;
 }
 mod admin {
     pub mod view {
