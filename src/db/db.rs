@@ -1,8 +1,9 @@
 use crate::model::{ResultStatus, Scores, Statistic};
+
 use ::function_name::named;
-use deadpool_postgres::{Config, Pool, Runtime};
+use deadpool_postgres::{Config, Pool, PoolError, Runtime};
 // use std::env;
-use tokio_postgres::{NoTls, Row};
+use tokio_postgres::{Error as PgError, NoTls, Row};
 
 use crate::admin::model::admin_model::MissingDbObjects;
 
@@ -199,6 +200,63 @@ impl Db {
         }
 
         Ok(dbresults)
+    }
+
+    #[named]
+    async fn delete_table(
+        &mut self,
+        ddl: &[(&str, &str, &str, &str)],
+        table: String,
+        check_type: CheckType,
+    ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
+        let state = self
+            .check_obj_exists(&table, &check_type, function_name!())
+            .await;
+        let mut return_result: DatabaseResult<String> = DatabaseResult::<String>::default();
+        return_result.db_object_name = function_name!().to_string();
+
+        match state {
+            Err(e) => {
+                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                return_result.db_last_exec_state = DatabaseSetupState::NoConnection;
+                return_result.error_message = Some(emessage);
+            }
+            Ok(s) => {
+                if s.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+                    let query = ddl.iter().find(|x| x.0 == table).unwrap().1;
+                    let result = self.exec_general_query(&query, &[]).await;
+                    match result {
+                        Ok(r) => {
+                            if r.db_last_exec_state != DatabaseSetupState::QueryReturnedSuccessfully
+                            {
+                                let emessage = format!(
+                                    "Failed in {}, {}: {}",
+                                    std::file!(),
+                                    std::line!(),
+                                    r.error_message.clone().unwrap_or("".to_string())
+                                );
+                                return_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                                return_result.error_message = Some(emessage);
+                                return_result.db_object_name = r.db_object_name;
+                            } else {
+                                // table deleted successfully
+                                return_result.db_last_exec_state = r.db_last_exec_state;
+                                return_result.db_object_name = r.db_object_name;
+                            }
+                        }
+                        Err(e) => {
+                            let emessage =
+                                format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                            return_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                            return_result.error_message = Some(emessage);
+                        }
+                    }
+                } else {
+                    return_result = s;
+                }
+            }
+        }
+        Ok(return_result)
     }
 
     #[named]
@@ -504,17 +562,17 @@ impl Db {
     ) -> Result<DatabaseResult<Vec<Row>>, Box<dyn std::error::Error>> {
         let client = match self.config_and_pool.pool.get().await {
             Ok(c) => c,
-            Err(e) => return Ok(self.create_error_result(e)),
+            Err(e) => return Ok(self.create_error_result2::<PoolError>(e)),
         };
 
         let stmt = match client.prepare_cached(query).await {
             Ok(s) => s,
-            Err(e) => return Ok(self.create_error_result(e)),
+            Err(e) => return Ok(self.create_error_result::<PgError>(e)),
         };
 
         let row = match client.query(&stmt, query_params).await {
             Ok(r) => r,
-            Err(e) => return Ok(self.create_error_result(e)),
+            Err(e) => return Ok(self.create_error_result::<PgError>(e)),
         };
 
         if cfg!(debug_assertions)
@@ -526,7 +584,7 @@ impl Db {
                 "unq_name" | "unq_espn_id"
             )
         {
-            dbg!("here.");
+            // dbg!("here.");
         }
 
         let mut result = DatabaseResult::<Vec<Row>>::default();
@@ -536,7 +594,23 @@ impl Db {
         Ok(result)
     }
 
-    fn create_error_result<E>(&mut self, e: E) -> DatabaseResult<Vec<Row>>
+    fn create_error_result<E>(&mut self, e: PgError) -> DatabaseResult<Vec<Row>>
+    where
+        E: std::fmt::Display,
+    {
+        let cause = match e.as_db_error() {
+            Some(de) => de.to_string(),
+            None => e.to_string(),
+        };
+        let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), cause);
+        let mut result = DatabaseResult::<Vec<Row>>::default();
+
+        result.db_last_exec_state = self.map_pg_errors_to_setup_state(&e);
+        result.error_message = Some(emessage);
+        result
+    }
+
+    fn create_error_result2<E>(&mut self, e: PoolError) -> DatabaseResult<Vec<Row>>
     where
         E: std::fmt::Display,
     {
@@ -546,10 +620,30 @@ impl Db {
         result.error_message = Some(emessage);
         result
     }
+
+    fn map_pg_errors_to_setup_state(&self, e: &PgError) -> DatabaseSetupState {
+        let x: DatabaseSetupState;
+        let cause;
+        match e.as_db_error() {
+            Some(de) => cause = de.to_string(),
+            None => cause = "unk".to_string(),
+        }
+
+        let regex =
+            regex::Regex::new(r#"ERROR:[\s]+relation "(?P<relation>.*)" does not exist"#).unwrap();
+        if regex.is_match(&cause) {
+            x = DatabaseSetupState::MissingRelations;
+        } else {
+            x = DatabaseSetupState::QueryError;
+        }
+        x
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use tokio::runtime::Runtime;
 
     use super::*;
@@ -573,14 +667,24 @@ mod tests {
                 "",
             )];
 
-            let mut deadpool_config = Config::new();
-            deadpool_config.dbname = Some("deadpool".to_string());
-            deadpool_config.host = Some("localhost".to_string());
-            deadpool_config.port = Some(5432);
-            deadpool_config.user = Some("postgres".to_string());
-            deadpool_config.password = Some("postgres".to_string());
+            dotenv::dotenv().unwrap();
 
-            let x: DbConfigAndPool = DbConfigAndPool::new(deadpool_config.clone()).unwrap();
+            let mut db_pwd = env::var("DB_PASSWORD").unwrap();
+            if db_pwd == "/secrets/db_password" {
+                // open the file and read the contents
+                let contents = std::fs::read_to_string("/secrets/db_password")
+                    .unwrap_or("tempPasswordWillbeReplacedIn!AdminPanel".to_string());
+                // set the password to the contents of the file
+                db_pwd = contents.trim().to_string();
+            }
+            let mut cfg = deadpool_postgres::Config::new();
+            cfg.dbname = Some(env::var("DB_NAME").unwrap());
+            cfg.host = Some(env::var("DB_HOST").unwrap());
+            cfg.port = Some(env::var("DB_PORT").unwrap().parse::<u16>().unwrap());
+            cfg.user = Some(env::var("DB_USER").unwrap());
+            cfg.password = Some(db_pwd);
+
+            let x: DbConfigAndPool = DbConfigAndPool::new(cfg).unwrap();
 
             let mut db = Db::new(x).unwrap();
 
@@ -596,16 +700,56 @@ mod tests {
             );
             assert_eq!(x.return_result, String::default());
 
+            // table already created, this should fail
+            let x = db
+                .create_tbl(TABLE_DDL, "test".to_string(), CheckType::Table)
+                .await
+                .unwrap();
+
+                //TODO: Failing
+            assert_eq!(
+                x.db_last_exec_state,
+                DatabaseSetupState::QueryError
+            );
+            assert_eq!(x.return_result, String::default());
+
+            // but table should exist
             let result = db
                 .check_obj_exists(
-                    "player",
-                    &CheckType::Constraint,
+                    "test",
+                    &CheckType::Table,
                     "test_check_obj_exists_constraint",
                 )
                 .await;
             assert!(result.is_ok());
             let db_result = result.unwrap();
             assert_eq!(db_result.db_object_name, "player");
+
+
+            // and now we should be able to delete it
+            let xa = db
+                .delete_table(TABLE_DDL, "test".to_string(), CheckType::Table)
+                .await
+                .unwrap();
+
+                assert_eq!(
+                    xa.db_last_exec_state,
+                    DatabaseSetupState::QueryReturnedSuccessfully
+                );
+                assert_eq!(x.return_result, String::default());
+
+                // table should be gone
+            let result = db
+            .check_obj_exists(
+                "test",
+                &CheckType::Table,
+                "test_check_obj_exists_constraint",
+            )
+            .await;
+        assert!(result.is_ok());
+        let db_result = result.unwrap();
+        assert_eq!(db_result.db_object_name, "player");
+
         });
     }
 }
