@@ -1,55 +1,146 @@
 use crate::model::{ResultStatus, Scores, Statistic};
 
 use ::function_name::named;
-use deadpool_postgres::{Config, Pool, PoolError, Runtime};
+use deadpool_postgres::Config;//, Pool, PoolError, Runtime};
 // use std::env;
-use tokio_postgres::{Error as PgError, NoTls, Row};
+// use tokio_postgres::{Error as PgError, NoTls, Row};
 
 use crate::admin::model::admin_model::MissingDbObjects;
 
+use sqlx::{
+    self,
+    postgres:: PgRow,
+    
+    sqlite:: SqliteRow,
+    Column, ColumnIndex,  Pool, Row,
+};
+use std::collections::HashMap;
+
+
+
+#[derive(Debug, Clone, )]
+pub enum DbPool {
+    Postgres(Pool<sqlx::Postgres>),
+    Sqlite(Pool<sqlx::Sqlite>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum DatabaseType {
+    Postgres,
+    Sqlite,
+}
+
+pub enum ObjType {
+    Table,
+    Constraint,
+}
+
+trait PostgresParam: for<'a> sqlx::Encode<'a, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> {}
+impl<T> PostgresParam for T where
+    T: for<'a> sqlx::Encode<'a, sqlx::Postgres> + sqlx::Type<sqlx::Postgres>
+{
+}
+
+trait SqliteParam: for<'a> sqlx::Encode<'a, sqlx::Sqlite> + sqlx::Type<sqlx::Sqlite> {}
+impl<T> SqliteParam for T where T: for<'a> sqlx::Encode<'a, sqlx::Sqlite> + sqlx::Type<sqlx::Sqlite> {}
+
+enum DbQueryResult {
+    Postgres(sqlx::postgres::PgQueryResult),
+    Sqlite(sqlx::sqlite::SqliteQueryResult),
+}
+
+enum DbRow {
+    Postgres(sqlx::postgres::PgRow),
+    Sqlite(sqlx::sqlite::SqliteRow),
+}
+
+enum DbQueryOne<T> {
+    Postgres(T),
+    Sqlite(T),
+}
+
+
 #[derive(Clone, Debug)]
 pub struct DbConfigAndPool {
-    // pub config: Config,
-    pub pool: Pool,
+    pool: DbPool,
+    db_type: DatabaseType,
 }
 
 impl DbConfigAndPool {
-    pub fn new(config: Config) -> Result<Self, String> {
+    pub async fn new(config: Config, db_type :DatabaseType,) -> Self {
         if config.dbname.is_none() {
-            return Err("dbname is required".to_string());
+            panic!("dbname is required");
         }
 
         if config.host.is_none() {
-            return Err("host is required".to_string());
+            panic!("host is required");
         }
 
         if config.port.is_none() {
-            return Err("port is required".to_string());
+            panic!("port is required");
         }
 
         if config.user.is_none() {
-            return Err("user is required".to_string());
+            panic!("user is required");
         }
 
         if config.password.is_none() {
-            return Err("password is required".to_string());
+            panic!("password is required");
         }
 
-        let pool1 = match config.create_pool(Some(Runtime::Tokio1), NoTls) {
-            Ok(p) => p,
-            Err(e) => return Err(format!("Failed to create pool: {}", e)),
+        
+        let connection_string = match db_type {
+            DatabaseType::Postgres => {
+                format!(
+                    "postgres://{}:{}@{}:{}/{}",
+                    config.user.unwrap(),
+                    config.password.unwrap(),
+                    config.host.unwrap(),
+                    config.port.unwrap(),
+                    config.dbname.unwrap()
+                )
+            }
+            DatabaseType::Sqlite => {
+                format!(
+                    "sqlite://{}",
+                    config.dbname.unwrap()
+                )
+            }
         };
 
-        Ok(Self {
-            // config,
-            pool: pool1,
-        })
-    }
-}
+        match db_type {
+            DatabaseType::Postgres => {
+                let pool_result = sqlx::postgres::PgPoolOptions::new()
+                    .connect(&connection_string)
+                    .await;
+                match pool_result {
+                    Ok(pool) => DbConfigAndPool {
+                        pool: DbPool::Postgres(pool),
+                        db_type,
+                    },
+                    Err(e) => {
+                        panic!("Failed to create Postgres pool: {}", e);
+                    }
+                }
+            }
+            DatabaseType::Sqlite => {
+                let pool_result = sqlx::sqlite::SqlitePoolOptions::new()
+                    .connect(&connection_string)
+                    .await;
+                match pool_result {
+                    Ok(pool) => DbConfigAndPool {
+                        pool: DbPool::Sqlite(pool),
+                        db_type,
+                    },
+                    Err(e) => {
+                        panic!("Failed to create SQLite pool: {}", e);
+                    }
+                }
+            }
+        }
 
-#[derive(Clone, Debug)]
-pub struct Db {
-    pub config_and_pool: DbConfigAndPool,
+        
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -145,21 +236,21 @@ impl<T: Default> DatabaseResult<T> {
     }
 }
 
-impl Default for DatabaseResult<Vec<Row>> {
-    fn default() -> Self {
-        DatabaseResult {
-            db_last_exec_state: DatabaseSetupState::NoConnection,
-            return_result: vec![],
-            error_message: None,
-            db_object_name: "".to_string(),
-        }
-    }
+
+
+#[derive(Clone, Debug)]
+pub struct Db {
+    pub config_and_pool: DbConfigAndPool,
+    pub pool: DbPool,
 }
 
 impl Db {
     pub fn new(cnf: DbConfigAndPool) -> Result<Self, String> {
+        let cnf_clone=cnf.clone();
         Ok(Self {
+
             config_and_pool: cnf,
+            pool: cnf_clone.pool,
         })
     }
 
@@ -388,111 +479,57 @@ impl Db {
         Ok(return_result)
     }
 
-    async fn check_obj_exists(
-        &mut self,
-        table_name: &str,
-        check_type: &CheckType,
-        calling_function: &str,
-    ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-        let query: String;
-        let query_params_storage: Vec<&(dyn tokio_postgres::types::ToSql + Sync)>;
-        let constraint_type: &str;
-        let constraint_name: &str;
-
-        if check_type == &CheckType::Table {
-            query = format!("SELECT 1 FROM {} LIMIT 1;", table_name);
-            query_params_storage = vec![];
-        } else {
-            query = format!(
-            "SELECT 1 FROM information_schema.table_constraints WHERE table_name = $1 AND constraint_type = $2 and constraint_name = $3 LIMIT 1;"
-        );
-            constraint_type = TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL
-                .iter()
-                .find(|x| x.0 == table_name)
-                .unwrap()
-                .1;
-            constraint_name = TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL
-                .iter()
-                .find(|x| x.0 == table_name)
-                .unwrap()
-                .2;
-            query_params_storage = vec![&table_name, &constraint_type, &constraint_name];
-        }
-
-        // dbg!(&query);
-
-        let query_params = &query_params_storage[..];
-        let result = self.exec_general_query(&query, query_params).await;
-
-        if cfg!(debug_assertions)
-            && table_name == "event"
-            && check_type == &CheckType::Table
-            && calling_function == "create_tbl"
-        {
-            dbg!("here.");
-        }
-
-        let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
-        dbresult.db_object_name = table_name.to_string();
-
-        match result {
-            Ok(r) => {
-                dbresult.error_message = r.error_message;
-                dbresult.db_last_exec_state = r.db_last_exec_state;
-                match r.db_last_exec_state {
-                    DatabaseSetupState::QueryReturnedSuccessfully => {
-                        if check_type == &CheckType::Table {
-                            dbresult.return_result = "Table exists".to_string();
-                        } else {
-                            if r.return_result.len() > 0 && !r.return_result[0].is_empty() {
-                                let xx: String = r.return_result[0].get(0);
-                                if xx == "1" {
-                                    dbresult.return_result = "Constraint exists".to_string();
-                                } else {
-                                    dbresult.return_result =
-                                        "Constraint does not exist".to_string();
-                                    dbresult.db_last_exec_state =
-                                        DatabaseSetupState::MissingRelations;
-                                }
-                            } else {
-                                let _rr = r.return_result.len();
-                            }
-                        }
-                    }
-                    DatabaseSetupState::QueryError => {
-                        dbresult.return_result = "Table does not exist".to_string();
-                        dbresult.db_last_exec_state = DatabaseSetupState::MissingRelations;
-                    }
-                    DatabaseSetupState::NoConnection => {
-                        dbresult.return_result = "Can't connect to db".to_string();
-                    }
-                    _ => {
-                        dbresult.return_result = "Table does not exist".to_string();
-                    }
-                }
+    async fn check_obj_exists(&self, obj_name: &str, typ: ObjType) -> Result<bool, sqlx::Error> {
+        let check_sql = match &self.pool {
+            DbPool::Postgres(_) => match typ {
+                ObjType::Table => "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1);",
+                ObjType::Constraint => "SELECT EXISTS (SELECT FROM information_schema.table_constraints WHERE table_schema = 'public' AND constraint_name = $1);",
+            },
+            DbPool::Sqlite(_) => match typ {
+                ObjType::Table => "SELECT name FROM sqlite_master WHERE type='table' AND name = ?;",
+                ObjType::Constraint => "SELECT name FROM sqlite_master WHERE type='constraint' AND name = ?;",
+            },
+        };
+        let exists_result: Result<bool, sqlx::Error> = match &self.pool {
+            DbPool::Postgres(pool) => sqlx::query_scalar::<_, bool>(check_sql)
+                .bind(obj_name)
+                .fetch_one(pool)
+                .await
+                .map(|result| result),
+            DbPool::Sqlite(pool) => sqlx::query_scalar::<_, bool>(check_sql)
+                .bind(obj_name)
+                .fetch_one(pool)
+                .await
+                .map(|result| result),
+        };
+        match exists_result {
+            Ok(exists) => {
+                return Ok(exists);
             }
             Err(e) => {
-                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                dbresult.error_message = Some(emessage);
-                dbresult.db_last_exec_state = DatabaseSetupState::NoConnection;
+                return Err(e);
             }
         }
-        Ok(dbresult)
     }
 
     pub async fn get_title_from_db(
-        &mut self,
+        &self,
         event_id: i32,
     ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
         let query = "SELECT eventname FROM sp_get_event_name($1)";
-        let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
-        let result = self.exec_general_query(query, query_params).await;
+        let params = vec![&event_id];
+        let result = self.exec_general_query(query, params).await;
+
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
         match result {
             Ok(r) => {
                 if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
-                    dbresult.return_result = r.return_result[0].get(0);
+                    if let Some(Some(event_name)) = r.return_result[0].get("eventname") {
+                        dbresult.return_result = event_name.clone();
+                    } else {
+                        dbresult.error_message = Some("No event name found".to_string());
+                    }
                 }
             }
             Err(e) => {
@@ -505,12 +542,12 @@ impl Db {
     }
 
     pub async fn get_golfers_from_db(
-        &mut self,
+        &self,
         event_id: i32,
     ) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
         let query =
         "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
-        let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
+        let query_params= vec![&event_id];
         let result = self.exec_general_query(query, query_params).await;
         let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
             db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
@@ -527,13 +564,13 @@ impl Db {
                         .iter()
                         .map(|row| Scores {
                             // parse column 0 as an int32
-                            group: row.get::<_, i64>(0),
-                            golfer_name: row.get(1),
-                            bettor_name: row.get(2),
-                            eup_id: row.get::<_, i64>(3),
-                            espn_id: row.get::<_, i64>(4),
+                            group: row.get("grp").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
+                            golfer_name: row.get("golfername").and_then(|v| v.as_ref().map(|s| s.to_string())).unwrap_or_default(),
+                            bettor_name: row.get("playername").and_then(|v| v.as_ref().map(|s| s.to_string())).unwrap_or_default(),
+                            eup_id: row.get("eup_id").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
+                            espn_id: row.get("espn_id").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
                             detailed_statistics: Statistic {
-                                eup_id: row.get::<_, i64>(3),
+                                eup_id: row.get("eup_id").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
                                 rounds: vec![],
                                 scores: vec![],
                                 tee_times: vec![],
@@ -555,89 +592,93 @@ impl Db {
         Ok(dbresult)
     }
 
-    async fn exec_general_query(
-        &mut self,
+    async fn exec_general_query<P>(
+        &self,
         query: &str,
-        query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-    ) -> Result<DatabaseResult<Vec<Row>>, Box<dyn std::error::Error>> {
-        let client = match self.config_and_pool.pool.get().await {
-            Ok(c) => c,
-            Err(e) => return Ok(self.create_error_result2::<PoolError>(e)),
-        };
-
-        let stmt = match client.prepare_cached(query).await {
-            Ok(s) => s,
-            Err(e) => return Ok(self.create_error_result::<PgError>(e)),
-        };
-
-        let row = match client.query(&stmt, query_params).await {
-            Ok(r) => r,
-            Err(e) => return Ok(self.create_error_result::<PgError>(e)),
-        };
-
-        if cfg!(debug_assertions)
-            && query.contains("constraint_type")
-            && query_params.len() >= 3
-            && format!("{:?}", query_params[0]).trim_matches('"') == "player"
-            && matches!(
-                format!("{:?}", query_params[2]).trim_matches('"'),
-                "unq_name" | "unq_espn_id"
-            )
-        {
-            // dbg!("here.");
-        }
-
-        let mut result = DatabaseResult::<Vec<Row>>::default();
-        result.db_last_exec_state = DatabaseSetupState::QueryReturnedSuccessfully;
-        result.return_result = row;
-        result.error_message = None;
-        Ok(result)
-    }
-
-    fn create_error_result<E>(&mut self, e: PgError) -> DatabaseResult<Vec<Row>>
+        params: Vec<P>,
+    ) -> Result<DatabaseResult<Vec<HashMap<String, Option<String>>>>, sqlx::Error>
     where
-        E: std::fmt::Display,
+        P: PostgresParam + SqliteParam,
     {
-        let cause = match e.as_db_error() {
-            Some(de) => de.to_string(),
-            None => e.to_string(),
+        let mut final_result: DatabaseResult<Vec<HashMap<String, Option<String>>>> =
+            DatabaseResult::<Vec<HashMap<String, Option<String>>>>::default();
+
+        let exists_result: Vec<HashMap<String, Option<String>>> = match &self.pool {
+            DbPool::Postgres(pool) => {
+                let mut query = sqlx::query(query);
+                for param in params {
+                    query = query.bind(param);
+                }
+                match query.fetch_all(pool).await {
+                    Ok(rows) => {
+                        let result = rows
+                            .into_iter()
+                            .map(|row: PgRow| Self::row_to_map(row))
+                            .collect::<Vec<_>>();
+                        result
+                    }
+
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
+            DbPool::Sqlite(pool) => {
+                let mut query = sqlx::query(query);
+                for param in params {
+                    query = query.bind(param);
+                }
+                match query.fetch_all(pool).await {
+                    Ok(rows) => {
+                        let result = rows
+                            .into_iter()
+                            .map(|row: SqliteRow| Self::row_to_map(row))
+                            .collect::<Vec<_>>();
+                        result
+                    }
+
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
         };
-        let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), cause);
-        let mut result = DatabaseResult::<Vec<Row>>::default();
-
-        result.db_last_exec_state = self.map_pg_errors_to_setup_state(&e);
-        result.error_message = Some(emessage);
-        result
+        final_result.return_result = exists_result;
+        Ok(final_result)
     }
 
-    fn create_error_result2<E>(&mut self, e: PoolError) -> DatabaseResult<Vec<Row>>
+    fn row_to_map<R>(row: R) -> HashMap<String, Option<String>>
     where
-        E: std::fmt::Display,
+        R: Row,
+        String: for<'a> sqlx::Decode<'a, R::Database>,
+        std::string::String: sqlx::Type<<R as sqlx::Row>::Database>,
+        usize: ColumnIndex<R>,
     {
-        let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-        let mut result = DatabaseResult::<Vec<Row>>::default();
-        result.db_last_exec_state = DatabaseSetupState::NoConnection;
-        result.error_message = Some(emessage);
-        result
+        let mut map = HashMap::new();
+        for (idx, col) in row.columns().iter().enumerate() {
+            let val: Option<String> = row.try_get(idx).ok();
+            map.insert(col.name().to_string(), val);
+        }
+        map
     }
 
-    fn map_pg_errors_to_setup_state(&self, e: &PgError) -> DatabaseSetupState {
-        let x: DatabaseSetupState;
-        let cause;
-        match e.as_db_error() {
-            Some(de) => cause = de.to_string(),
-            None => cause = "unk".to_string(),
-        }
+    // fn create_error_result<E>(&mut self, e: Error) -> DatabaseResult<Vec<Row>>
+    // where
+    //     E: std::fmt::Display,
+    // {
+    //     let cause = match e.as_db_error() {
+    //         Some(de) => de.to_string(),
+    //         None => e.to_string(),
+    //     };
+    //     let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), cause);
+    //     let mut result = DatabaseResult::<Vec<Row>>::default();
 
-        let regex =
-            regex::Regex::new(r#"ERROR:[\s]+relation "(?P<relation>.*)" does not exist"#).unwrap();
-        if regex.is_match(&cause) {
-            x = DatabaseSetupState::MissingRelations;
-        } else {
-            x = DatabaseSetupState::QueryError;
-        }
-        x
-    }
+    //     result.db_last_exec_state = self.map_pg_errors_to_setup_state(&e);
+    //     result.error_message = Some(emessage);
+    //     result
+    // }
+
+    
 }
 
 #[cfg(test)]
