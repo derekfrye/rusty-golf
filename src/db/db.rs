@@ -706,11 +706,8 @@ mod tests {
                 .await
                 .unwrap();
 
-                //TODO: Failing
-            assert_eq!(
-                x.db_last_exec_state,
-                DatabaseSetupState::QueryError
-            );
+            //TODO: Failing
+            assert_eq!(x.db_last_exec_state, DatabaseSetupState::QueryError);
             assert_eq!(x.return_result, String::default());
 
             // but table should exist
@@ -725,31 +722,29 @@ mod tests {
             let db_result = result.unwrap();
             assert_eq!(db_result.db_object_name, "player");
 
-
             // and now we should be able to delete it
             let xa = db
                 .delete_table(TABLE_DDL, "test".to_string(), CheckType::Table)
                 .await
                 .unwrap();
 
-                assert_eq!(
-                    xa.db_last_exec_state,
-                    DatabaseSetupState::QueryReturnedSuccessfully
-                );
-                assert_eq!(x.return_result, String::default());
+            assert_eq!(
+                xa.db_last_exec_state,
+                DatabaseSetupState::QueryReturnedSuccessfully
+            );
+            assert_eq!(x.return_result, String::default());
 
-                // table should be gone
+            // table should be gone
             let result = db
-            .check_obj_exists(
-                "test",
-                &CheckType::Table,
-                "test_check_obj_exists_constraint",
-            )
-            .await;
-        assert!(result.is_ok());
-        let db_result = result.unwrap();
-        assert_eq!(db_result.db_object_name, "player");
-
+                .check_obj_exists(
+                    "test",
+                    &CheckType::Table,
+                    "test_check_obj_exists_constraint",
+                )
+                .await;
+            assert!(result.is_ok());
+            let db_result = result.unwrap();
+            assert_eq!(db_result.db_object_name, "player");
         });
     }
 }

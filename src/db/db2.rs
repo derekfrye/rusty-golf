@@ -1,6 +1,10 @@
 // use async_trait::async_trait;
 use sqlx::{
-    self, postgres::PgQueryResult, query::Query, sqlite::SqliteQueryResult, Column, Database, Error as sqlxError, Executor, IntoArguments, Pool, Row
+    self,
+    postgres::{PgQueryResult, PgRow},
+    query::Query,
+    sqlite::{SqliteQueryResult, SqliteRow},
+    Column, ColumnIndex, Database, Error as sqlxError, Executor, IntoArguments, Pool, Row,
 };
 use std::{collections::HashMap, result};
 
@@ -16,9 +20,9 @@ pub enum ObjType {
     Constraint,
 }
 
-enum DbPool {
-    Postgres(sqlx::Pool<sqlx::Postgres>),
-    Sqlite(sqlx::Pool<sqlx::Sqlite>),
+pub enum DbPool {
+    Postgres(Pool<sqlx::Postgres>),
+    Sqlite(Pool<sqlx::Sqlite>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -97,11 +101,11 @@ pub struct DatabaseResult<T: Default> {
     pub db_object_name: String,
 }
 
-impl Default for DatabaseResult<()> {
-    fn default() -> Self {
+impl<T: Default> DatabaseResult<T> {
+    pub fn default() -> DatabaseResult<T> {
         DatabaseResult {
             db_last_exec_state: DatabaseSetupState::NoConnection,
-            return_result: (),
+            return_result: Default::default(),
             error_message: None,
             db_object_name: "".to_string(),
         }
@@ -127,6 +131,15 @@ pub struct DbConfigAndPool {
     pool: DbPool,
     db_type: DatabaseType,
 }
+
+trait PostgresParam: for<'a> sqlx::Encode<'a, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> {}
+impl<T> PostgresParam for T where
+    T: for<'a> sqlx::Encode<'a, sqlx::Postgres> + sqlx::Type<sqlx::Postgres>
+{
+}
+
+trait SqliteParam: for<'a> sqlx::Encode<'a, sqlx::Sqlite> + sqlx::Type<sqlx::Sqlite> {}
+impl<T> SqliteParam for T where T: for<'a> sqlx::Encode<'a, sqlx::Sqlite> + sqlx::Type<sqlx::Sqlite> {}
 
 impl DbConfigAndPool {
     async fn new(db_type: DatabaseType, connection_str: &str) -> Self {
@@ -194,55 +207,94 @@ impl DbConfigAndPool {
             }
         }
     }
-
-pub     async fn run_query<'a, DB>(
+    pub async fn run_query<P>(
         &self,
-        query: Query<'a, DB, <DB as Database>::Arguments<'a>>,
-        pool: &Pool<DB>,
-    ) -> Result<Vec<HashMap<String, Option<String>>>, sqlx::Error>
+        query: &str,
+        params: Vec<P>,
+    ) -> Result<DatabaseResult<Vec<HashMap<String, Option<String>>>>, sqlx::Error>
     where
-        DB: Database,
-        DB::Arguments<'a>: IntoArguments<'a, DB>,
-        DB::Row: Row,
-        for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>, // Ensures connection implements Executor
+        P: PostgresParam + SqliteParam,
     {
-        // Get a connection from the pool
-        let mut conn = pool.acquire().await?;
-    
-        // Execute the query using the connection
-        let rows = query.fetch_all(&mut conn).await?;
-    
-        // Map each row to a HashMap
-        let result = rows.into_iter()
-            .map(|row| {
-                let mut map = HashMap::new();
-                for (idx, col) in row.columns().iter().enumerate() {
-                    let val: Option<String> = row.try_get(idx).ok();
-                    map.insert(col.name().to_string(), val);
+        let mut final_result: DatabaseResult<Vec<HashMap<String, Option<String>>>> =
+            DatabaseResult::<Vec<HashMap<String, Option<String>>>>::default();
+
+        let exists_result: Vec<HashMap<String, Option<String>>> = match &self.pool {
+            DbPool::Postgres(pool) => {
+                let mut query = sqlx::query(query);
+                for param in params {
+                    query = query.bind(param);
                 }
-                map
-            })
-            .collect();
-    
-        Ok(result)
+                match query.fetch_all(pool).await {
+                    Ok(rows) => {
+                        let result = rows
+                            .into_iter()
+                            .map(|row: PgRow| Self::row_to_map(row))
+                            .collect::<Vec<_>>();
+                        result
+                    }
+
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
+            DbPool::Sqlite(pool) => {
+                let mut query = sqlx::query(query);
+                for param in params {
+                    query = query.bind(param);
+                }
+                match query.fetch_all(pool).await {
+                    Ok(rows) => {
+                        let result = rows
+                            .into_iter()
+                            .map(|row: SqliteRow| Self::row_to_map(row))
+                            .collect::<Vec<_>>();
+                        result
+                    }
+
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
+        };
+        final_result.return_result = exists_result;
+        Ok(final_result)
+    }
+
+    fn row_to_map<R>(row: R) -> HashMap<String, Option<String>>
+    where
+        R: Row,
+        String: for<'a> sqlx::Decode<'a, R::Database>,
+        std::string::String: sqlx::Type<<R as sqlx::Row>::Database>,
+        usize: ColumnIndex<R>,
+    {
+        let mut map = HashMap::new();
+        for (idx, col) in row.columns().iter().enumerate() {
+            let val: Option<String> = row.try_get(idx).ok();
+            map.insert(col.name().to_string(), val);
+        }
+        map
     }
 
     pub async fn get_title_from_db(
         &self,
         event_id: i32,
     ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-        let query = sqlx::query("SELECT eventname FROM sp_get_event_name($1)").bind(event_id);
-        
-        let result = match &self.pool {
-            DbPool::Postgres(pool) => self.run_query(query, pool).await,
-            DbPool::Sqlite(pool) => self.run_query(query, pool).await,
-        };
+        let query = "SELECT eventname FROM sp_get_event_name($1)";
+        let params = vec![&event_id];
+        let result = self.run_query(query, params).await;
+
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
         match result {
             Ok(r) => {
                 if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
-                    dbresult.return_result = r.return_result[0].get(0);
+                    if let Some(Some(event_name)) = r.return_result[0].get("eventname") {
+                        dbresult.return_result = event_name.clone();
+                    } else {
+                        dbresult.error_message = Some("No event name found".to_string());
+                    }
                 }
             }
             Err(e) => {
@@ -304,6 +356,4 @@ pub     async fn run_query<'a, DB>(
 
         Ok(dbresult)
     }
-
-
 }
