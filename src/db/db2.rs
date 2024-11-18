@@ -1,14 +1,14 @@
 // use async_trait::async_trait;
 use sqlx::{
     self,
-    postgres::{PgQueryResult, PgRow},
-    query::Query,
-    sqlite::{SqliteQueryResult, SqliteRow},
-    Column, ColumnIndex, Database, Error as sqlxError, Executor, IntoArguments, Pool, Row,
+    postgres:: PgRow,
+    
+    sqlite:: SqliteRow,
+    Column, ColumnIndex,  Pool, Row,
 };
-use std::{collections::HashMap, result};
+use std::collections::HashMap;
 
-use crate::model::Scores;
+use crate::model::{ResultStatus, Scores, Statistic};
 
 pub enum DatabaseType {
     Postgres,
@@ -312,8 +312,8 @@ impl DbConfigAndPool {
     ) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
         let query =
         "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
-        let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
-        let result = self.exec_general_query(query, query_params).await;
+        let query_params= vec![&event_id];
+        let result = self.run_query(query, query_params).await;
         let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
             db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
             return_result: vec![],
@@ -329,13 +329,13 @@ impl DbConfigAndPool {
                         .iter()
                         .map(|row| Scores {
                             // parse column 0 as an int32
-                            group: row.get::<_, i64>(0),
-                            golfer_name: row.get(1),
-                            bettor_name: row.get(2),
-                            eup_id: row.get::<_, i64>(3),
-                            espn_id: row.get::<_, i64>(4),
+                            group: row.get("grp").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
+                            golfer_name: row.get("golfername").and_then(|v| v.as_ref().map(|s| s.to_string())).unwrap_or_default(),
+                            bettor_name: row.get("playername").and_then(|v| v.as_ref().map(|s| s.to_string())).unwrap_or_default(),
+                            eup_id: row.get("eup_id").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
+                            espn_id: row.get("espn_id").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
                             detailed_statistics: Statistic {
-                                eup_id: row.get::<_, i64>(3),
+                                eup_id: row.get("eup_id").and_then(|v| v.as_ref().map(|s| s.parse::<i64>().unwrap_or_default())).unwrap_or_default(),
                                 rounds: vec![],
                                 scores: vec![],
                                 tee_times: vec![],
