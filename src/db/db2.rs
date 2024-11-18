@@ -1,8 +1,10 @@
 // use async_trait::async_trait;
 use sqlx::{
-    self, postgres::PgQueryResult, sqlite::SqliteQueryResult, Column, Error as sqlxError, Row,
+    self, postgres::PgQueryResult, query::Query, sqlite::SqliteQueryResult, Column, Database, Error as sqlxError, Executor, IntoArguments, Pool, Row
 };
 use std::{collections::HashMap, result};
+
+use crate::model::Scores;
 
 pub enum DatabaseType {
     Postgres,
@@ -111,6 +113,11 @@ enum DbQueryResult {
     Sqlite(sqlx::sqlite::SqliteQueryResult),
 }
 
+enum DbRow {
+    Postgres(sqlx::postgres::PgRow),
+    Sqlite(sqlx::sqlite::SqliteRow),
+}
+
 enum DbQueryOne<T> {
     Postgres(T),
     Sqlite(T),
@@ -155,7 +162,7 @@ impl DbConfigAndPool {
         }
     }
 
-    pub async fn obj_exists(&self, obj_name: &str, typ:ObjType,) -> Result<bool, sqlx::Error> {
+    pub async fn obj_exists(&self, obj_name: &str, typ: ObjType) -> Result<bool, sqlx::Error> {
         let check_sql = match &self.pool {
             DbPool::Postgres(_) => match typ {
                 ObjType::Table => "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1);",
@@ -188,100 +195,115 @@ impl DbConfigAndPool {
         }
     }
 
-    pub async fn object_crud(
+pub     async fn run_query<'a, DB>(
         &self,
-        obj_name: &str,
-        obj_ddl: &str,
-        proceed_when_obj_exists: bool,
-        typ: ObjType,
-    ) -> DatabaseResult<()> {
-        let mut result: DatabaseResult<()> = DatabaseResult::default();
-        result.db_object_name = obj_name.to_string();
-        let exists_result = self.obj_exists(obj_name,typ).await;
-        match exists_result {
-            Ok(exists) => {
-                if exists && proceed_when_obj_exists | !exists {
-                    let sql_to_run = obj_ddl;
+        query: Query<'a, DB, <DB as Database>::Arguments<'a>>,
+        pool: &Pool<DB>,
+    ) -> Result<Vec<HashMap<String, Option<String>>>, sqlx::Error>
+    where
+        DB: Database,
+        DB::Arguments<'a>: IntoArguments<'a, DB>,
+        DB::Row: Row,
+        for<'c> &'c mut <DB as sqlx::Database>::Connection: Executor<'c, Database = DB>, // Ensures connection implements Executor
+    {
+        // Get a connection from the pool
+        let mut conn = pool.acquire().await?;
+    
+        // Execute the query using the connection
+        let rows = query.fetch_all(&mut conn).await?;
+    
+        // Map each row to a HashMap
+        let result = rows.into_iter()
+            .map(|row| {
+                let mut map = HashMap::new();
+                for (idx, col) in row.columns().iter().enumerate() {
+                    let val: Option<String> = row.try_get(idx).ok();
+                    map.insert(col.name().to_string(), val);
+                }
+                map
+            })
+            .collect();
+    
+        Ok(result)
+    }
 
-                    let sql_result: Result<DbQueryResult, sqlx::Error> = match &self.pool {
-                        DbPool::Postgres(pool) => sqlx::query(&sql_to_run)
-                            .execute(pool)
-                            .await
-                            .map(DbQueryResult::Postgres),
-                        DbPool::Sqlite(pool) => sqlx::query(&sql_to_run)
-                            .execute(pool)
-                            .await
-                            .map(DbQueryResult::Sqlite),
-                    };
+    pub async fn get_title_from_db(
+        &self,
+        event_id: i32,
+    ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
+        let query = sqlx::query("SELECT eventname FROM sp_get_event_name($1)").bind(event_id);
+        
+        let result = match &self.pool {
+            DbPool::Postgres(pool) => self.run_query(query, pool).await,
+            DbPool::Sqlite(pool) => self.run_query(query, pool).await,
+        };
+        let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
-                    match sql_result {
-                        Ok(_) => {
-                            result.db_last_exec_state =
-                                DatabaseSetupState::QueryReturnedSuccessfully;
-                        }
-                        Err(e) => {
-                            result.db_last_exec_state = DatabaseSetupState::QueryError;
-                            result.error_message = Some(e.to_string());
-                        }
-                    }
-                } else {
-                    result.db_last_exec_state = DatabaseSetupState::MissingRelations;
-                    result.error_message = Some(
-                        format!("Object exists and proceed_when_obj_exists is false").to_string(),
-                    );
+        match result {
+            Ok(r) => {
+                if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+                    dbresult.return_result = r.return_result[0].get(0);
                 }
             }
-            Err(_) => {
-                result.db_last_exec_state = DatabaseSetupState::NoConnection;
-                result.error_message = Some("Error checking table existence".to_string());
+            Err(e) => {
+                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                dbresult.error_message = Some(emessage);
             }
         }
 
-        result
+        Ok(dbresult)
     }
 
-    async fn run_query(&self, query: &str) -> Vec<HashMap<String, Option<String>>> {
-        match &self.pool {
-            DbPool::Postgres(pool) => {
-                let rows_result = sqlx::query(query).fetch_all(pool).await;
-                match rows_result {
-                    Ok(rows) => rows
-                        .into_iter()
-                        .map(|row| {
-                            let mut map = HashMap::new();
-                            for (idx, col) in row.columns().iter().enumerate() {
-                                let val: Option<String> = row.try_get(idx).ok();
-                                map.insert(col.name().to_string(), val);
-                            }
-                            map
+    pub async fn get_golfers_from_db(
+        &self,
+        event_id: i32,
+    ) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
+        let query =
+        "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
+        let query_params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&event_id];
+        let result = self.exec_general_query(query, query_params).await;
+        let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
+            db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
+            return_result: vec![],
+            error_message: None,
+            db_object_name: "sp_get_player_names".to_string(),
+        };
+
+        match result {
+            Ok(r) => {
+                if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+                    let rows = r.return_result;
+                    let players = rows
+                        .iter()
+                        .map(|row| Scores {
+                            // parse column 0 as an int32
+                            group: row.get::<_, i64>(0),
+                            golfer_name: row.get(1),
+                            bettor_name: row.get(2),
+                            eup_id: row.get::<_, i64>(3),
+                            espn_id: row.get::<_, i64>(4),
+                            detailed_statistics: Statistic {
+                                eup_id: row.get::<_, i64>(3),
+                                rounds: vec![],
+                                scores: vec![],
+                                tee_times: vec![],
+                                holes_completed: vec![],
+                                success_fail: ResultStatus::NoData,
+                                total_score: 0,
+                            },
                         })
-                        .collect(),
-                    Err(e) => {
-                        println!("Failed to run query: {}", e);
-                        Vec::new()
-                    }
+                        .collect();
+                    dbresult.return_result = players;
                 }
             }
-            DbPool::Sqlite(pool) => {
-                let rows_result = sqlx::query(query).fetch_all(pool).await;
-                match rows_result {
-                    Ok(rows) => rows
-                        .into_iter()
-                        .map(|row| {
-                            let mut map = HashMap::new();
-                            for (idx, col) in row.columns().iter().enumerate() {
-                                let val: Option<String> = row.try_get(idx).ok();
-                                map.insert(col.name().to_string(), val);
-                            }
-                            map
-                        })
-                        .collect(),
-                    Err(e) => {
-                        println!("Failed to run query: {}", e);
-                        Vec::new()
-                    }
-                }
+            Err(e) => {
+                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                dbresult.error_message = Some(emessage);
             }
         }
+
+        Ok(dbresult)
     }
+
+
 }
