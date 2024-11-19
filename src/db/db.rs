@@ -217,6 +217,22 @@ pub const TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL: &[(&str, &str, &str, &
     ),
 ];
 
+// Custom Value enum to support multiple data types
+#[derive(Debug, Clone)]
+enum RowValues {
+    Int(i64),
+    Float(f64),
+    Text(String),
+    Bool(bool),
+    // Add other types as needed
+}
+
+#[derive(Debug, Clone)]
+struct CustomDbRow {
+    column_names: Vec<String>,
+    rows: Vec<RowValues>,
+}
+
 #[derive(Debug, Clone)]
 pub struct DatabaseResult<T: Default> {
     pub db_last_exec_state: DatabaseSetupState,
@@ -262,6 +278,49 @@ impl Db {
     ) -> Result<Vec<DatabaseResult<String>>, Box<dyn std::error::Error>> {
         let mut dbresults = vec![];
 
+        let query = include_str!("../admin/model/sql/schema/0x_tables_exist.sql");
+        let params:Vec<String> = vec![];
+        let result = self.exec_general_query::<_, String>(query, params).await;
+
+        let missing_tables= match result {
+            Ok(r) => {
+                if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+                    r.return_result
+                } else {
+                    let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+                    dbresult.db_last_exec_state = r.db_last_exec_state;
+                    dbresult.error_message = r.error_message;
+                    return Ok(vec![dbresult]);
+                }
+            }
+            Err(e) => {
+                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+                dbresult.error_message = Some(emessage);
+                dbresults.push(dbresult);
+                return Ok(dbresults);
+            }
+        };
+
+        // may have to declare as Vec<String>
+let zz:Vec<_>=        missing_tables.iter().filter_map(|row| {
+            let exists_index = row.column_names.iter().position(|col| col == "exists")?;
+            let tbl_index = row.column_names.iter().position(|col| col == "tbl")?;
+
+            // Check if the "exists" column value is `Value::Bool(true)` or `Value::Text("t")`
+            match &row.rows[exists_index] {
+                RowValues::Bool(true) => match &row.rows[tbl_index] {
+                    RowValues::Text(tbl_name) => Some(tbl_name.clone()),
+                    _ => None,
+                },
+                RowValues::Text(value) if value == "t" => match &row.rows[tbl_index] {
+                    RowValues::Text(tbl_name) => Some(tbl_name.clone()),
+                    _ => None,
+                },
+                _ => None,
+            }
+        }).collect();
+
         fn local_fn_get_iter(check_type: &CheckType) -> impl Iterator<Item = &'static str> {
             let iter = match check_type {
                 CheckType::Table => TABLES_AND_DDL.iter(),
@@ -273,138 +332,17 @@ impl Db {
         for table in local_fn_get_iter(&check_type) {
             let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
             dbresult.db_object_name = table.to_string();
-            let state = self
-                .check_obj_exists(table, &check_type, function_name!())
-                .await;
-            match state {
-                Err(e) => {
-                    let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                    dbresult.error_message = Some(emessage);
-                }
-                Ok(s) => {
-                    dbresult.return_result = s.return_result;
-                    dbresult.db_last_exec_state = s.db_last_exec_state;
-                    dbresult.error_message = s.error_message;
-                }
+            
+if zz.iter().any(|x| x == table) {
+                dbresult.db_last_exec_state = DatabaseSetupState::QueryReturnedSuccessfully;
+            } else {
+                dbresult.db_last_exec_state = DatabaseSetupState::MissingRelations;
             }
+
             dbresults.push(dbresult);
         }
 
         Ok(dbresults)
-    }
-
-    #[named]
-    async fn delete_table(
-        &mut self,
-        ddl: &[(&str, &str, &str, &str)],
-        table: String,
-        check_type: CheckType,
-    ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-        let state = self
-            .check_obj_exists(&table, &check_type, function_name!())
-            .await;
-        let mut return_result: DatabaseResult<String> = DatabaseResult::<String>::default();
-        return_result.db_object_name = function_name!().to_string();
-
-        match state {
-            Err(e) => {
-                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                return_result.db_last_exec_state = DatabaseSetupState::NoConnection;
-                return_result.error_message = Some(emessage);
-            }
-            Ok(s) => {
-                if s.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
-                    let query = ddl.iter().find(|x| x.0 == table).unwrap().1;
-                    let result = self.exec_general_query(&query, &[]).await;
-                    match result {
-                        Ok(r) => {
-                            if r.db_last_exec_state != DatabaseSetupState::QueryReturnedSuccessfully
-                            {
-                                let emessage = format!(
-                                    "Failed in {}, {}: {}",
-                                    std::file!(),
-                                    std::line!(),
-                                    r.error_message.clone().unwrap_or("".to_string())
-                                );
-                                return_result.db_last_exec_state = DatabaseSetupState::QueryError;
-                                return_result.error_message = Some(emessage);
-                                return_result.db_object_name = r.db_object_name;
-                            } else {
-                                // table deleted successfully
-                                return_result.db_last_exec_state = r.db_last_exec_state;
-                                return_result.db_object_name = r.db_object_name;
-                            }
-                        }
-                        Err(e) => {
-                            let emessage =
-                                format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                            return_result.db_last_exec_state = DatabaseSetupState::QueryError;
-                            return_result.error_message = Some(emessage);
-                        }
-                    }
-                } else {
-                    return_result = s;
-                }
-            }
-        }
-        Ok(return_result)
-    }
-
-    #[named]
-    async fn create_tbl(
-        &mut self,
-        ddl: &[(&str, &str, &str, &str)],
-        table: String,
-        check_type: CheckType,
-    ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-        let state = self
-            .check_obj_exists(&table, &check_type, function_name!())
-            .await;
-        let mut return_result: DatabaseResult<String> = DatabaseResult::<String>::default();
-        return_result.db_object_name = function_name!().to_string();
-
-        match state {
-            Err(e) => {
-                let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                return_result.db_last_exec_state = DatabaseSetupState::NoConnection;
-                return_result.error_message = Some(emessage);
-            }
-            Ok(s) => {
-                if s.db_last_exec_state == DatabaseSetupState::MissingRelations {
-                    let query = ddl.iter().find(|x| x.0 == table).unwrap().1;
-                    let result = self.exec_general_query(&query, &[]).await;
-                    match result {
-                        Ok(r) => {
-                            if r.db_last_exec_state != DatabaseSetupState::QueryReturnedSuccessfully
-                            {
-                                let emessage = format!(
-                                    "Failed in {}, {}: {}",
-                                    std::file!(),
-                                    std::line!(),
-                                    r.error_message.clone().unwrap_or("".to_string())
-                                );
-                                return_result.db_last_exec_state = DatabaseSetupState::QueryError;
-                                return_result.error_message = Some(emessage);
-                                return_result.db_object_name = r.db_object_name;
-                            } else {
-                                // table created successfully
-                                return_result.db_last_exec_state = r.db_last_exec_state;
-                                return_result.db_object_name = r.db_object_name;
-                            }
-                        }
-                        Err(e) => {
-                            let emessage =
-                                format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                            return_result.db_last_exec_state = DatabaseSetupState::QueryError;
-                            return_result.error_message = Some(emessage);
-                        }
-                    }
-                } else {
-                    return_result = s;
-                }
-            }
-        }
-        Ok(return_result)
     }
 
     #[named]
@@ -525,6 +463,14 @@ impl Db {
         match result {
             Ok(r) => {
                 if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+                    match r.return_result.get("eventname") {
+                        Some(Some(event_name)) => {
+                            dbresult.return_result = event_name.clone();
+                        }
+                        _ => {
+                            dbresult.error_message = Some("No event name found".to_string());
+                        }
+                    }
                     if let Some(Some(event_name)) = r.return_result[0].get("eventname") {
                         dbresult.return_result = event_name.clone();
                     } else {
@@ -592,75 +538,88 @@ impl Db {
         Ok(dbresult)
     }
 
-    async fn exec_general_query<P>(
+    async fn exec_general_query<P, T>(
         &self,
         query: &str,
         params: Vec<P>,
-    ) -> Result<DatabaseResult<Vec<HashMap<String, Option<String>>>>, sqlx::Error>
+    ) -> Result<DatabaseResult<Vec<CustomDbRow>>, sqlx::Error>
     where
         P: PostgresParam + SqliteParam,
+        T: for<'a> sqlx::Decode<'a, sqlx::Postgres>
+            + sqlx::Type<sqlx::Postgres>
+            + for<'a> sqlx::Decode<'a, sqlx::Sqlite>
+            + sqlx::Type<sqlx::Sqlite>
+            + std::fmt::Debug,
     {
-        let mut final_result: DatabaseResult<Vec<HashMap<String, Option<String>>>> =
-            DatabaseResult::<Vec<HashMap<String, Option<String>>>>::default();
+        let mut final_result = DatabaseResult::<Vec<CustomDbRow>>::default();
 
-        let exists_result: Vec<HashMap<String, Option<String>>> = match &self.pool {
+        let exists_result = match &self.pool {
             DbPool::Postgres(pool) => {
                 let mut query = sqlx::query(query);
                 for param in params {
                     query = query.bind(param);
                 }
-                match query.fetch_all(pool).await {
-                    Ok(rows) => {
-                        let result = rows
-                            .into_iter()
-                            .map(|row: PgRow| Self::row_to_map(row))
-                            .collect::<Vec<_>>();
-                        result
-                    }
-
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
+                let rows: Vec<PgRow> = query.fetch_all(pool).await?;
+    
+                rows.into_iter().map(|row| {
+                    let column_names = row.columns().iter().map(|c| c.name().to_string()).collect();
+                    let values = row.columns().iter().map(|col| {
+                        let value = match col.name() {
+                            "INT4" => RowValues::Int(row.get::<i64, _>(col.name())),
+                            "FLOAT8" => RowValues::Float(row.get::<f64, _>(col.name())),
+                            "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
+                            "BOOL" => RowValues::Bool(row.get::<bool, _>(col.name())),
+                            _ => unimplemented!(),
+                        };
+                        value
+                    }).collect();
+    
+                    CustomDbRow { column_names, rows: values }
+                }).collect::<Vec<_>>()
             }
             DbPool::Sqlite(pool) => {
                 let mut query = sqlx::query(query);
                 for param in params {
                     query = query.bind(param);
                 }
-                match query.fetch_all(pool).await {
-                    Ok(rows) => {
-                        let result = rows
-                            .into_iter()
-                            .map(|row: SqliteRow| Self::row_to_map(row))
-                            .collect::<Vec<_>>();
-                        result
-                    }
-
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
+                let rows: Vec<SqliteRow> = query.fetch_all(pool).await?;
+    
+                rows.into_iter().map(|row| {
+                    let column_names = row.columns().iter().map(|c| c.name().to_string()).collect();
+                    let values = row.columns().iter().map(|col| {
+                        let value = match col.name() {
+                            "INTEGER" => RowValues::Int(row.get::<i64, _>(col.name())),
+                            "REAL" => RowValues::Float(row.get::<f64, _>(col.name())),
+                            "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
+                            "BOOLEAN" => RowValues::Bool(row.get::<bool, _>(col.name())),
+                            _ => unimplemented!(),
+                        };
+                        value
+                    }).collect();
+    
+                    CustomDbRow { column_names, rows: values }
+                }).collect::<Vec<_>>()
             }
         };
+    
         final_result.return_result = exists_result;
         Ok(final_result)
     }
+    
 
-    fn row_to_map<R>(row: R) -> HashMap<String, Option<String>>
-    where
-        R: Row,
-        String: for<'a> sqlx::Decode<'a, R::Database>,
-        std::string::String: sqlx::Type<<R as sqlx::Row>::Database>,
-        usize: ColumnIndex<R>,
-    {
-        let mut map = HashMap::new();
-        for (idx, col) in row.columns().iter().enumerate() {
-            let val: Option<String> = row.try_get(idx).ok();
-            map.insert(col.name().to_string(), val);
-        }
-        map
+    fn row_to_map<R, T>(row: R) -> HashMap<String, Option<T>>
+where
+    R: Row,
+    T: for<'a> sqlx::Decode<'a, R::Database> + sqlx::Type<R::Database> + std::fmt::Debug,
+    usize: ColumnIndex<R>,
+{
+    let mut map = HashMap::new();
+    for (idx, col) in row.columns().iter().enumerate() {
+        let val: Option<T> = row.try_get(idx).ok();
+        map.insert(col.name().to_string(), val);
     }
+    map
+}
 
     // fn create_error_result<E>(&mut self, e: Error) -> DatabaseResult<Vec<Row>>
     // where
