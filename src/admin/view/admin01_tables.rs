@@ -257,7 +257,7 @@ impl CreateTableReturn {
         result.times_run = json!({ "times_run": times_run_int });
         result.times_run_int = times_run_int;
 
-        let actual_table_creation = self.db.create_tables(data.clone(), CheckType::Table).await;
+        let actual_table_creation = self.db.create_tables(data.clone(), CheckType::Table, db::TABLES_AND_DDL ).await;
 
         let message: String;
         match actual_table_creation {
@@ -279,7 +279,7 @@ impl CreateTableReturn {
 
         let actual_constraint_creation = self
             .db
-            .create_tables(data.clone(), CheckType::Constraint)
+            .create_tables(data.clone(), CheckType::Constraint,  db::TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL)
             .await;
         let message2: String;
         match actual_constraint_creation {

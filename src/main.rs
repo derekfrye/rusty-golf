@@ -76,7 +76,7 @@ async fn main() -> std::io::Result<()> {
     cfg.manager = Some(ManagerConfig {
         recycling_method: RecyclingMethod::Fast,
     });
-    let dbcn = DbConfigAndPool::new(cfg).unwrap();
+    let dbcn = DbConfigAndPool::new(cfg, db::db::DatabaseType::Postgres).await;
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
 
