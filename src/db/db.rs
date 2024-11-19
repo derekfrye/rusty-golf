@@ -7,8 +7,7 @@ use deadpool_postgres::Config; //, Pool, PoolError, Runtime};
 
 use crate::admin::model::admin_model::MissingDbObjects;
 
-use sqlx::{self, postgres::PgRow, sqlite::SqliteRow, Column, ColumnIndex, Pool, Row};
-use std::collections::HashMap;
+use sqlx::{self, postgres::PgRow, sqlite::SqliteRow, Column,  Pool, Row};
 
 #[derive(Debug, Clone)]
 pub enum DbPool {
@@ -22,10 +21,10 @@ pub enum DatabaseType {
     Sqlite,
 }
 
-pub enum ObjType {
-    Table,
-    Constraint,
-}
+// pub enum ObjType {
+//     Table,
+//     Constraint,
+// }
 
 trait PostgresParam: for<'a> sqlx::Encode<'a, sqlx::Postgres> + sqlx::Type<sqlx::Postgres> {}
 impl<T> PostgresParam for T where
@@ -36,25 +35,25 @@ impl<T> PostgresParam for T where
 trait SqliteParam: for<'a> sqlx::Encode<'a, sqlx::Sqlite> + sqlx::Type<sqlx::Sqlite> {}
 impl<T> SqliteParam for T where T: for<'a> sqlx::Encode<'a, sqlx::Sqlite> + sqlx::Type<sqlx::Sqlite> {}
 
-enum DbQueryResult {
-    Postgres(sqlx::postgres::PgQueryResult),
-    Sqlite(sqlx::sqlite::SqliteQueryResult),
-}
+// enum DbQueryResult {
+//     Postgres(sqlx::postgres::PgQueryResult),
+//     Sqlite(sqlx::sqlite::SqliteQueryResult),
+// }
 
-enum DbRow {
-    Postgres(sqlx::postgres::PgRow),
-    Sqlite(sqlx::sqlite::SqliteRow),
-}
+// enum DbRow {
+//     Postgres(sqlx::postgres::PgRow),
+//     Sqlite(sqlx::sqlite::SqliteRow),
+// }
 
-enum DbQueryOne<T> {
-    Postgres(T),
-    Sqlite(T),
-}
+// enum DbQueryOne<T> {
+//     Postgres(T),
+//     Sqlite(T),
+// }
 
 #[derive(Clone, Debug)]
 pub struct DbConfigAndPool {
     pool: DbPool,
-    db_type: DatabaseType,
+    // db_type: DatabaseType,
 }
 
 impl DbConfigAndPool {
@@ -103,7 +102,7 @@ impl DbConfigAndPool {
                 match pool_result {
                     Ok(pool) => DbConfigAndPool {
                         pool: DbPool::Postgres(pool),
-                        db_type,
+                        // db_type,
                     },
                     Err(e) => {
                         panic!("Failed to create Postgres pool: {}", e);
@@ -117,7 +116,7 @@ impl DbConfigAndPool {
                 match pool_result {
                     Ok(pool) => DbConfigAndPool {
                         pool: DbPool::Sqlite(pool),
-                        db_type,
+                        // db_type,
                     },
                     Err(e) => {
                         panic!("Failed to create SQLite pool: {}", e);
@@ -139,7 +138,7 @@ pub enum DatabaseSetupState {
     NoConnection,
     MissingRelations,
     QueryReturnedSuccessfully,
-    QueryError,
+    // QueryError,
 }
 
 pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
@@ -206,22 +205,22 @@ pub const TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL: &[(&str, &str, &str, &
 #[derive(Debug, Clone)]
 enum RowValues {
     Int(i64),
-    Float(f64),
+    // Float(f64),
     Text(String),
     Bool(bool),
     // Add other types as needed
 }
 
 impl RowValues {
-    pub fn as_ref(&self) -> Option<&dyn std::fmt::Debug> {
-        match self {
-            RowValues::Int(value) => Some(value),
-            RowValues::Float(value) => Some(value),
-            RowValues::Text(value) => Some(value),
-            RowValues::Bool(value) => Some(value),
-            // Extend this with other types as needed
-        }
-    }
+    // pub fn as_ref(&self) -> Option<&dyn std::fmt::Debug> {
+    //     match self {
+    //         RowValues::Int(value) => Some(value),
+    //         // RowValues::Float(value) => Some(value),
+    //         RowValues::Text(value) => Some(value),
+    //         RowValues::Bool(value) => Some(value),
+    //         // Extend this with other types as needed
+    //     }
+    // }
 
     pub fn as_int(&self) -> Option<&i64> {
         if let RowValues::Int(value) = self {
@@ -231,13 +230,13 @@ impl RowValues {
         }
     }
 
-    pub fn as_float(&self) -> Option<&f64> {
-        if let RowValues::Float(value) = self {
-            Some(value)
-        } else {
-            None
-        }
-    }
+    // pub fn as_float(&self) -> Option<&f64> {
+    //     if let RowValues::Float(value) = self {
+    //         Some(value)
+    //     } else {
+    //         None
+    //     }
+    // }
 
     pub fn as_text(&self) -> Option<&str> {
         if let RowValues::Text(value) = self {
@@ -247,13 +246,13 @@ impl RowValues {
         }
     }
 
-    pub fn as_bool(&self) -> Option<&bool> {
-        if let RowValues::Bool(value) = self {
-            Some(value)
-        } else {
-            None
-        }
-    }
+    // pub fn as_bool(&self) -> Option<&bool> {
+    //     if let RowValues::Bool(value) = self {
+    //         Some(value)
+    //     } else {
+    //         None
+    //     }
+    // }
 }
 
 #[derive(Debug, Clone)]
@@ -295,20 +294,19 @@ impl<T: Default> DatabaseResult<T> {
 
 #[derive(Clone, Debug)]
 pub struct Db {
-    pub config_and_pool: DbConfigAndPool,
+    // pub config_and_pool: DbConfigAndPool,
     pub pool: DbPool,
 }
 
 impl Db {
     pub fn new(cnf: DbConfigAndPool) -> Result<Self, String> {
-        let cnf_clone = cnf.clone();
+        // let cnf_clone = cnf.clone();
         Ok(Self {
-            config_and_pool: cnf,
-            pool: cnf_clone.pool,
+            // config_and_pool: cnf,
+            pool: cnf.pool,
         })
     }
 
-    #[named]
     /// Check if tables or constraints are setup.
     pub async fn test_is_db_setup(
         &mut self,
@@ -391,7 +389,7 @@ impl Db {
         &mut self,
         tables: Vec<MissingDbObjects>,
         check_type: CheckType,
-        ddl_for_validation: &[(&str, &str, &str, &str)]
+        ddl_for_validation: &[(&str, &str, &str, &str)],
     ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
         let mut return_result: DatabaseResult<String> = DatabaseResult::<String>::default();
         return_result.db_object_name = function_name!().to_string();
@@ -454,38 +452,38 @@ impl Db {
         Ok(return_result)
     }
 
-    async fn check_obj_exists(&self, obj_name: &str, typ: ObjType) -> Result<bool, sqlx::Error> {
-        let check_sql = match &self.pool {
-            DbPool::Postgres(_) => match typ {
-                ObjType::Table => "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1);",
-                ObjType::Constraint => "SELECT EXISTS (SELECT FROM information_schema.table_constraints WHERE table_schema = 'public' AND constraint_name = $1);",
-            },
-            DbPool::Sqlite(_) => match typ {
-                ObjType::Table => "SELECT name FROM sqlite_master WHERE type='table' AND name = ?;",
-                ObjType::Constraint => "SELECT name FROM sqlite_master WHERE type='constraint' AND name = ?;",
-            },
-        };
-        let exists_result: Result<bool, sqlx::Error> = match &self.pool {
-            DbPool::Postgres(pool) => sqlx::query_scalar::<_, bool>(check_sql)
-                .bind(obj_name)
-                .fetch_one(pool)
-                .await
-                .map(|result| result),
-            DbPool::Sqlite(pool) => sqlx::query_scalar::<_, bool>(check_sql)
-                .bind(obj_name)
-                .fetch_one(pool)
-                .await
-                .map(|result| result),
-        };
-        match exists_result {
-            Ok(exists) => {
-                return Ok(exists);
-            }
-            Err(e) => {
-                return Err(e);
-            }
-        }
-    }
+    // async fn check_obj_exists(&self, obj_name: &str, typ: ObjType) -> Result<bool, sqlx::Error> {
+    //     let check_sql = match &self.pool {
+    //         DbPool::Postgres(_) => match typ {
+    //             ObjType::Table => "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1);",
+    //             ObjType::Constraint => "SELECT EXISTS (SELECT FROM information_schema.table_constraints WHERE table_schema = 'public' AND constraint_name = $1);",
+    //         },
+    //         DbPool::Sqlite(_) => match typ {
+    //             ObjType::Table => "SELECT name FROM sqlite_master WHERE type='table' AND name = ?;",
+    //             ObjType::Constraint => "SELECT name FROM sqlite_master WHERE type='constraint' AND name = ?;",
+    //         },
+    //     };
+    //     let exists_result: Result<bool, sqlx::Error> = match &self.pool {
+    //         DbPool::Postgres(pool) => sqlx::query_scalar::<_, bool>(check_sql)
+    //             .bind(obj_name)
+    //             .fetch_one(pool)
+    //             .await
+    //             .map(|result| result),
+    //         DbPool::Sqlite(pool) => sqlx::query_scalar::<_, bool>(check_sql)
+    //             .bind(obj_name)
+    //             .fetch_one(pool)
+    //             .await
+    //             .map(|result| result),
+    //     };
+    //     match exists_result {
+    //         Ok(exists) => {
+    //             return Ok(exists);
+    //         }
+    //         Err(e) => {
+    //             return Err(e);
+    //         }
+    //     }
+    // }
 
     pub async fn get_title_from_db(
         &self,
@@ -633,7 +631,7 @@ impl Db {
                             .map(|col| {
                                 let value = match col.name() {
                                     "INT4" => RowValues::Int(row.get::<i64, _>(col.name())),
-                                    "FLOAT8" => RowValues::Float(row.get::<f64, _>(col.name())),
+                                    // "FLOAT8" => RowValues::Float(row.get::<f64, _>(col.name())),
                                     "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
                                     "BOOL" => RowValues::Bool(row.get::<bool, _>(col.name())),
                                     _ => unimplemented!(),
@@ -666,7 +664,7 @@ impl Db {
                             .map(|col| {
                                 let value = match col.name() {
                                     "INTEGER" => RowValues::Int(row.get::<i64, _>(col.name())),
-                                    "REAL" => RowValues::Float(row.get::<f64, _>(col.name())),
+                                    // "REAL" => RowValues::Float(row.get::<f64, _>(col.name())),
                                     "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
                                     "BOOLEAN" => RowValues::Bool(row.get::<bool, _>(col.name())),
                                     _ => unimplemented!(),
@@ -688,19 +686,19 @@ impl Db {
         Ok(final_result)
     }
 
-    fn row_to_map<R, T>(row: R) -> HashMap<String, Option<T>>
-    where
-        R: Row,
-        T: for<'a> sqlx::Decode<'a, R::Database> + sqlx::Type<R::Database> + std::fmt::Debug,
-        usize: ColumnIndex<R>,
-    {
-        let mut map = HashMap::new();
-        for (idx, col) in row.columns().iter().enumerate() {
-            let val: Option<T> = row.try_get(idx).ok();
-            map.insert(col.name().to_string(), val);
-        }
-        map
-    }
+    // fn row_to_map<R, T>(row: R) -> HashMap<String, Option<T>>
+    // where
+    //     R: Row,
+    //     T: for<'a> sqlx::Decode<'a, R::Database> + sqlx::Type<R::Database> + std::fmt::Debug,
+    //     usize: ColumnIndex<R>,
+    // {
+    //     let mut map = HashMap::new();
+    //     for (idx, col) in row.columns().iter().enumerate() {
+    //         let val: Option<T> = row.try_get(idx).ok();
+    //         map.insert(col.name().to_string(), val);
+    //     }
+    //     map
+    // }
 
     // fn create_error_result<E>(&mut self, e: Error) -> DatabaseResult<Vec<Row>>
     // where
@@ -764,23 +762,39 @@ mod tests {
             cfg.password = Some(db_pwd);
 
             let x: DbConfigAndPool = DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
-
             let mut db = Db::new(x).unwrap();
+
+            let mut cfg2 = deadpool_postgres::Config::new();
+            cfg2.dbname = Some("test.db".to_string());
+            let sqlitex = DbConfigAndPool::new(cfg2, DatabaseType::Sqlite).await;
+            let mut db2 = Db::new(sqlitex).unwrap();
 
             let missing_objs = vec![MissingDbObjects {
                 missing_object: "test".to_string(),
             }];
+            let missing_objs2 = missing_objs.clone();
             // create a test table
             let x = db
                 .create_tables(missing_objs, CheckType::Table, TABLE_DDL)
                 .await
                 .unwrap();
 
-            // assert_eq!(
-            //     x.db_last_exec_state,
-            //     DatabaseSetupState::QueryReturnedSuccessfully
-            // );
-            // assert_eq!(x.return_result, String::default());
+            let x2 = db2
+                .create_tables(missing_objs2, CheckType::Table, TABLE_DDL)
+                .await
+                .unwrap();
+
+            assert_eq!(
+                x.db_last_exec_state,
+                DatabaseSetupState::QueryReturnedSuccessfully
+            );
+            assert_eq!(x.return_result, String::default());
+
+            assert_eq!(
+                x2.db_last_exec_state,
+                DatabaseSetupState::QueryReturnedSuccessfully
+            );
+            assert_eq!(x2.return_result, String::default());
 
             // // table already created, this should fail
             // let x = db

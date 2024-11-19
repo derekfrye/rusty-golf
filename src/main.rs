@@ -2,7 +2,7 @@ mod model;
 mod db {
     // pub mod query;
     pub mod db;
-    pub mod db2;
+    // pub mod db2;
 }
 mod admin {
     pub mod view {
@@ -26,7 +26,7 @@ mod view {
 }
 
 use admin::router;
-use db::db::{Db, DbConfigAndPool};
+use db::db::{DatabaseType, Db, DbConfigAndPool};
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use model::CacheMap;
 
@@ -78,6 +78,12 @@ async fn main() -> std::io::Result<()> {
     });
     let dbcn = DbConfigAndPool::new(cfg, db::db::DatabaseType::Postgres).await;
 
+
+    let mut cfg2 = deadpool_postgres::Config::new();
+    cfg2.dbname = Some("test.db".to_string());
+    let sqlitex = DbConfigAndPool::new(cfg2, DatabaseType::Sqlite).await;
+    let _db2 = Db::new(sqlitex).unwrap();
+
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
 
     HttpServer::new(move || {
@@ -98,7 +104,7 @@ async fn index(
     query: web::Query<HashMap<String, String>>,
     abc: Data<DbConfigAndPool>,
 ) -> impl Responder {
-    let mut db = Db::new(abc.get_ref().clone()).unwrap();
+    let db = Db::new(abc.get_ref().clone()).unwrap();
 
     let event_str = query
         .get("event")
