@@ -7,7 +7,12 @@ use deadpool_postgres::Config; //, Pool, PoolError, Runtime};
 
 use crate::admin::model::admin_model::MissingDbObjects;
 
-use sqlx::{self, postgres::PgRow, sqlite::SqliteRow, Column,  Pool, Row};
+use sqlx::{
+    self,
+    postgres::PgRow,
+    sqlite::{SqliteConnectOptions, SqliteRow},
+    Column, ConnectOptions, Pool, Row,
+};
 
 #[derive(Debug, Clone)]
 pub enum DbPool {
@@ -61,22 +66,25 @@ impl DbConfigAndPool {
         if config.dbname.is_none() {
             panic!("dbname is required");
         }
+        if db_type != DatabaseType::Sqlite {
+            if config.host.is_none() {
+                panic!("host is required");
+            }
 
-        if config.host.is_none() {
-            panic!("host is required");
+            if config.port.is_none() {
+                panic!("port is required");
+            }
+
+            if config.user.is_none() {
+                panic!("user is required");
+            }
+
+            if config.password.is_none() {
+                panic!("password is required");
+            }
         }
 
-        if config.port.is_none() {
-            panic!("port is required");
-        }
-
-        if config.user.is_none() {
-            panic!("user is required");
-        }
-
-        if config.password.is_none() {
-            panic!("password is required");
-        }
+        let config_db_name = config.dbname.clone().unwrap();
 
         let connection_string = match db_type {
             DatabaseType::Postgres => {
@@ -110,6 +118,23 @@ impl DbConfigAndPool {
                 }
             }
             DatabaseType::Sqlite => {
+                #[cfg(debug_assertions)]
+                {
+                    dbg!(&connection_string);
+                }
+                let connect = SqliteConnectOptions::new()
+                    .filename(&config_db_name)
+                    .create_if_missing(true)
+                    .connect()
+                    .await;
+                match connect {
+                    Ok(_) => {}
+                    Err(e) => {
+                        let emessage =
+                            format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+                        panic!("failed here 1, {}", emessage);
+                    }
+                }
                 let pool_result = sqlx::sqlite::SqlitePoolOptions::new()
                     .connect(&connection_string)
                     .await;
@@ -761,40 +786,42 @@ mod tests {
             cfg.user = Some(env::var("DB_USER").unwrap());
             cfg.password = Some(db_pwd);
 
-            let x: DbConfigAndPool = DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
-            let mut db = Db::new(x).unwrap();
+            let postgres_dbconfig: DbConfigAndPool =
+                DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
+            let mut postgres_db = Db::new(postgres_dbconfig).unwrap();
 
-            let mut cfg2 = deadpool_postgres::Config::new();
-            cfg2.dbname = Some("test.db".to_string());
-            let sqlitex = DbConfigAndPool::new(cfg2, DatabaseType::Sqlite).await;
-            let mut db2 = Db::new(sqlitex).unwrap();
+            let mut sqlite_config = deadpool_postgres::Config::new();
+            sqlite_config.dbname = Some("/tmp/test.db".to_string());
 
-            let missing_objs = vec![MissingDbObjects {
+            let sqlitex = DbConfigAndPool::new(sqlite_config, DatabaseType::Sqlite).await;
+            let mut sqlite_db = Db::new(sqlitex).unwrap();
+
+            let pg_objs = vec![MissingDbObjects {
                 missing_object: "test".to_string(),
             }];
-            let missing_objs2 = missing_objs.clone();
+            let sqlite_objs = pg_objs.clone();
             // create a test table
-            let x = db
-                .create_tables(missing_objs, CheckType::Table, TABLE_DDL)
+            let pg_create_result = postgres_db
+                .create_tables(pg_objs, CheckType::Table, TABLE_DDL)
                 .await
                 .unwrap();
 
-            let x2 = db2
-                .create_tables(missing_objs2, CheckType::Table, TABLE_DDL)
+            let sqlite_create_result = sqlite_db
+                .create_tables(sqlite_objs, CheckType::Table, TABLE_DDL)
                 .await
                 .unwrap();
 
             assert_eq!(
-                x.db_last_exec_state,
+                pg_create_result.db_last_exec_state,
                 DatabaseSetupState::QueryReturnedSuccessfully
             );
-            assert_eq!(x.return_result, String::default());
+            assert_eq!(pg_create_result.return_result, String::default());
 
             assert_eq!(
-                x2.db_last_exec_state,
+                sqlite_create_result.db_last_exec_state,
                 DatabaseSetupState::QueryReturnedSuccessfully
             );
-            assert_eq!(x2.return_result, String::default());
+            assert_eq!(sqlite_create_result.return_result, String::default());
 
             // // table already created, this should fail
             // let x = db
