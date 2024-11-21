@@ -7,12 +7,7 @@ use deadpool_postgres::Config; //, Pool, PoolError, Runtime};
 
 use crate::admin::model::admin_model::MissingDbObjects;
 
-use sqlx::{
-    self,
-    postgres::PgRow,
-    sqlite::{SqliteConnectOptions, SqliteRow},
-    Column, ConnectOptions, Pool, Row,
-};
+use sqlx::{self, sqlite::SqliteConnectOptions, Column, ConnectOptions, Pool, Row};
 
 #[derive(Debug, Clone)]
 pub enum DbPool {
@@ -644,66 +639,88 @@ impl Db {
                 for param in params {
                     query = query.bind(param);
                 }
-                let rows: Vec<PgRow> = query.fetch_all(pool).await?;
-
-                rows.into_iter()
-                    .map(|row| {
-                        let column_names =
-                            row.columns().iter().map(|c| c.name().to_string()).collect();
-                        let values = row
-                            .columns()
-                            .iter()
-                            .map(|col| {
-                                let value = match col.name() {
-                                    "INT4" => RowValues::Int(row.get::<i64, _>(col.name())),
-                                    // "FLOAT8" => RowValues::Float(row.get::<f64, _>(col.name())),
-                                    "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
-                                    "BOOL" => RowValues::Bool(row.get::<bool, _>(col.name())),
-                                    _ => unimplemented!(),
-                                };
-                                value
-                            })
-                            .collect();
-
-                        CustomDbRow {
-                            column_names,
-                            rows: values,
+                match query.fetch_all(pool).await {
+                    Ok(rows) => {
+                        #[cfg(debug_assertions)]
+                        {
+                            dbg!("here.");
                         }
-                    })
-                    .collect::<Vec<_>>()
+
+                        rows.into_iter()
+                            .map(|row| {
+                                let column_names =
+                                    row.columns().iter().map(|c| c.name().to_string()).collect();
+                                let values = row
+                                    .columns()
+                                    .iter()
+                                    .map(|col| {
+                                        let value = match col.name() {
+                                            "INT4" => RowValues::Int(row.get::<i64, _>(col.name())),
+                                            // "FLOAT8" => RowValues::Float(row.get::<f64, _>(col.name())),
+                                            "TEXT" => {
+                                                RowValues::Text(row.get::<String, _>(col.name()))
+                                            }
+                                            "BOOL" => {
+                                                RowValues::Bool(row.get::<bool, _>(col.name()))
+                                            }
+                                            _ => unimplemented!(),
+                                        };
+                                        value
+                                    })
+                                    .collect();
+
+                                CustomDbRow {
+                                    column_names,
+                                    rows: values,
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    }
+                    Err(e) => {
+                        #[cfg(debug_assertions)]
+                        {
+                            dbg!("here.");
+                        }
+                        return Err(e);
+                    }
+                }
             }
             DbPool::Sqlite(pool) => {
                 let mut query = sqlx::query(query);
                 for param in params {
                     query = query.bind(param);
                 }
-                let rows: Vec<SqliteRow> = query.fetch_all(pool).await?;
+                match query.fetch_all(pool).await {
+                    Ok(rows) => rows
+                        .into_iter()
+                        .map(|row| {
+                            let column_names =
+                                row.columns().iter().map(|c| c.name().to_string()).collect();
+                            let values = row
+                                .columns()
+                                .iter()
+                                .map(|col| {
+                                    let value = match col.name() {
+                                        "INTEGER" => RowValues::Int(row.get::<i64, _>(col.name())),
+                                        // "REAL" => RowValues::Float(row.get::<f64, _>(col.name())),
+                                        "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
+                                        "BOOLEAN" => {
+                                            RowValues::Bool(row.get::<bool, _>(col.name()))
+                                        }
+                                        _ => unimplemented!(),
+                                    };
+                                    value
+                                })
+                                .collect();
 
-                rows.into_iter()
-                    .map(|row| {
-                        let column_names =
-                            row.columns().iter().map(|c| c.name().to_string()).collect();
-                        let values = row
-                            .columns()
-                            .iter()
-                            .map(|col| {
-                                let value = match col.name() {
-                                    "INTEGER" => RowValues::Int(row.get::<i64, _>(col.name())),
-                                    // "REAL" => RowValues::Float(row.get::<f64, _>(col.name())),
-                                    "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
-                                    "BOOLEAN" => RowValues::Bool(row.get::<bool, _>(col.name())),
-                                    _ => unimplemented!(),
-                                };
-                                value
-                            })
-                            .collect();
-
-                        CustomDbRow {
-                            column_names,
-                            rows: values,
-                        }
-                    })
-                    .collect::<Vec<_>>()
+                            CustomDbRow {
+                                column_names,
+                                rows: values,
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                    Err(e) => return Err(e),
+                }
             }
         };
 
@@ -758,7 +775,7 @@ mod tests {
 
             const TABLE_DDL: &[(&str, &str, &str, &str)] = &[(
                 "test",
-                "CREATE TABLE -- drop table event cascade
+                "CREATE TABLE IF NOT EXISTS -- drop table event cascade
                     test (
                     event_id BIGSERIAL NOT NULL PRIMARY KEY,
                     espn_id BIGINT NOT NULL,
