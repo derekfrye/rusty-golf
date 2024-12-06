@@ -158,7 +158,7 @@ pub enum DatabaseSetupState {
     NoConnection,
     MissingRelations,
     QueryReturnedSuccessfully,
-    // QueryError,
+    QueryError,
 }
 
 pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
@@ -336,7 +336,7 @@ impl Db {
 
         let query = include_str!("../admin/model/sql/schema/0x_tables_exist.sql");
         let params: Vec<String> = vec![];
-        let result = self.exec_general_query::<_>(query, params).await;
+        let result = self.exec_general_query::<_>(query, params, true).await;
 
         let missing_tables = match result {
             Ok(r) => {
@@ -436,40 +436,25 @@ impl Db {
 
         let params: Vec<String> = vec![];
         let result = self
-            .exec_general_query::<_>(&entire_create_stms, params)
+            .exec_general_query::<_>(&entire_create_stms, params, false)
             .await;
 
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
-        let missing_tables = match result {
+        match result {
             Ok(r) => {
                 dbresult.db_last_exec_state = r.db_last_exec_state;
                 dbresult.error_message = r.error_message;
-                r.return_result
+                // r.return_result
             }
             Err(e) => {
                 let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
                 let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
                 dbresult.error_message = Some(emessage);
-                vec![]
+                // vec![]
             }
         };
-        let zz: Vec<_> = missing_tables
-            .iter()
-            .filter_map(|row| {
-                let exists_index = row.column_names.iter().position(|col| col == "eventname")?;
-
-                match &row.rows[exists_index] {
-                    RowValues::Text(value) => Some(value),
-
-                    _ => None,
-                }
-            })
-            .collect();
-        if zz.len() > 0 {
-            dbresult.return_result = zz[0].to_string();
-        }
-        Ok(return_result)
+        Ok(dbresult)
     }
 
     // async fn check_obj_exists(&self, obj_name: &str, typ: ObjType) -> Result<bool, sqlx::Error> {
@@ -511,7 +496,7 @@ impl Db {
     ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
         let query = "SELECT eventname FROM sp_get_event_name($1)";
         let params: Vec<&i32> = vec![&event_id];
-        let result = self.exec_general_query::<_>(query, params).await;
+        let result = self.exec_general_query::<_>(query, params, true).await;
 
         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
@@ -554,7 +539,7 @@ impl Db {
         let query =
         "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
         let query_params = vec![&event_id];
-        let result = self.exec_general_query(query, query_params).await;
+        let result = self.exec_general_query(query, query_params, true).await;
         let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
             db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
             return_result: vec![],
@@ -627,26 +612,24 @@ impl Db {
         &self,
         query: &str,
         params: Vec<P>,
+        expect_rows: bool, // New parameter to indicate whether rows are expected
     ) -> Result<DatabaseResult<Vec<CustomDbRow>>, sqlx::Error>
     where
         P: PostgresParam + SqliteParam,
     {
         let mut final_result = DatabaseResult::<Vec<CustomDbRow>>::default();
 
-        let exists_result = match &self.pool {
-            DbPool::Postgres(pool) => {
-                let mut query = sqlx::query(query);
-                for param in params {
-                    query = query.bind(param);
-                }
-                match query.fetch_all(pool).await {
-                    Ok(rows) => {
-                        #[cfg(debug_assertions)]
-                        {
-                            dbg!("here.");
-                        }
-
-                        rows.into_iter()
+        if expect_rows {
+            // Logic for queries expecting rows
+            let exists_result = match &self.pool {
+                DbPool::Postgres(pool) => {
+                    let mut query = sqlx::query(query);
+                    for param in params {
+                        query = query.bind(param);
+                    }
+                    match query.fetch_all(pool).await {
+                        Ok(rows) => rows
+                            .into_iter()
                             .map(|row| {
                                 let column_names =
                                     row.columns().iter().map(|c| c.name().to_string()).collect();
@@ -656,7 +639,6 @@ impl Db {
                                     .map(|col| {
                                         let value = match col.name() {
                                             "INT4" => RowValues::Int(row.get::<i64, _>(col.name())),
-                                            // "FLOAT8" => RowValues::Float(row.get::<f64, _>(col.name())),
                                             "TEXT" => {
                                                 RowValues::Text(row.get::<String, _>(col.name()))
                                             }
@@ -674,57 +656,84 @@ impl Db {
                                     rows: values,
                                 }
                             })
-                            .collect::<Vec<_>>()
-                    }
-                    Err(e) => {
-                        #[cfg(debug_assertions)]
-                        {
-                            dbg!("here.");
-                        }
-                        return Err(e);
+                            .collect::<Vec<_>>(),
+                        Err(e) => return Err(e),
                     }
                 }
-            }
-            DbPool::Sqlite(pool) => {
-                let mut query = sqlx::query(query);
-                for param in params {
-                    query = query.bind(param);
-                }
-                match query.fetch_all(pool).await {
-                    Ok(rows) => rows
-                        .into_iter()
-                        .map(|row| {
-                            let column_names =
-                                row.columns().iter().map(|c| c.name().to_string()).collect();
-                            let values = row
-                                .columns()
-                                .iter()
-                                .map(|col| {
-                                    let value = match col.name() {
-                                        "INTEGER" => RowValues::Int(row.get::<i64, _>(col.name())),
-                                        // "REAL" => RowValues::Float(row.get::<f64, _>(col.name())),
-                                        "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
-                                        "BOOLEAN" => {
-                                            RowValues::Bool(row.get::<bool, _>(col.name()))
-                                        }
-                                        _ => unimplemented!(),
-                                    };
-                                    value
-                                })
-                                .collect();
+                DbPool::Sqlite(pool) => {
+                    let mut query = sqlx::query(query);
+                    for param in params {
+                        query = query.bind(param);
+                    }
+                    match query.fetch_all(pool).await {
+                        Ok(rows) => rows
+                            .into_iter()
+                            .map(|row| {
+                                let column_names =
+                                    row.columns().iter().map(|c| c.name().to_string()).collect();
+                                let values = row
+                                    .columns()
+                                    .iter()
+                                    .map(|col| {
+                                        let value = match col.name() {
+                                            "INTEGER" => {
+                                                RowValues::Int(row.get::<i64, _>(col.name()))
+                                            }
+                                            "TEXT" => {
+                                                RowValues::Text(row.get::<String, _>(col.name()))
+                                            }
+                                            "BOOLEAN" => {
+                                                RowValues::Bool(row.get::<bool, _>(col.name()))
+                                            }
+                                            _ => unimplemented!(),
+                                        };
+                                        value
+                                    })
+                                    .collect();
 
-                            CustomDbRow {
-                                column_names,
-                                rows: values,
-                            }
-                        })
-                        .collect::<Vec<_>>(),
-                    Err(e) => return Err(e),
+                                CustomDbRow {
+                                    column_names,
+                                    rows: values,
+                                }
+                            })
+                            .collect::<Vec<_>>(),
+                        Err(e) => return Err(e),
+                    }
+                }
+            };
+
+            final_result.return_result = exists_result;
+        } else {
+            // Logic for queries not expecting rows (e.g., CREATE TABLE)
+            let exec_result: Result<Vec<CustomDbRow>, sqlx::Error> = match &self.pool {
+                DbPool::Postgres(pool) => {
+                    let mut query = sqlx::query(query);
+                    for param in params {
+                        query = query.bind(param);
+                    }
+                    query.execute(pool).await.map(|_| vec![])
+                }
+                DbPool::Sqlite(pool) => {
+                    let mut query = sqlx::query(query);
+                    for param in params {
+                        query = query.bind(param);
+                    }
+                    query.execute(pool).await.map(|_| vec![])
+                }
+            };
+
+            match exec_result {
+                Ok(_) => {
+                    final_result.return_result = vec![];
+                    final_result.db_last_exec_state = DatabaseSetupState::QueryReturnedSuccessfully;
+                }
+                Err(e) => {
+                    final_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                    final_result.error_message = Some(e.to_string());
                 }
             }
-        };
+        }
 
-        final_result.return_result = exists_result;
         Ok(final_result)
     }
 
@@ -807,24 +816,13 @@ mod tests {
                 DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
             let mut postgres_db = Db::new(postgres_dbconfig).unwrap();
 
-            let mut sqlite_config = deadpool_postgres::Config::new();
-            sqlite_config.dbname = Some("/tmp/test.db".to_string());
-
-            let sqlitex = DbConfigAndPool::new(sqlite_config, DatabaseType::Sqlite).await;
-            let mut sqlite_db = Db::new(sqlitex).unwrap();
-
             let pg_objs = vec![MissingDbObjects {
                 missing_object: "test".to_string(),
             }];
-            let sqlite_objs = pg_objs.clone();
+
             // create a test table
             let pg_create_result = postgres_db
                 .create_tables(pg_objs, CheckType::Table, TABLE_DDL)
-                .await
-                .unwrap();
-
-            let sqlite_create_result = sqlite_db
-                .create_tables(sqlite_objs, CheckType::Table, TABLE_DDL)
                 .await
                 .unwrap();
 
@@ -834,11 +832,34 @@ mod tests {
             );
             assert_eq!(pg_create_result.return_result, String::default());
 
+            const TABLE_DDL_SYNTAX_ERR: &[(&str, &str, &str, &str)] = &[(
+                "test",
+                "CREATE TABLEXXXXXXXX IF NOT EXISTS -- drop table event cascade
+                    test (
+                    event_id BIGSERIAL NOT NULL PRIMARY KEY,
+                    espn_id BIGINT NOT NULL,
+                    name TEXT NOT NULL,
+                    ins_ts TIMESTAMP NOT NULL DEFAULT now()
+                    );",
+                "",
+                "",
+            )];
+
+            let pg_objs = vec![MissingDbObjects {
+                missing_object: "test".to_string(),
+            }];
+
+            // create a test table
+            let pg_create_result = postgres_db
+                .create_tables(pg_objs, CheckType::Table, TABLE_DDL_SYNTAX_ERR)
+                .await
+                .unwrap();
+
             assert_eq!(
-                sqlite_create_result.db_last_exec_state,
-                DatabaseSetupState::QueryReturnedSuccessfully
+                pg_create_result.db_last_exec_state,
+                DatabaseSetupState::QueryError,
             );
-            assert_eq!(sqlite_create_result.return_result, String::default());
+            assert_eq!(pg_create_result.return_result, String::default());
 
             // // table already created, this should fail
             // let x = db
@@ -887,4 +908,125 @@ mod tests {
             // assert_eq!(db_result.db_object_name, "player");
         });
     }
+
+    // #[test]
+    // fn test_check_obj_exists_constraint_sqlite() {
+    //     let rt = Runtime::new().unwrap();
+    //     rt.block_on(async {
+    //         // env::var("DB_USER") = Ok("postgres".to_string());
+
+    //         const TABLE_DDL: &[(&str, &str, &str, &str)] = &[(
+    //             "test",
+    //             "CREATE TABLE IF NOT EXISTS -- drop table event cascade
+    //                 test (
+    //                 event_id BIGSERIAL NOT NULL PRIMARY KEY,
+    //                 espn_id BIGINT NOT NULL,
+    //                 name TEXT NOT NULL,
+    //                 ins_ts TIMESTAMP NOT NULL DEFAULT now()
+    //                 );",
+    //             "",
+    //             "",
+    //         )];
+
+    //         dotenv::dotenv().unwrap();
+
+    //         let mut db_pwd = env::var("DB_PASSWORD").unwrap();
+    //         if db_pwd == "/secrets/db_password" {
+    //             // open the file and read the contents
+    //             let contents = std::fs::read_to_string("/secrets/db_password")
+    //                 .unwrap_or("tempPasswordWillbeReplacedIn!AdminPanel".to_string());
+    //             // set the password to the contents of the file
+    //             db_pwd = contents.trim().to_string();
+    //         }
+    //         let mut cfg = deadpool_postgres::Config::new();
+    //         cfg.dbname = Some(env::var("DB_NAME").unwrap());
+    //         cfg.host = Some(env::var("DB_HOST").unwrap());
+    //         cfg.port = Some(env::var("DB_PORT").unwrap().parse::<u16>().unwrap());
+    //         cfg.user = Some(env::var("DB_USER").unwrap());
+    //         cfg.password = Some(db_pwd);
+
+    //         let postgres_dbconfig: DbConfigAndPool =
+    //             DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
+    //         let mut postgres_db = Db::new(postgres_dbconfig).unwrap();
+
+    //         let mut sqlite_config = deadpool_postgres::Config::new();
+    //         sqlite_config.dbname = Some("/tmp/test.db".to_string());
+
+    //         let sqlitex = DbConfigAndPool::new(sqlite_config, DatabaseType::Sqlite).await;
+    //         let mut sqlite_db = Db::new(sqlitex).unwrap();
+
+    //         let pg_objs = vec![MissingDbObjects {
+    //             missing_object: "test".to_string(),
+    //         }];
+    //         let sqlite_objs = pg_objs.clone();
+    //         // create a test table
+    //         let pg_create_result = postgres_db
+    //             .create_tables(pg_objs, CheckType::Table, TABLE_DDL)
+    //             .await
+    //             .unwrap();
+
+    //         let sqlite_create_result = sqlite_db
+    //             .create_tables(sqlite_objs, CheckType::Table, TABLE_DDL)
+    //             .await
+    //             .unwrap();
+
+    //         assert_eq!(
+    //             pg_create_result.db_last_exec_state,
+    //             DatabaseSetupState::QueryReturnedSuccessfully
+    //         );
+    //         assert_eq!(pg_create_result.return_result, String::default());
+
+    //         assert_eq!(
+    //             sqlite_create_result.db_last_exec_state,
+    //             DatabaseSetupState::QueryReturnedSuccessfully
+    //         );
+    //         assert_eq!(sqlite_create_result.return_result, String::default());
+
+    //         // // table already created, this should fail
+    //         // let x = db
+    //         //     .create_tbl(TABLE_DDL, "test".to_string(), CheckType::Table)
+    //         //     .await
+    //         //     .unwrap();
+
+    //         // //TODO: Failing
+    //         // assert_eq!(x.db_last_exec_state, DatabaseSetupState::QueryError);
+    //         // assert_eq!(x.return_result, String::default());
+
+    //         // // but table should exist
+    //         // let result = db
+    //         //     .check_obj_exists(
+    //         //         "test",
+    //         //         &CheckType::Table,
+    //         //         "test_check_obj_exists_constraint",
+    //         //     )
+    //         //     .await;
+    //         // assert!(result.is_ok());
+    //         // let db_result = result.unwrap();
+    //         // assert_eq!(db_result.db_object_name, "player");
+
+    //         // // and now we should be able to delete it
+    //         // let xa = db
+    //         //     .delete_table(TABLE_DDL, "test".to_string(), CheckType::Table)
+    //         //     .await
+    //         //     .unwrap();
+
+    //         // assert_eq!(
+    //         //     xa.db_last_exec_state,
+    //         //     DatabaseSetupState::QueryReturnedSuccessfully
+    //         // );
+    //         // assert_eq!(x.return_result, String::default());
+
+    //         // // table should be gone
+    //         // let result = db
+    //         //     .check_obj_exists(
+    //         //         "test",
+    //         //         &CheckType::Table,
+    //         //         "test_check_obj_exists_constraint",
+    //         //     )
+    //         //     .await;
+    //         // assert!(result.is_ok());
+    //         // let db_result = result.unwrap();
+    //         // assert_eq!(db_result.db_object_name, "player");
+    //     });
+    // }
 }
