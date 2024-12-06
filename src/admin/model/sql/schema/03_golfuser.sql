@@ -1,4 +1,4 @@
-CREATE TABLE golfuser (
+CREATE TABLE IF NOT EXISTS golfuser (
     user_id BIGSERIAL NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
     ins_ts TIMESTAMP NOT NULL DEFAULT now()

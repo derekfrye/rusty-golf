@@ -1,4 +1,4 @@
-CREATE TABLE eup_statistic (
+CREATE TABLE IF NOT EXISTS eup_statistic (
     -- drop table eup_statistic
     eup_stat_id BIGSERIAL NOT NULL PRIMARY KEY,
     eup_id BIGINT NOT NULL REFERENCES event_user_player(eup_id),

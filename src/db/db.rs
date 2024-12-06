@@ -777,7 +777,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_check_obj_exists_constraint() {
+    fn test_pg_create_table() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
             // env::var("DB_USER") = Ok("postgres".to_string());

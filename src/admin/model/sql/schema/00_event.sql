@@ -1,4 +1,4 @@
-CREATE TABLE -- drop table event cascade
+CREATE TABLE IF NOT EXISTS -- drop table event cascade
     event (
     event_id BIGSERIAL NOT NULL PRIMARY KEY,
     espn_id BIGINT NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE event_user_player (
+CREATE TABLE IF NOT EXISTS event_user_player (
     -- drop table event_user_player cascade
     eup_id BIGSERIAL NOT NULL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES event(event_id),

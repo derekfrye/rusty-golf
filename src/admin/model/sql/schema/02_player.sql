@@ -1,4 +1,4 @@
-CREATE TABLE player (
+CREATE TABLE IF NOT EXISTS player (
     -- drop table player cascade
     player_id BIGSERIAL NOT NULL PRIMARY KEY,
     espn_id BIGINT NOT NULL,

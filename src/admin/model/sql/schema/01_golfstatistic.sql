@@ -1,4 +1,4 @@
-CREATE TABLE golfstatistic (
+CREATE TABLE IF NOT EXISTS golfstatistic (
     -- drop table golfstatistic
     stat_id BIGSERIAL NOT NULL PRIMARY KEY,
     statistic_type TEXT NOT NULL,
