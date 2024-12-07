@@ -1,14 +1,14 @@
 use crate::model::{ResultStatus, Scores, Statistic};
 
 use ::function_name::named;
+use chrono::NaiveDateTime;
 use deadpool_postgres::Config; //, Pool, PoolError, Runtime};
                                // use std::env;
                                // use tokio_postgres::{Error as PgError, NoTls, Row};
 
 use crate::admin::model::admin_model::MissingDbObjects;
 
-use sqlx::{self, sqlite::SqliteConnectOptions, Column, ConnectOptions, Pool, Row,  };
-
+use sqlx::{self, sqlite::SqliteConnectOptions, Column, ConnectOptions, Pool, Row};
 
 #[derive(Debug, Clone)]
 pub enum DbPool {
@@ -200,7 +200,7 @@ enum RowValues {
     // Float(f64),
     Text(String),
     Bool(bool),
-    Timestamp(String),
+    Timestamp(NaiveDateTime),
     // Add other types as needed
 }
 
@@ -381,7 +381,7 @@ impl Db {
                 .map(|af| af.1)
                 // .into_iter()
                 .collect::<Vec<&str>>()
-                // .join("")
+            // .join("")
             // .flatten()
         } else {
             ddl_for_validation
@@ -391,19 +391,21 @@ impl Db {
                 // .collect::<Vec<&str>>()
                 // .flatten()
                 .collect::<Vec<&str>>()
-                // .join("")
+            // .join("")
         };
 
-        let result = self.exec_general_query(
-            entire_create_stms
-                .iter()
-                .map(|x| QueryAndParams {
-                    query: x.to_string(),
-                    params: vec![],
-                })
-                .collect(),
-            false,
-        ).await;
+        let result = self
+            .exec_general_query(
+                entire_create_stms
+                    .iter()
+                    .map(|x| QueryAndParams {
+                        query: x.to_string(),
+                        params: vec![],
+                    })
+                    .collect(),
+                false,
+            )
+            .await;
 
         // let query_and_params = QueryAndParams {
         //     query: entire_create_stms,
@@ -611,7 +613,7 @@ impl Db {
                                                 "TIMESTAMP" => {
                                                     let timestamp: sqlx::types::chrono::NaiveDateTime =
                                                         row.get(col.name());
-                                                    RowValues::Timestamp(timestamp.to_string())
+                                                    RowValues::Timestamp(timestamp)
                                                 }
                                                 _ => {
                                                     eprintln!("Unknown column type: {}", type_info);
@@ -691,8 +693,7 @@ impl Db {
                                                     RowValues::Bool(row.get::<bool, _>(col.name()))
                                                 }
                                                 "TIMESTAMP" => {
-                                                    let timestamp: String = row.get(col.name());
-                                                    RowValues::Timestamp(timestamp)
+                                                    RowValues::Timestamp(row.get(col.name()))
                                                 }
                                                 _ => {
                                                     eprintln!("Unknown column type: {}", type_info);
@@ -938,10 +939,13 @@ mod tests {
             let query = "DELETE FROM test;";
             let params: Vec<RowValues> = vec![];
             let _ = postgres_db
-                .exec_general_query(vec![QueryAndParams {
-                    query: query.to_string(),
-                    params: params,
-                }], false)
+                .exec_general_query(
+                    vec![QueryAndParams {
+                        query: query.to_string(),
+                        params: params,
+                    }],
+                    false,
+                )
                 .await
                 .unwrap();
 
@@ -949,23 +953,28 @@ mod tests {
             let params: Vec<RowValues> = vec![
                 RowValues::Int(123456),
                 RowValues::Text("test name".to_string()),
-                RowValues::Timestamp("2021-08-07 16:00:00".to_string()),
+                RowValues::Timestamp(
+                    NaiveDateTime::parse_from_str("2021-08-06 16:00:00", "%Y-%m-%d %H:%M:%S")
+                        .unwrap(),
+                ),
             ];
             // params.push("test name".to_string());
             let x = postgres_db
-                .exec_general_query(vec![QueryAndParams {
-                    query: query.to_string(),
-                    params: params,
-                }], false)
+                .exec_general_query(
+                    vec![QueryAndParams {
+                        query: query.to_string(),
+                        params: params,
+                    }],
+                    false,
+                )
                 .await
                 .unwrap();
 
-if x.db_last_exec_state == DatabaseSetupState::QueryError {
-    eprintln!("Error: {}", x.error_message.unwrap());
-}
+            if x.db_last_exec_state == DatabaseSetupState::QueryError {
+                eprintln!("Error: {}", x.error_message.unwrap());
+            }
 
-
-assert_eq!(
+            assert_eq!(
                 x.db_last_exec_state,
                 DatabaseSetupState::QueryReturnedSuccessfully
             );
@@ -973,10 +982,13 @@ assert_eq!(
             let query = "SELECT * FROM test";
             let params: Vec<RowValues> = vec![];
             let result = postgres_db
-                .exec_general_query(vec![QueryAndParams {
-                    query: query.to_string(),
-                    params: params,
-                }], true)
+                .exec_general_query(
+                    vec![QueryAndParams {
+                        query: query.to_string(),
+                        params: params,
+                    }],
+                    true,
+                )
                 .await
                 .unwrap();
 
@@ -993,7 +1005,13 @@ assert_eq!(
                         RowValues::Int(1),
                         RowValues::Int(123456),
                         RowValues::Text("test name".to_string()),
-                        RowValues::Timestamp("2021-08-06 16:00:00".to_string()), // this col won't match, obviously, since who knows when we're running the test
+                        RowValues::Timestamp(
+                            NaiveDateTime::parse_from_str(
+                                "2021-08-06 16:00:00",
+                                "%Y-%m-%d %H:%M:%S",
+                            )
+                            .unwrap(),
+                        ),
                     ],
                 }],
                 error_message: None,
@@ -1006,14 +1024,14 @@ assert_eq!(
             );
             assert_eq!(result.error_message, expected_result.error_message);
 
-            let cols_to_actually_check = vec!["espn_id", "name"];
+            let cols_to_actually_check = vec!["espn_id", "name", "ins_ts"];
 
             for (index, row) in result.return_result.iter().enumerate() {
                 let left: Vec<RowValues> = row.results[0]
                     .column_names
                     .iter()
                     .zip(&row.results[0].rows) // Pair column names with corresponding row values
-                    .filter(|(col_name, _)| cols_to_actually_check.contains(&col_name.as_str())) // other two cols won't match
+                    .filter(|(col_name, _)| cols_to_actually_check.contains(&col_name.as_str()))
                     .map(|(_, value)| value.clone()) // Collect the filtered row values
                     .collect();
 
@@ -1032,10 +1050,13 @@ assert_eq!(
             let query = "DROP TABLE test;";
             let params: Vec<RowValues> = vec![];
             let result = postgres_db
-                .exec_general_query(vec![QueryAndParams {
-                    query: query.to_string(),
-                    params: params,
-                }], false)
+                .exec_general_query(
+                    vec![QueryAndParams {
+                        query: query.to_string(),
+                        params: params,
+                    }],
+                    false,
+                )
                 .await
                 .unwrap();
 
@@ -1047,10 +1068,13 @@ assert_eq!(
             let query = "DROP TABLE test_2;";
             let params: Vec<RowValues> = vec![];
             let result = postgres_db
-                .exec_general_query(vec![QueryAndParams {
-                    query: query.to_string(),
-                    params: params,
-                }], false)
+                .exec_general_query(
+                    vec![QueryAndParams {
+                        query: query.to_string(),
+                        params: params,
+                    }],
+                    false,
+                )
                 .await
                 .unwrap();
 
