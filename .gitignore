@@ -3,3 +3,4 @@
 .env
 target
 /examples/db_password.txt
+test.db

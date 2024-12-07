@@ -232,6 +232,11 @@ enum RowValues {
     // Add other types as needed
 }
 
+struct QueryAndParams {
+    query: String,
+    params: Vec<RowValues>,
+}
+
 impl RowValues {
     // pub fn as_ref(&self) -> Option<&dyn std::fmt::Debug> {
     //     match self {
@@ -274,6 +279,10 @@ impl RowValues {
     //         None
     //     }
     // }
+}
+
+struct ResultSet {
+    results: Vec<CustomDbRow>,
 }
 
 #[derive(Debug, Clone)]
@@ -422,7 +431,7 @@ impl Db {
                 .map(|af| af.1)
                 // .into_iter()
                 .collect::<Vec<&str>>()
-                .join("")
+                
             // .flatten()
         } else {
             ddl_for_validation
@@ -432,7 +441,7 @@ impl Db {
                 // .collect::<Vec<&str>>()
                 // .flatten()
                 .collect::<Vec<&str>>()
-                .join("")
+                
         };
 
         let params: Vec<RowValues> = vec![];
@@ -611,75 +620,90 @@ impl Db {
 
     async fn exec_general_query(
         &self,
-        query: &str,
-        params: Vec<RowValues>,
+        queries: Vec<QueryAndParams>,
         expect_rows: bool, // New parameter to indicate whether rows are expected
-    ) -> Result<DatabaseResult<Vec<CustomDbRow>>, sqlx::Error> {
+    ) -> Result<DatabaseResult<Vec<ResultSet>>, sqlx::Error> {
         let mut final_result = DatabaseResult::<Vec<CustomDbRow>>::default();
 
         if expect_rows {
             // Logic for queries expecting rows
             let exists_result = match &self.pool {
                 DbPool::Postgres(pool) => {
-                    let mut query = sqlx::query(query);
-                    for param in params {
-                        query = match param {
-                            RowValues::Int(value) => query.bind(value),
-                            RowValues::Text(value) => query.bind(value),
-                            RowValues::Bool(value) => query.bind(value),
-                            RowValues::Timestamp(value) => query.bind(value),
-                        };
-                    }
-                    match query.fetch_all(pool).await {
-                        Ok(rows) => {
-                            final_result.db_last_exec_state =
-                                DatabaseSetupState::QueryReturnedSuccessfully;
-                            rows
-                            .into_iter()
-                            .map(|row| {
-                                let column_names =
-                                    row.columns().iter().map(|c| c.name().to_string()).collect();
-                                let values = row
-                                    .columns()
-                                    .iter()
-                                    .map(|col| {
-                                        let type_info = col.type_info().to_string();
-                                        let value = match type_info.as_str() {
-                                            "INT4" | "INT8" | "BIGINT" | "INTEGER" | "INT" => {
-                                                RowValues::Int(row.get::<i64, _>(col.name()))
-                                            }
-                                            "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
-                                            "BOOL" | "BOOLEAN" => RowValues::Bool(row.get::<bool, _>(col.name())),
-                                            "TIMESTAMP" => {
-                                                let timestamp: sqlx::types::chrono::NaiveDateTime = row.get(col.name());
-                                                RowValues::Timestamp(timestamp.to_string())
-                                            }
-                                            _ => {
-                                                eprintln!("Unknown column type: {}", type_info);
-                                                unimplemented!("Unknown column type: {}", type_info)
-                                            }
-                                        };
-                                        value
-                                    })
-                                    .collect();
 
-                                CustomDbRow {
-                                    column_names,
-                                    rows: values,
-                                }
-                            })
-                            .collect::<Vec<_>>()
-                        }
+                    let mut transaction = match pool.begin().await {
+                        Ok(t) => t,
                         Err(e) => {
-                            final_result.db_last_exec_state = DatabaseSetupState::QueryError;
-                            final_result.error_message = Some(e.to_string());
-                            let z = CustomDbRow {
-                                column_names: vec![],
-                                rows: vec![],
+                            eprintln!("Failed to start transaction: {}", e);
+                            return Err(e.into());
+                        }
+                    };
+
+                    for q in queries {
+                        let mut query = sqlx::query(&q.query);
+                        for param in q.params {
+                            
+                            query = match param {
+                                RowValues::Int(value) => query.bind(value),
+                                RowValues::Text(value) => query.bind(value),
+                                RowValues::Bool(value) => query.bind(value),
+                                RowValues::Timestamp(value) => query.bind(value),
                             };
-                            vec![z]
+                        }
+                        match query.fetch_all(&mut transaction).await {
+                            Ok(rows) => {
+                                final_result.db_last_exec_state =
+                                    DatabaseSetupState::QueryReturnedSuccessfully;
+                                rows
+                                .into_iter()
+                                .map(|row| {
+                                    let column_names =
+                                        row.columns().iter().map(|c| c.name().to_string()).collect();
+                                    let values = row
+                                        .columns()
+                                        .iter()
+                                        .map(|col| {
+                                            let type_info = col.type_info().to_string();
+                                            let value = match type_info.as_str() {
+                                                "INT4" | "INT8" | "BIGINT" | "INTEGER" | "INT" => {
+                                                    RowValues::Int(row.get::<i64, _>(col.name()))
+                                                }
+                                                "TEXT" => RowValues::Text(row.get::<String, _>(col.name())),
+                                                "BOOL" | "BOOLEAN" => RowValues::Bool(row.get::<bool, _>(col.name())),
+                                                "TIMESTAMP" => {
+                                                    let timestamp: sqlx::types::chrono::NaiveDateTime = row.get(col.name());
+                                                    RowValues::Timestamp(timestamp.to_string())
+                                                }
+                                                _ => {
+                                                    eprintln!("Unknown column type: {}", type_info);
+                                                    unimplemented!("Unknown column type: {}", type_info)
+                                                }
+                                            };
+                                            value
+                                        })
+                                        .collect();
+    
+                                    CustomDbRow {
+                                        column_names,
+                                        rows: values,
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                            }
+                            Err(e) => {
+                                final_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                                final_result.error_message = Some(e.to_string());
+                                let z = CustomDbRow {
+                                    column_names: vec![],
+                                    rows: vec![],
+                                };
+                                vec![z]
+                            }
                         }
                     }
+
+
+                    
+                    
                 }
                 DbPool::Sqlite(pool) => {
                     let mut query = sqlx::query(query);
@@ -814,7 +838,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pg_create_and_populate_table() {
+    fn a_pg_create_and_update_tbls() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
             // env::var("DB_USER") = Ok("postgres".to_string());
@@ -867,15 +891,24 @@ mod tests {
                 DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
             let mut postgres_db = Db::new(postgres_dbconfig).unwrap();
 
-            let pg_objs = vec![MissingDbObjects {
-                missing_object: "test".to_string(),
-            }];
+            let pg_objs = vec![
+                MissingDbObjects {
+                    missing_object: "test".to_string(),
+                },
+                MissingDbObjects {
+                    missing_object: "test_2".to_string(),
+                },
+            ];
 
-            // create a test table
+            // create two test tables
             let pg_create_result = postgres_db
                 .create_tables(pg_objs, CheckType::Table, TABLE_DDL)
                 .await
                 .unwrap();
+
+            if pg_create_result.db_last_exec_state == DatabaseSetupState::QueryError {
+                eprintln!("Error: {}", pg_create_result.error_message.unwrap());
+            }
 
             assert_eq!(
                 pg_create_result.db_last_exec_state,
@@ -884,7 +917,7 @@ mod tests {
             assert_eq!(pg_create_result.return_result, String::default());
 
             const TABLE_DDL_SYNTAX_ERR: &[(&str, &str, &str, &str)] = &[(
-                "test",
+                "testa",
                 "CREATE TABLEXXXXXXXX IF NOT EXISTS -- drop table event cascade
                     test (
                     event_id BIGSERIAL NOT NULL PRIMARY KEY,
@@ -897,7 +930,7 @@ mod tests {
             )];
 
             let pg_objs = vec![MissingDbObjects {
-                missing_object: "test".to_string(),
+                missing_object: "testa".to_string(),
             }];
 
             // create a test table
@@ -988,10 +1021,27 @@ mod tests {
 
             let query = "DROP TABLE test;";
             let params: Vec<RowValues> = vec![];
-            let _ = postgres_db
+            let result = postgres_db
                 .exec_general_query(query, params, false)
                 .await
                 .unwrap();
+
+            assert_eq!(
+                result.db_last_exec_state,
+                DatabaseSetupState::QueryReturnedSuccessfully
+            );
+
+            let query = "DROP TABLE test_2;";
+            let params: Vec<RowValues> = vec![];
+            let result = postgres_db
+                .exec_general_query(query, params, false)
+                .await
+                .unwrap();
+
+            assert_eq!(
+                result.db_last_exec_state,
+                DatabaseSetupState::QueryReturnedSuccessfully
+            );
 
             // // table already created, this should fail
             // let x = db
