@@ -228,7 +228,7 @@ enum RowValues {
     // Float(f64),
     Text(String),
     Bool(bool),
-    TIMESTAMP(String),
+    Timestamp(String),
     // Add other types as needed
 }
 
@@ -627,11 +627,14 @@ impl Db {
                             RowValues::Int(value) => query.bind(value),
                             RowValues::Text(value) => query.bind(value),
                             RowValues::Bool(value) => query.bind(value),
-                            RowValues::TIMESTAMP(value) => query.bind(value),
+                            RowValues::Timestamp(value) => query.bind(value),
                         };
                     }
                     match query.fetch_all(pool).await {
-                        Ok(rows) => rows
+                        Ok(rows) => {
+                            final_result.db_last_exec_state =
+                                DatabaseSetupState::QueryReturnedSuccessfully;
+                            rows
                             .into_iter()
                             .map(|row| {
                                 let column_names =
@@ -649,7 +652,7 @@ impl Db {
                                             "BOOL" | "BOOLEAN" => RowValues::Bool(row.get::<bool, _>(col.name())),
                                             "TIMESTAMP" => {
                                                 let timestamp: sqlx::types::chrono::NaiveDateTime = row.get(col.name());
-                                                RowValues::TIMESTAMP(timestamp.to_string())
+                                                RowValues::Timestamp(timestamp.to_string())
                                             }
                                             _ => {
                                                 eprintln!("Unknown column type: {}", type_info);
@@ -665,8 +668,17 @@ impl Db {
                                     rows: values,
                                 }
                             })
-                            .collect::<Vec<_>>(),
-                        Err(e) => return Err(e),
+                            .collect::<Vec<_>>()
+                        }
+                        Err(e) => {
+                            final_result.db_last_exec_state = DatabaseSetupState::QueryError;
+                            final_result.error_message = Some(e.to_string());
+                            let z = CustomDbRow {
+                                column_names: vec![],
+                                rows: vec![],
+                            };
+                            vec![z]
+                        }
                     }
                 }
                 DbPool::Sqlite(pool) => {
@@ -676,7 +688,7 @@ impl Db {
                             RowValues::Int(value) => query.bind(value),
                             RowValues::Text(value) => query.bind(value),
                             RowValues::Bool(value) => query.bind(value),
-                            RowValues::TIMESTAMP(value) => query.bind(value),
+                            RowValues::Timestamp(value) => query.bind(value),
                         };
                     }
                     match query.fetch_all(pool).await {
@@ -727,7 +739,7 @@ impl Db {
                             RowValues::Int(value) => query.bind(value),
                             RowValues::Text(value) => query.bind(value),
                             RowValues::Bool(value) => query.bind(value),
-                            RowValues::TIMESTAMP(value) => query.bind(value),
+                            RowValues::Timestamp(value) => query.bind(value),
                         };
                     }
                     query.execute(pool).await.map(|_| vec![])
@@ -739,7 +751,7 @@ impl Db {
                             RowValues::Int(value) => query.bind(value),
                             RowValues::Text(value) => query.bind(value),
                             RowValues::Bool(value) => query.bind(value),
-                            RowValues::TIMESTAMP(value) => query.bind(value),
+                            RowValues::Timestamp(value) => query.bind(value),
                         };
                     }
                     query.execute(pool).await.map(|_| vec![])
@@ -796,6 +808,7 @@ impl Db {
 mod tests {
     use std::{env, vec};
 
+    // use sqlx::query;
     use tokio::runtime::Runtime;
 
     use super::*;
@@ -937,7 +950,7 @@ mod tests {
                         RowValues::Int(1),
                         RowValues::Int(123456),
                         RowValues::Text("test name".to_string()),
-                        RowValues::TIMESTAMP("2021-09-01 00:00:00".to_string()), // this col won't match, obviously, since who knows when we're running the test
+                        RowValues::Timestamp("2021-09-01 00:00:00".to_string()), // this col won't match, obviously, since who knows when we're running the test
                     ],
                 }],
                 error_message: None,
@@ -950,13 +963,35 @@ mod tests {
             );
             assert_eq!(result.error_message, expected_result.error_message);
 
+            let cols_to_actually_check = vec!["espn_id", "name"];
+
             for (index, row) in result.return_result.iter().enumerate() {
-                assert_eq!(
-                    row.column_names.iter().skip_while(|x| x == &"ins_ts").cloned().collect::<Vec<String>>(),
-                    expected_result.return_result[index].column_names.iter().skip_while(|x| x == &"ins_ts").cloned().collect::<Vec<String>>()
-                );
-                assert_eq!(row.rows, expected_result.return_result[index].rows);
+                let left: Vec<RowValues> = row
+                    .column_names
+                    .iter()
+                    .zip(&row.rows) // Pair column names with corresponding row values
+                    .filter(|(col_name, _)| cols_to_actually_check.contains(&col_name.as_str())) // other two cols won't match
+                    .map(|(_, value)| value.clone()) // Collect the filtered row values
+                    .collect();
+
+                // Get column names and row values from the expected result
+                let right: Vec<RowValues> = expected_result.return_result[index]
+                    .column_names
+                    .iter()
+                    .zip(&expected_result.return_result[index].rows) // Pair column names with corresponding row values
+                    .filter(|(col_name, _)| cols_to_actually_check.contains(&col_name.as_str()))
+                    .map(|(_, value)| value.clone()) // Collect the filtered row values
+                    .collect();
+
+                assert_eq!(left, right);
             }
+
+            let query = "DROP TABLE test;";
+            let params: Vec<RowValues> = vec![];
+            let _ = postgres_db
+                .exec_general_query(query, params, false)
+                .await
+                .unwrap();
 
             // // table already created, this should fail
             // let x = db
