@@ -474,8 +474,7 @@ impl Db {
         Ok(dbresult)
     }
 
- 
-   pub async fn exec_general_query(
+    pub async fn exec_general_query(
         &self,
         queries: Vec<QueryAndParams>,
         expect_rows: bool,

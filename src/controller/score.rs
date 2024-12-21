@@ -1,6 +1,6 @@
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::db;
+use crate::{db, model};
 
 use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, SummaryScore, SummaryScores};
 
@@ -22,7 +22,7 @@ pub async fn get_data_for_scores_page(
     }
 
     // reviewed, ok now for debugging
-    let aactive_golfers = db.get_golfers_from_db(event_id).await;
+    let aactive_golfers = model::get_golfers_from_db(event_id).await;
     let active_golfers = match aactive_golfers {
         Ok(active_golfers) => active_golfers.return_result,
         Err(e) => {
