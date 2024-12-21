@@ -85,11 +85,11 @@ pub struct SummaryScores {
     pub summary_scores: Vec<SummaryScore>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
- enum CheckType {
-    Table,
-    Constraint,
-}
+// #[derive(Debug, Clone, PartialEq)]
+//  enum CheckType {
+//     Table,
+//     Constraint,
+// }
 
 
 pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[

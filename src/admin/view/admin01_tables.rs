@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::{MissingDbObjects, TimesRun}, model::{CheckType, TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL}, HTMX_PATH
+    admin::model::admin_model::{MissingDbObjects, TimesRun}, model::{ TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL}, HTMX_PATH
 };
-use sqlx_middleware::db::{self, DatabaseSetupState, Db, };
+use sqlx_middleware::{db::{convenience_items::{self, test_is_db_setup}, db::{self, DatabaseSetupState, Db, }}, model::CheckType};
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
@@ -14,6 +14,7 @@ pub struct CreateTableReturn {
     pub times_run: Value,
     pub times_run_int: i32,
     pub db: Db,
+    
 }
 impl CreateTableReturn {
     pub fn new(db: Db) -> Self {
@@ -51,6 +52,7 @@ impl CreateTableReturn {
     }
 
     pub async fn check_if_tables_exist(&mut self) -> Markup {
+        let query = include_str!("../model/sql/schema/0x_tables_exist.sql");
         let do_tables_exist = self.do_tables_exist(false, CheckType::Table).await;
         do_tables_exist
     }
@@ -60,8 +62,8 @@ impl CreateTableReturn {
         do_tables_exist
     }
 
-    async fn do_tables_exist(&mut self, detailed_output: bool, check_type: CheckType) -> Markup {
-        let db_obj_setup_state = self. db.test_is_db_setup(&check_type).await.unwrap();
+    async fn do_tables_exist(&mut self, detailed_output: bool, check_type: CheckType, query :&str  ) -> Markup {
+        let db_obj_setup_state = test_is_db_setup(&self.db, &check_type, query).await.unwrap();
 
         let all_objs_setup_successfully = db_obj_setup_state
             .iter()
