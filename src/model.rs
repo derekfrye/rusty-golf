@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::db::db::{DatabaseResult, DatabaseSetupState, Db, QueryAndParams, RowValues};
+use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
+use sqlx_middleware::db::{DatabaseSetupState, Db};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Bettors {
@@ -84,6 +85,73 @@ pub struct SummaryScores {
     pub summary_scores: Vec<SummaryScore>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+ enum CheckType {
+    Table,
+    Constraint,
+}
+
+
+pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
+    (
+        "event",
+        include_str!("admin/model/sql/schema/00_event.sql"),
+        "",
+        "",
+    ),
+    (
+        "golfstatistic",
+        include_str!("admin/model/sql/schema/01_golfstatistic.sql"),
+        "",
+        "",
+    ),
+    (
+        "player",
+        include_str!("admin/model/sql/schema/02_player.sql"),
+        "",
+        "",
+    ),
+    (
+        "golfuser",
+        include_str!("admin/model/sql/schema/03_golfuser.sql"),
+        "",
+        "",
+    ),
+    (
+        "event_user_player",
+        include_str!("admin/model/sql/schema/04_event_user_player.sql"),
+        "",
+        "",
+    ),
+    (
+        "eup_statistic",
+        include_str!("admin/model/sql/schema/05_eup_statistic.sql"),
+        "",
+        "",
+    ),
+];
+
+pub const TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL: &[(&str, &str, &str, &str)] = &[
+    (
+        "player",
+        "UNIQUE",
+        "unq_name",
+        include_str!("admin/model/sql/constraints/01_player.sql"),
+    ),
+    (
+        "player",
+        "UNIQUE",
+        "unq_espn_id",
+        include_str!("admin/model/sql/constraints/02_player.sql"),
+    ),
+    (
+        "event_user_player",
+        "UNIQUE",
+        "unq_event_id_user_id_player_id",
+        include_str!("admin/model/sql/constraints/03_event_user_player.sql"),
+    ),
+];
+
 pub type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
 
 pub async fn get_golfers_from_db(
@@ -163,3 +231,50 @@ pub async fn get_golfers_from_db(
 
     Ok(dbresult)
 }
+
+
+pub async fn get_title_from_db(
+    &self,
+    event_id: i32,
+) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
+    let query = "SELECT eventname FROM sp_get_event_name($1)";
+    let query_and_params = QueryAndParams {
+        query: query.to_string(),
+        params: vec![RowValues::Int(event_id as i64)],
+    };
+    let result = self.exec_general_query(vec![query_and_params], true).await;
+
+    let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+
+    let missing_tables = match result {
+        Ok(r) => {
+            dbresult.db_last_exec_state = r.db_last_exec_state;
+            dbresult.error_message = r.error_message;
+            r.return_result[0].results.clone()
+        }
+        Err(e) => {
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+            dbresult.error_message = Some(emessage);
+            vec![]
+        }
+    };
+
+    let zz: Vec<_> = missing_tables
+        .iter()
+        .filter_map(|row| {
+            let exists_index = row.column_names.iter().position(|col| col == "eventname")?;
+
+            match &row.rows[exists_index] {
+                RowValues::Text(value) => Some(value),
+
+                _ => None,
+            }
+        })
+        .collect();
+    if zz.len() > 0 {
+        dbresult.return_result = zz[0].to_string();
+    }
+    Ok(dbresult)
+}
+

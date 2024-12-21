@@ -24,6 +24,7 @@ function_name = "0.3"
 deadpool-postgres = "0.14"
 sqlx = { version = "0.8", features = ["runtime-tokio", "macros", "postgres", "sqlite", "chrono"] }
 #async-trait = "0.1"
+sqlx-middleware = { path = "../sqlx-middleware" }
 
 
 [dependencies.tokio-util]

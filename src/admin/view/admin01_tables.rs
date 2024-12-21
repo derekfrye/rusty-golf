@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::{MissingDbObjects, TimesRun},
-    db::db::{self, CheckType, DatabaseSetupState, Db, TABLES_AND_DDL},
-    HTMX_PATH,
+    admin::model::admin_model::{MissingDbObjects, TimesRun}, model::{CheckType, TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL}, HTMX_PATH
 };
-
+use sqlx_middleware::db::{self, DatabaseSetupState, Db, };
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
@@ -63,7 +61,7 @@ impl CreateTableReturn {
     }
 
     async fn do_tables_exist(&mut self, detailed_output: bool, check_type: CheckType) -> Markup {
-        let db_obj_setup_state = self.db.test_is_db_setup(&check_type).await.unwrap();
+        let db_obj_setup_state = self. db.test_is_db_setup(&check_type).await.unwrap();
 
         let all_objs_setup_successfully = db_obj_setup_state
             .iter()
@@ -259,7 +257,7 @@ impl CreateTableReturn {
 
         let actual_table_creation = self
             .db
-            .create_tables(data.clone(), CheckType::Table, db::TABLES_AND_DDL)
+            .create_tables(data.clone(), CheckType::Table, TABLES_AND_DDL)
             .await;
 
         let message: String;
@@ -285,7 +283,7 @@ impl CreateTableReturn {
             .create_tables(
                 data.clone(),
                 CheckType::Constraint,
-                db::TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL,
+                TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL,
             )
             .await;
         let message2: String;

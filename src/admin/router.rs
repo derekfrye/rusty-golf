@@ -1,7 +1,4 @@
-use crate::{
-    admin::model::admin_model::{AdminPage, AlphaNum14},
-    db,
-};
+use crate::    admin::model::admin_model::{AdminPage, AlphaNum14};
 
 use actix_web::{web, HttpResponse};
 use maud::PreEscaped;
@@ -56,7 +53,7 @@ impl AdminRouter {
     pub async fn router(
         &mut self,
         query: web::Query<HashMap<String, String>>,
-        db: db::db::Db,
+        db: sqlx_middleware::db::Db,
     ) -> HttpResponse {
         let token_str = query
             .get("token")

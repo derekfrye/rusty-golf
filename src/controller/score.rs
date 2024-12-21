@@ -1,6 +1,6 @@
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::{db, model};
+use crate:: model;
 
 use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, SummaryScore, SummaryScores};
 
@@ -12,7 +12,7 @@ pub async fn get_data_for_scores_page(
     year: i32,
     cache_map: &CacheMap,
     use_cache: bool,
-    db: db::db::Db,
+    db: sqlx_middleware::db::Db,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
