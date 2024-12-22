@@ -1,4 +1,4 @@
-use crate::    admin::model::admin_model::{AdminPage, AlphaNum14};
+use crate::admin::model::admin_model::{AdminPage, AlphaNum14};
 
 use actix_web::{web, HttpResponse};
 use maud::PreEscaped;

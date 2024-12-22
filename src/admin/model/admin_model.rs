@@ -45,12 +45,6 @@ impl Bettor {
     }
 }
 
-// we need this to deserialize the json, even though it seems trivial, it's needed for data validation
-#[derive(Deserialize, Debug, Clone)]
-pub struct MissingDbObjects {
-    pub missing_object: String,
-}
-
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct PlayerBettorRow {

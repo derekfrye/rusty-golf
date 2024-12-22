@@ -25,9 +25,9 @@ mod view {
 }
 
 use admin::router;
-use db::db::{DatabaseType, Db, DbConfigAndPool};
+use sqlx_middleware::db::db::{DatabaseSetupState, DatabaseType, Db, DbConfigAndPool};
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
-use model::CacheMap;
+use model::{get_title_from_db, CacheMap};
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -75,7 +75,7 @@ async fn main() -> std::io::Result<()> {
     cfg.manager = Some(ManagerConfig {
         recycling_method: RecyclingMethod::Fast,
     });
-    let dbcn = DbConfigAndPool::new(cfg, db::db::DatabaseType::Postgres).await;
+    let dbcn = DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
 
 
     let mut cfg2 = deadpool_postgres::Config::new();
@@ -113,10 +113,10 @@ async fn index(
     let mut title = "Scoreboard".to_string();
     let _: i32 = match event_str.parse() {
         Ok(id) => {
-            let title_test = db.get_title_from_db(id).await;
+            let title_test = get_title_from_db(&db, id).await;
             match title_test {
                 Ok(t) => {
-                    if t.db_last_exec_state == db::db::DatabaseSetupState::QueryReturnedSuccessfully
+                    if t.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully
                     {
                         title = t.return_result.clone();
                     }

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use sqlx_middleware::db::db::{DatabaseSetupState, Db};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
-use sqlx_middleware::db::{DatabaseSetupState, Db};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Bettors {
@@ -90,7 +90,6 @@ pub struct SummaryScores {
 //     Table,
 //     Constraint,
 // }
-
 
 pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
     (
@@ -232,9 +231,8 @@ pub async fn get_golfers_from_db(
     Ok(dbresult)
 }
 
-
 pub async fn get_title_from_db(
-    &self,
+    db: &Db,
     event_id: i32,
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
     let query = "SELECT eventname FROM sp_get_event_name($1)";
@@ -242,7 +240,7 @@ pub async fn get_title_from_db(
         query: query.to_string(),
         params: vec![RowValues::Int(event_id as i64)],
     };
-    let result = self.exec_general_query(vec![query_and_params], true).await;
+    let result = db.exec_general_query(vec![query_and_params], true).await;
 
     let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
@@ -277,4 +275,3 @@ pub async fn get_title_from_db(
     }
     Ok(dbresult)
 }
-

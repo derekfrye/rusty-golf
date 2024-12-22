@@ -1,12 +1,20 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::{MissingDbObjects, TimesRun}, model::{ TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL}, HTMX_PATH
+    admin::model::admin_model::TimesRun,
+    model::{TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL},
+    HTMX_PATH,
 };
-use sqlx_middleware::{db::{convenience_items::{self, test_is_db_setup}, db::{self, DatabaseSetupState, Db, }}, model::CheckType};
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
+use sqlx_middleware::{
+    db::{
+        convenience_items::{test_is_db_setup, MissingDbObjects},
+        db::{self, DatabaseSetupState, Db},
+    },
+    model::{CheckType, DatabaseItem, DatabaseTable},
+};
 
 #[derive(Debug, Clone)]
 pub struct CreateTableReturn {
@@ -14,15 +22,27 @@ pub struct CreateTableReturn {
     pub times_run: Value,
     pub times_run_int: i32,
     pub db: Db,
-    
+    tables: Vec<DatabaseItem>,
+    table_exist_query: &'static str,
 }
 impl CreateTableReturn {
     pub fn new(db: Db) -> Self {
+        let mut z = Vec::new();
+        for x in TABLES_AND_DDL {
+            let dbitem = DatabaseItem::Table(DatabaseTable {
+                table_name: x.0.to_string(),
+                ddl: x.1.to_string(),
+            });
+            z.push(dbitem);
+        }
+
         Self {
             html: html!(p { "No data" }),
             times_run: json!({ "times_run": 0 }),
             times_run_int: 0,
             db,
+            tables: z,
+            table_exist_query: include_str!("../model/sql/schema/0x_tables_exist.sql"),
         }
     }
 
@@ -52,7 +72,7 @@ impl CreateTableReturn {
     }
 
     pub async fn check_if_tables_exist(&mut self) -> Markup {
-        let query = include_str!("../model/sql/schema/0x_tables_exist.sql");
+        // let query = include_str!("../model/sql/schema/0x_tables_exist.sql");
         let do_tables_exist = self.do_tables_exist(false, CheckType::Table).await;
         do_tables_exist
     }
@@ -62,8 +82,16 @@ impl CreateTableReturn {
         do_tables_exist
     }
 
-    async fn do_tables_exist(&mut self, detailed_output: bool, check_type: CheckType, query :&str  ) -> Markup {
-        let db_obj_setup_state = test_is_db_setup(&self.db, &check_type, query).await.unwrap();
+    async fn do_tables_exist(
+        &mut self,
+        detailed_output: bool,
+        check_type: CheckType,
+        // query: &str,
+    ) -> Markup {
+        let db_obj_setup_state =
+            test_is_db_setup(&self.db, &check_type, &self.table_exist_query, &self.tables)
+                .await
+                .unwrap();
 
         let all_objs_setup_successfully = db_obj_setup_state
             .iter()
@@ -218,6 +246,8 @@ impl CreateTableReturn {
             times_run: json!({ "times_run": 0 }),
             times_run_int: 0,
             db: self.db.clone(),
+            tables: self.tables.clone(),
+            table_exist_query: self.table_exist_query,
         };
         let data: Vec<MissingDbObjects> = match serde_json::from_str(&data) {
             Ok(d) => d,
@@ -257,10 +287,14 @@ impl CreateTableReturn {
         result.times_run = json!({ "times_run": times_run_int });
         result.times_run_int = times_run_int;
 
-        let actual_table_creation = self
-            .db
-            .create_tables(data.clone(), CheckType::Table, TABLES_AND_DDL)
-            .await;
+        let actual_table_creation = sqlx_middleware::db::convenience_items::create_tables(
+            &self.db,
+            data.clone(),
+            CheckType::Table,
+            TABLES_AND_DDL,
+        )
+        // .create_tables(data.clone(), CheckType::Table, TABLES_AND_DDL)
+        .await;
 
         let message: String;
         match actual_table_creation {
@@ -280,14 +314,13 @@ impl CreateTableReturn {
             }
         }
 
-        let actual_constraint_creation = self
-            .db
-            .create_tables(
-                data.clone(),
-                CheckType::Constraint,
-                TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL,
-            )
-            .await;
+        let actual_constraint_creation = sqlx_middleware::db::convenience_items::create_tables(
+            &self.db,
+            data.clone(),
+            CheckType::Constraint,
+            TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL,
+        )
+        .await;
         let message2: String;
         match actual_constraint_creation {
             Ok(x) => {
