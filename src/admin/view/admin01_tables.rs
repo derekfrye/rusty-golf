@@ -73,13 +73,12 @@ impl CreateTableReturn {
 
     pub async fn check_if_tables_exist(&mut self) -> Markup {
         // let query = include_str!("../model/sql/schema/0x_tables_exist.sql");
-        let do_tables_exist = self.do_tables_exist(false, CheckType::Table).await;
-        do_tables_exist
+
+        self.do_tables_exist(false, CheckType::Table).await
     }
 
     pub async fn check_if_constraints_exist(&mut self) -> Markup {
-        let do_tables_exist = self.do_tables_exist(false, CheckType::Constraint).await;
-        do_tables_exist
+        self.do_tables_exist(false, CheckType::Constraint).await
     }
 
     async fn do_tables_exist(
@@ -89,7 +88,7 @@ impl CreateTableReturn {
         // query: &str,
     ) -> Markup {
         let db_obj_setup_state =
-            test_is_db_setup(&self.db, &check_type, &self.table_exist_query, &self.tables)
+            test_is_db_setup(&self.db, &check_type, self.table_exist_query, &self.tables)
                 .await
                 .unwrap();
 
@@ -104,11 +103,8 @@ impl CreateTableReturn {
                 x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully
             });
 
-            match missing_objs.clone().into_iter().last() {
-                Some(x) => {
-                    last_message = x.error_message.clone().unwrap_or("".to_string());
-                }
-                None => {}
+            if let Some(x) = missing_objs.clone().last() {
+                last_message = x.error_message.clone().unwrap_or("".to_string());
             }
 
             let list_of_missing_objs: Vec<_> = missing_objs
@@ -191,19 +187,17 @@ impl CreateTableReturn {
 
             @if all_objs_setup_successfully {
                 p { (all_items_setup_p) }
-            } @else {
-                @if detailed_output {
-                 button
-                    data-hx-trigger="reenablebutton from:body"
-                    id=(create_missing_obj_id)
-                    {
-                        (create_missing_obj_p)
-                    }
-                    div id=(create_obj_results_id)  {}
+            } @else if detailed_output {
+             button
+                data-hx-trigger="reenablebutton from:body"
+                id=(create_missing_obj_id)
+                {
+                    (create_missing_obj_p)
                 }
-                @else {
-                    p { (all_items_not_setup_p) }
-                }
+                div id=(create_obj_results_id)  {}
+            }
+            @else {
+                p { (all_items_not_setup_p) }
             }
         }
     }

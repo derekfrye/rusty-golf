@@ -28,7 +28,7 @@ pub async fn get_json_from_espn(
         // let result: Value = resp.json().await?;
         let json: HashMap<String, serde_json::Value> = resp.json().await?;
 
-        if json.get("rounds").is_some() {
+        if json.contains_key("rounds") {
             player_response.data.push(json);
             player_response.eup_ids.push(score.eup_id);
         }
@@ -109,7 +109,7 @@ pub async fn fetch_scores_from_espn(
 
             golfer_score.rounds.push(IntStat {
                 val: i as i32,
-                success: success.clone(),
+                success,
                 last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 

@@ -270,7 +270,7 @@ pub async fn get_title_from_db(
             }
         })
         .collect();
-    if zz.len() > 0 {
+    if !zz.is_empty() {
         dbresult.return_result = zz[0].to_string();
     }
     Ok(dbresult)

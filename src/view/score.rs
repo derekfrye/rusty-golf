@@ -143,7 +143,7 @@ fn render_thead(max_len_of_tee_times_in_rounds: usize, group: &usize) -> Markup 
                 }
             }
             tr {
-                @let z_vec = vec!["Tee Time (CT)", "Holes Compl.", "Score", ];
+                @let z_vec = ["Tee Time (CT)", "Holes Compl.", "Score"];
                 @let z_len = z_vec.len();
                 @for round in 0..max_len_of_tee_times_in_rounds {
                     // for each of the 4 columns, add tee time, holes completed, and score

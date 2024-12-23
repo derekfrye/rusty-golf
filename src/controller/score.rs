@@ -123,13 +123,11 @@ pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
     for score in scores {
         grouped_scores
             .entry(score.group as usize)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(score);
     }
 
-    let x = sort_scores(grouped_scores);
-
-    x
+    sort_scores(grouped_scores)
 }
 
 pub fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<Scores>)> {
@@ -156,7 +154,7 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
         for (round_idx, round_score) in score.detailed_statistics.scores.iter().enumerate() {
             let a_single_bettors_scores = rounds_by_bettor_storing_score_val
                 .entry(bettor_name.clone())
-                .or_insert_with(Vec::new);
+                .or_default();
             a_single_bettors_scores.push((round_idx.try_into().unwrap(), round_score.val as isize));
 
             // for debug watching
@@ -183,7 +181,9 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
     // Preserves order of bettors
     // this actually just needs to sum all the scores where the rounds are 0, store that val, sum all scores where rounds are 1, store that value, etc
     for bettor_name in &bettor_names {
-        if let Some(_) = rounds_by_bettor_storing_score_val.get(bettor_name) {
+        if rounds_by_bettor_storing_score_val
+            .contains_key(bettor_name)
+        {
             let res1 = rounds_by_bettor_storing_score_val
                 .get(bettor_name)
                 .unwrap()
