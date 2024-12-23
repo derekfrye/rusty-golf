@@ -1,29 +1,7 @@
-mod model;
-mod admin {
-    pub mod view {
-        pub mod admin00_landing;
-        pub mod admin01_tables;
-        pub mod admin0x;
-    }
-    pub mod model {
-        pub mod admin_model;
-    }
-    pub mod router;
-}
-mod controller {
-    pub mod cache;
-    pub mod espn;
-    pub mod score;
-}
-mod view {
-    pub mod index;
-    pub mod score;
-}
-
-use admin::router;
+use rusty_golf::admin::router;
 use sqlx_middleware::db::db::{DatabaseSetupState, DatabaseType, Db, DbConfigAndPool};
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
-use model::{get_title_from_db, CacheMap};
+use rusty_golf::model::{get_title_from_db, CacheMap};
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -37,7 +15,7 @@ use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
-const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -127,7 +105,7 @@ async fn index(
         }
     };
 
-    let markup = crate::view::index::render_index_template(title);
+    let markup = rusty_golf::view::index::render_index_template(title);
     HttpResponse::Ok()
         .content_type("text/html")
         .body(markup.into_string())
@@ -175,7 +153,7 @@ async fn scores(
         .to_string();
     let json: bool = json_str.parse().unwrap_or_default();
 
-    let total_cache = crate::controller::score::get_data_for_scores_page(
+    let total_cache = rusty_golf::controller::score::get_data_for_scores_page(
         event_id,
         year,
         cache_map.get_ref(),
@@ -189,7 +167,7 @@ async fn scores(
             if json {
                 HttpResponse::Ok().json(cache)
             } else {
-                let markup = crate::view::score::render_scores_template(&cache);
+                let markup = rusty_golf::view::score::render_scores_template(&cache);
                 HttpResponse::Ok()
                     .content_type("text/html")
                     .body(markup.into_string())

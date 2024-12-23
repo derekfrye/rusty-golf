@@ -181,9 +181,7 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
     // Preserves order of bettors
     // this actually just needs to sum all the scores where the rounds are 0, store that val, sum all scores where rounds are 1, store that value, etc
     for bettor_name in &bettor_names {
-        if rounds_by_bettor_storing_score_val
-            .contains_key(bettor_name)
-        {
+        if rounds_by_bettor_storing_score_val.contains_key(bettor_name) {
             let res1 = rounds_by_bettor_storing_score_val
                 .get(bettor_name)
                 .unwrap()
