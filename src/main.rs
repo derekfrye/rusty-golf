@@ -1,8 +1,4 @@
 mod model;
-mod db {
-    // pub mod query;
-    pub mod db;
-}
 mod admin {
     pub mod view {
         pub mod admin00_landing;
@@ -47,17 +43,17 @@ const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
 async fn main() -> std::io::Result<()> {
     let dotenv_path = dotenv::dotenv();
 
-    // print the filename it loaded from
-    if dotenv::dotenv().is_ok() {
+    // Example fix for let_and_return: directly return the result
+    if let Ok(path) = dotenv_path {
         dbg!(
-            dotenv_path.unwrap().to_str(),
+            path.to_str(),
             dotenv::var("TOKEN").unwrap(),
             dotenv::var("DB_HOST").unwrap(),
             dotenv::var("DB_PORT").unwrap()
         );
     }
 
-    let mut db_pwd = env::var("DB_PASSWORD").unwrap();
+    let mut db_pwd = env::var("DB_PASSWORD").unwrap_or_default();
     if db_pwd == "/secrets/db_password" {
         // open the file and read the contents
         let contents = std::fs::read_to_string("/secrets/db_password")
@@ -66,10 +62,10 @@ async fn main() -> std::io::Result<()> {
         db_pwd = contents.trim().to_string();
     }
     let mut cfg = deadpool_postgres::Config::new();
-    cfg.dbname = Some(env::var("DB_NAME").unwrap());
-    cfg.host = Some(env::var("DB_HOST").unwrap());
-    cfg.port = Some(env::var("DB_PORT").unwrap().parse::<u16>().unwrap());
-    cfg.user = Some(env::var("DB_USER").unwrap());
+    cfg.dbname = Some(env::var("DB_NAME").unwrap_or_default());
+    cfg.host = Some(env::var("DB_HOST").unwrap_or_default());
+    cfg.port = Some(env::var("DB_PORT").unwrap_or_default().parse::<u16>().unwrap_or_default());
+    cfg.user = Some(env::var("DB_USER").unwrap_or_default());
     cfg.password = Some(db_pwd);
 
     cfg.manager = Some(ManagerConfig {
@@ -104,12 +100,11 @@ async fn index(
     abc: Data<DbConfigAndPool>,
 ) -> impl Responder {
     let db = Db::new(abc.get_ref().clone()).unwrap();
-
     let event_str = query
         .get("event")
         .unwrap_or(&String::new())
-        .trim()
         .to_string();
+
     let mut title = "Scoreboard".to_string();
     let _: i32 = match event_str.parse() {
         Ok(id) => {
@@ -137,7 +132,6 @@ async fn index(
         .content_type("text/html")
         .body(markup.into_string())
 }
-
 async fn scores(
     cache_map: Data<CacheMap>,
     query: web::Query<HashMap<String, String>>,
@@ -172,20 +166,14 @@ async fn scores(
         .unwrap_or(&String::new())
         .trim()
         .to_string();
-    let cache: bool = match cache_str.parse() {
-        Ok(c) => c,
-        Err(_) => true,
-    };
+    let cache: bool =  cache_str.parse().unwrap_or(true);
 
     let json_str = query
         .get("json")
         .unwrap_or(&String::new())
         .trim()
         .to_string();
-    let json: bool = match json_str.parse() {
-        Ok(j) => j,
-        Err(_) => false,
-    };
+    let json: bool = json_str.parse().unwrap_or_default();
 
     let total_cache = crate::controller::score::get_data_for_scores_page(
         event_id,
