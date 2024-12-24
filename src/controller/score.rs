@@ -1,13 +1,19 @@
+use actix_web::web::{self, Data};
+use actix_web::{HttpResponse, Responder};
+use serde_json::json;
+use sqlx_middleware::db::db::{Db, DbConfigAndPool};
+
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
 use crate::model;
 
 use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, SummaryScore, SummaryScores};
+use crate::view::score::render_scores_template;
 
 use std::collections::{BTreeMap, HashMap};
 use std::time::Instant;
 
-pub async fn get_data_for_scores_page(
+ async fn get_data_for_scores_page(
     event_id: i32,
     year: i32,
     cache_map: &CacheMap,
@@ -130,7 +136,7 @@ pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
     sort_scores(grouped_scores)
 }
 
-pub fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<Scores>)> {
+ fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<Scores>)> {
     let mut sorted_scores: Vec<(usize, Vec<Scores>)> = grouped_scores.into_iter().collect();
 
     sorted_scores.sort_by_key(|(group, _)| *group); // Sort by the `group` key
@@ -207,4 +213,71 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
     }
 
     summary_scores
+}
+
+pub async fn scores(
+    cache_map: Data<CacheMap>,
+    query: web::Query<HashMap<String, String>>,
+    abc: Data<DbConfigAndPool>,
+) -> impl Responder {
+    let db = Db::new(abc.get_ref().clone()).unwrap();
+
+    let event_str = query
+        .get("event")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
+    let event_id: i32 = match event_str.parse() {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .json(json!({"error": "espn event parameter is required"}));
+        }
+    };
+
+    let year_str = query.get("yr").unwrap_or(&String::new()).trim().to_string();
+    let year: i32 = match year_str.parse() {
+        Ok(y) => y,
+        Err(_) => {
+            return HttpResponse::BadRequest()
+                .json(json!({"error": "yr (year) parameter is required"}));
+        }
+    };
+
+    let cache_str = query
+        .get("cache")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
+    let cache: bool =  cache_str.parse().unwrap_or(true);
+
+    let json_str = query
+        .get("json")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
+    let json: bool = json_str.parse().unwrap_or_default();
+
+    let total_cache = get_data_for_scores_page(
+        event_id,
+        year,
+        cache_map.get_ref(),
+        cache,
+        db,
+    )
+    .await;
+
+    match total_cache {
+        Ok(cache) => {
+            if json {
+                HttpResponse::Ok().json(cache)
+            } else {
+                let markup = render_scores_template(&cache);
+                HttpResponse::Ok()
+                    .content_type("text/html")
+                    .body(markup.into_string())
+            }
+        }
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
+    }
 }

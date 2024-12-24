@@ -94,37 +94,37 @@ pub struct SummaryScores {
 pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
     (
         "event",
-        include_str!("admin/model/sql/schema/00_event.sql"),
+        include_str!("admin/model/sql/schema/postgres/00_event.sql"),
         "",
         "",
     ),
     (
         "golfstatistic",
-        include_str!("admin/model/sql/schema/01_golfstatistic.sql"),
+        include_str!("admin/model/sql/schema/postgres/01_golfstatistic.sql"),
         "",
         "",
     ),
     (
         "player",
-        include_str!("admin/model/sql/schema/02_player.sql"),
+        include_str!("admin/model/sql/schema/postgres/02_player.sql"),
         "",
         "",
     ),
     (
         "golfuser",
-        include_str!("admin/model/sql/schema/03_golfuser.sql"),
+        include_str!("admin/model/sql/schema/postgres/03_golfuser.sql"),
         "",
         "",
     ),
     (
         "event_user_player",
-        include_str!("admin/model/sql/schema/04_event_user_player.sql"),
+        include_str!("admin/model/sql/schema/postgres/04_event_user_player.sql"),
         "",
         "",
     ),
     (
         "eup_statistic",
-        include_str!("admin/model/sql/schema/05_eup_statistic.sql"),
+        include_str!("admin/model/sql/schema/postgres/05_eup_statistic.sql"),
         "",
         "",
     ),

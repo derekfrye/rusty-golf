@@ -42,7 +42,7 @@ impl CreateTableReturn {
             times_run_int: 0,
             db,
             tables: z,
-            table_exist_query: include_str!("../model/sql/schema/0x_tables_exist.sql"),
+            table_exist_query: include_str!("../model/sql/schema/postgres/0x_tables_exist.sql"),
         }
     }
 
