@@ -3,8 +3,8 @@ use serde_json::Value;
 use sqlx_middleware::db::convenience_items::{create_tables, MissingDbObjects};
 use sqlx_middleware::model::CheckType;
 // use sqlx::sqlite::SqlitePoolOptions;
-use std::{collections::HashMap, vec};
 use std::sync::Arc;
+use std::{collections::HashMap, vec};
 use tokio::sync::RwLock;
 
 // use rusty_golf::controller::score;
@@ -19,10 +19,18 @@ async fn test_scores_endpoint() {
     let mut cfg = deadpool_postgres::Config::new();
     cfg.dbname = Some(":memory:".to_string());
 
-    let sqlite_configandpool = DbConfigAndPool::new(cfg, sqlx_middleware::db::db::DatabaseType::Sqlite).await;
+    let sqlite_configandpool =
+        DbConfigAndPool::new(cfg, sqlx_middleware::db::db::DatabaseType::Sqlite).await;
     let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
 
-    let tables = vec!["event", "golfstatistic", "player", "golfuser", "event_user_player", "eup_statistic"];
+    let tables = vec![
+        "event",
+        "golfstatistic",
+        "player",
+        "golfuser",
+        "event_user_player",
+        "eup_statistic",
+    ];
     let ddl = vec![
         include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/01_golfstatistic.sql"),
@@ -35,27 +43,36 @@ async fn test_scores_endpoint() {
     // fixme, the conv item function shouldnt require a 4-len str array, that's silly
     let mut table_ddl = vec![];
     for (i, table) in tables.iter().enumerate() {
-        table_ddl.push((table, ddl[i],"",""));
+        table_ddl.push((table, ddl[i], "", ""));
     }
 
-    let mut missing_objs:Vec<MissingDbObjects> = vec![];
+    let mut missing_objs: Vec<MissingDbObjects> = vec![];
     for table in table_ddl.iter() {
-     missing_objs.push(MissingDbObjects {
-        missing_object: table.0.to_string(),
-     });
+        missing_objs.push(MissingDbObjects {
+            missing_object: table.0.to_string(),
+        });
     }
 
-    let create_result = create_tables(&sql_db, missing_objs, CheckType::Table
-        , &table_ddl.iter().map(|(a, b, c, d)| (**a, *b, *c, *d)).collect::<Vec<_>>()).await.unwrap();
+    let create_result = create_tables(
+        &sql_db,
+        missing_objs,
+        CheckType::Table,
+        &table_ddl
+            .iter()
+            .map(|(a, b, c, d)| (**a, *b, *c, *d))
+            .collect::<Vec<_>>(),
+    )
+    .await
+    .unwrap();
 
-        if create_result.db_last_exec_state == DatabaseSetupState::QueryError {
-            eprintln!("Error: {}", create_result.error_message.unwrap());
-        }
-        assert_eq!(
-            create_result.db_last_exec_state,
-            DatabaseSetupState::QueryReturnedSuccessfully
-        );
-        assert_eq!(create_result.return_result, String::default());
+    if create_result.db_last_exec_state == DatabaseSetupState::QueryError {
+        eprintln!("Error: {}", create_result.error_message.unwrap());
+    }
+    assert_eq!(
+        create_result.db_last_exec_state,
+        DatabaseSetupState::QueryReturnedSuccessfully
+    );
+    assert_eq!(create_result.return_result, String::default());
 
     // // Step 1: Set up an in-memory SQLite database
     // let sqlite_pool = SqlitePoolOptions::new()
@@ -63,8 +80,6 @@ async fn test_scores_endpoint() {
     //     .connect(":memory:")
     //     .await
     //     .expect("Failed to create SQLite pool");
-
-   
 
     // Step 5: Initialize the cache
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
