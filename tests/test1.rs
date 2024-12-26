@@ -1,7 +1,8 @@
 use actix_web::{test, App};
 use serde_json::Value;
+// use sqlx::query;
 use sqlx_middleware::db::convenience_items::{create_tables, MissingDbObjects};
-use sqlx_middleware::model::CheckType;
+use sqlx_middleware::model::{CheckType, QueryAndParams, RowValues};
 // use sqlx::sqlite::SqlitePoolOptions;
 use std::sync::Arc;
 use std::{collections::HashMap, vec};
@@ -73,6 +74,63 @@ async fn test_scores_endpoint() {
         DatabaseSetupState::QueryReturnedSuccessfully
     );
     assert_eq!(create_result.return_result, String::default());
+
+    let setup_queries = include_str!("test1_setup.sql");
+    let query_and_params = QueryAndParams {
+        query: setup_queries.to_string(),
+        params: vec![],
+    };
+    let res = sql_db.exec_general_query(vec![query_and_params], false).await.unwrap();
+
+    assert_eq!(res.db_last_exec_state, DatabaseSetupState::QueryReturnedSuccessfully);
+
+    // now ck event_user_player has three entries for player1
+    // lets use a param
+    let qry = "SELECT count(*) as cnt FROM event_user_player WHERE player_id = ?;";
+    // let params = vec![1];
+    let param = "player1";
+    let query_and_params = QueryAndParams {
+        query: qry.to_string(),
+        params: vec![RowValues::Text(param.to_string())],
+    };
+    let res = sql_db.exec_general_query(vec![query_and_params], true).await.unwrap();
+    assert_eq!(res.db_last_exec_state, DatabaseSetupState::QueryReturnedSuccessfully);
+
+    let count= res.return_result[0].results[0].get("cnt").unwrap().as_int().unwrap();
+    // let cnt = count.
+    assert_eq!(*count, 3);
+
+    // let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+
+    // let missing_tables = match result {
+    //     Ok(r) => {
+    //         dbresult.db_last_exec_state = r.db_last_exec_state;
+    //         dbresult.error_message = r.error_message;
+    //         r.return_result[0].results.clone()
+    //     }
+    //     Err(e) => {
+    //         let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+    //         let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+    //         dbresult.error_message = Some(emessage);
+    //         vec![]
+    //     }
+    // };
+
+    // let zz: Vec<_> = missing_tables
+    //     .iter()
+    //     .filter_map(|row| {
+    //         let exists_index = row.column_names.iter().position(|col| col == "eventname")?;
+
+    //         match &row.rows[exists_index] {
+    //             RowValues::Text(value) => Some(value),
+
+    //             _ => None,
+    //         }
+    //     })
+    //     .collect();
+    // if !zz.is_empty() {
+    //     dbresult.return_result = zz[0].to_string();
+    // }
 
     // // Step 1: Set up an in-memory SQLite database
     // let sqlite_pool = SqlitePoolOptions::new()

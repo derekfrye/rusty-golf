@@ -13,7 +13,7 @@ use crate::view::score::render_scores_template;
 use std::collections::{BTreeMap, HashMap};
 use std::time::Instant;
 
- async fn get_data_for_scores_page(
+async fn get_data_for_scores_page(
     event_id: i32,
     year: i32,
     cache_map: &CacheMap,
@@ -136,7 +136,7 @@ pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
     sort_scores(grouped_scores)
 }
 
- fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<Scores>)> {
+fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<Scores>)> {
     let mut sorted_scores: Vec<(usize, Vec<Scores>)> = grouped_scores.into_iter().collect();
 
     sorted_scores.sort_by_key(|(group, _)| *group); // Sort by the `group` key
@@ -249,7 +249,7 @@ pub async fn scores(
         .unwrap_or(&String::new())
         .trim()
         .to_string();
-    let cache: bool =  cache_str.parse().unwrap_or(true);
+    let cache: bool = cache_str.parse().unwrap_or(true);
 
     let json_str = query
         .get("json")
@@ -258,14 +258,8 @@ pub async fn scores(
         .to_string();
     let json: bool = json_str.parse().unwrap_or_default();
 
-    let total_cache = get_data_for_scores_page(
-        event_id,
-        year,
-        cache_map.get_ref(),
-        cache,
-        db,
-    )
-    .await;
+    let total_cache =
+        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, db).await;
 
     match total_cache {
         Ok(cache) => {
