@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use sqlx_middleware::db::{QueryState, Db};
+use sqlx_middleware::db::{Db, QueryState};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -157,8 +157,7 @@ pub async fn get_golfers_from_db(
     db: &Db,
     event_id: i32,
 ) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
-    let query:&str =
-    if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
+    let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
         "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
     } else {
         include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")

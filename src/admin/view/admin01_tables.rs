@@ -10,7 +10,7 @@ use maud::{html, Markup};
 use serde_json::{json, Value};
 use sqlx_middleware::{
     convenience_items::{test_is_db_setup, MissingDbObjects},
-    db::{self, QueryState, Db},
+    db::{self, Db, QueryState},
     model::{CheckType, DatabaseItem, DatabaseTable},
 };
 
@@ -96,9 +96,9 @@ impl CreateTableReturn {
         let mut json_data = json!([]);
         let mut last_message = String::new();
         if !all_objs_setup_successfully {
-            let missing_objs = db_obj_setup_state.iter().filter(|x| {
-                x.db_last_exec_state != db::QueryState::QueryReturnedSuccessfully
-            });
+            let missing_objs = db_obj_setup_state
+                .iter()
+                .filter(|x| x.db_last_exec_state != db::QueryState::QueryReturnedSuccessfully);
 
             if let Some(x) = missing_objs.clone().last() {
                 last_message = x.error_message.clone().unwrap_or("".to_string());

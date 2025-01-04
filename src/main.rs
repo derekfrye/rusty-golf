@@ -1,8 +1,8 @@
+use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
 use rusty_golf::controller::score::scores;
-use sqlx_middleware::db::{QueryState, DatabaseType, Db, ConfigAndPool};
-use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::model::{get_title_from_db, CacheMap};
+use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -15,8 +15,6 @@ use std::env;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
-
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -43,7 +41,12 @@ async fn main() -> std::io::Result<()> {
     let mut cfg = deadpool_postgres::Config::new();
     cfg.dbname = Some(env::var("DB_NAME").unwrap_or_default());
     cfg.host = Some(env::var("DB_HOST").unwrap_or_default());
-    cfg.port = Some(env::var("DB_PORT").unwrap_or_default().parse::<u16>().unwrap_or_default());
+    cfg.port = Some(
+        env::var("DB_PORT")
+            .unwrap_or_default()
+            .parse::<u16>()
+            .unwrap_or_default(),
+    );
     cfg.user = Some(env::var("DB_USER").unwrap_or_default());
     cfg.password = Some(db_pwd);
 
@@ -51,7 +54,6 @@ async fn main() -> std::io::Result<()> {
         recycling_method: RecyclingMethod::Fast,
     });
     let dbcn = ConfigAndPool::new(cfg, DatabaseType::Postgres).await;
-
 
     let mut cfg2 = deadpool_postgres::Config::new();
     cfg2.dbname = Some("test.db".to_string());
@@ -79,10 +81,7 @@ async fn index(
     abc: Data<ConfigAndPool>,
 ) -> impl Responder {
     let db = Db::new(abc.get_ref().clone()).unwrap();
-    let event_str = query
-        .get("event")
-        .unwrap_or(&String::new())
-        .to_string();
+    let event_str = query.get("event").unwrap_or(&String::new()).to_string();
 
     let mut title = "Scoreboard".to_string();
     let _: i32 = match event_str.parse() {
@@ -90,8 +89,7 @@ async fn index(
             let title_test = get_title_from_db(&db, id).await;
             match title_test {
                 Ok(t) => {
-                    if t.db_last_exec_state == QueryState::QueryReturnedSuccessfully
-                    {
+                    if t.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
                         title = t.return_result.clone();
                     }
                 }
@@ -111,7 +109,6 @@ async fn index(
         .content_type("text/html")
         .body(markup.into_string())
 }
-
 
 async fn admin(
     query: web::Query<HashMap<String, String>>,

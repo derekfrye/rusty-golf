@@ -1,7 +1,7 @@
 use actix_web::web::{self, Data};
 use actix_web::{HttpResponse, Responder};
 use serde_json::json;
-use sqlx_middleware::db::{Db, ConfigAndPool};
+use sqlx_middleware::db::{ConfigAndPool, Db};
 
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
