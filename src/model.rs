@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use sqlx_middleware::db::{DatabaseSetupState, Db};
+use sqlx_middleware::db::{QueryState, Db};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -157,15 +157,19 @@ pub async fn get_golfers_from_db(
     db: &Db,
     event_id: i32,
 ) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
-    let query =
-        "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id";
+    let query:&str =
+    if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
+        "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
+    } else {
+        include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
+    };
     let query_and_params = QueryAndParams {
         query: query.to_string(),
         params: vec![RowValues::Int(event_id as i64)],
     };
     let result = db.exec_general_query(vec![query_and_params], true).await;
     let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
-        db_last_exec_state: DatabaseSetupState::QueryReturnedSuccessfully,
+        db_last_exec_state: QueryState::QueryReturnedSuccessfully,
         return_result: vec![],
         error_message: None,
         db_object_name: "sp_get_player_names".to_string(),
@@ -173,7 +177,7 @@ pub async fn get_golfers_from_db(
 
     match result {
         Ok(r) => {
-            if r.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+            if r.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
                 let rows = r.return_result[0].results.clone();
                 let players = rows
                     .iter()

@@ -1,0 +1,1377 @@
+{
+  "bettor_struct": [
+    {
+      "bettor_name": "Player2",
+      "scoreboard_position": 0,
+      "scoreboard_position_name": "TOP GOLFER",
+      "total_score": -46
+    },
+    {
+      "bettor_name": "Player1",
+      "scoreboard_position": 1,
+      "scoreboard_position_name": "FIRST LOSER",
+      "total_score": -33
+    },
+    {
+      "bettor_name": "Player4",
+      "scoreboard_position": 2,
+      "scoreboard_position_name": "MEH",
+      "total_score": -25
+    },
+    {
+      "bettor_name": "Player5",
+      "scoreboard_position": 3,
+      "scoreboard_position_name": "SEEN BETTER DAYS",
+      "total_score": -15
+    },
+    {
+      "bettor_name": "Player3",
+      "scoreboard_position": 4,
+      "scoreboard_position_name": "NOT A CHANCE",
+      "total_score": -13
+    }
+  ],
+  "last_refresh": "0m, 0s",
+  "score_struct": [
+    {
+      "bettor_name": "Player1",
+      "detailed_statistics": {
+        "eup_id": 1,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594469181+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594592764+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594716264+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594839639+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594359139+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594486014+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594610014+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594732639+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594369681+00:00",
+            "success": "Success",
+            "val": -5
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594495222+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594619347+00:00",
+            "success": "Success",
+            "val": -3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594742139+00:00",
+            "success": "Success",
+            "val": -4
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594459097+00:00",
+            "success": "Success",
+            "val": "5/16 7:25am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594584264+00:00",
+            "success": "Success",
+            "val": "5/17 2:00pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594707472+00:00",
+            "success": "Success",
+            "val": "5/18 11:12am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594831139+00:00",
+            "success": "Success",
+            "val": "5/19 11:45am"
+          }
+        ],
+        "total_score": -12
+      },
+      "espn_id": 3470,
+      "eup_id": 1,
+      "golfer_name": "Rory McIlroy",
+      "group": 1
+    },
+    {
+      "bettor_name": "Player2",
+      "detailed_statistics": {
+        "eup_id": 2,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594970681+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595103889+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595227556+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595350097+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594861431+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594987556+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595121181+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595243389+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594871889+00:00",
+            "success": "Success",
+            "val": -3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594997139+00:00",
+            "success": "Success",
+            "val": -5
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595130347+00:00",
+            "success": "Success",
+            "val": -5
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595252431+00:00",
+            "success": "Success",
+            "val": -5
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594960972+00:00",
+            "success": "Success",
+            "val": "5/16 7:36am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595086556+00:00",
+            "success": "Success",
+            "val": "5/17 2:11pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595219097+00:00",
+            "success": "Success",
+            "val": "5/18 12:18pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595341347+00:00",
+            "success": "Success",
+            "val": "5/19 1:15pm"
+          }
+        ],
+        "total_score": -18
+      },
+      "espn_id": 4364873,
+      "eup_id": 2,
+      "golfer_name": "Viktor Hovland",
+      "group": 1
+    },
+    {
+      "bettor_name": "Player3",
+      "detailed_statistics": {
+        "eup_id": 3,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595484222+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595607431+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595731056+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595852348+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595374639+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595501056+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595625014+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595746889+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595385056+00:00",
+            "success": "Success",
+            "val": -4
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595510472+00:00",
+            "success": "Success",
+            "val": -5
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595635181+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595756097+00:00",
+            "success": "Success",
+            "val": -6
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595474597+00:00",
+            "success": "Success",
+            "val": "5/16 1:23pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595598639+00:00",
+            "success": "Success",
+            "val": "5/17 9:08am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595722306+00:00",
+            "success": "Success",
+            "val": "5/18 12:29pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595843681+00:00",
+            "success": "Success",
+            "val": "5/19 11:15am"
+          }
+        ],
+        "total_score": -13
+      },
+      "espn_id": 9478,
+      "eup_id": 3,
+      "golfer_name": "Scottie Scheffler",
+      "group": 1
+    },
+    {
+      "bettor_name": "Player4",
+      "detailed_statistics": {
+        "eup_id": 4,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595983223+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596114723+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596238014+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596360639+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595873764+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595999764+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596132139+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596253973+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595884514+00:00",
+            "success": "Success",
+            "val": -9
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596008973+00:00",
+            "success": "Success",
+            "val": -3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596141348+00:00",
+            "success": "Success",
+            "val": -3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596263056+00:00",
+            "success": "Success",
+            "val": -6
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.595973473+00:00",
+            "success": "Success",
+            "val": "5/16 7:03am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596105848+00:00",
+            "success": "Success",
+            "val": "5/17 1:38pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596229431+00:00",
+            "success": "Success",
+            "val": "5/18 12:40pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596352098+00:00",
+            "success": "Success",
+            "val": "5/19 1:35pm"
+          }
+        ],
+        "total_score": -21
+      },
+      "espn_id": 10140,
+      "eup_id": 4,
+      "golfer_name": "Xander Schauffele",
+      "group": 1
+    },
+    {
+      "bettor_name": "Player5",
+      "detailed_statistics": {
+        "eup_id": 5,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596491806+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596616306+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596739848+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596864181+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596382889+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596508848+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596632431+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596755931+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596393556+00:00",
+            "success": "Success",
+            "val": -2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596518139+00:00",
+            "success": "Success",
+            "val": -2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596641723+00:00",
+            "success": "Success",
+            "val": -4
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596765681+00:00",
+            "success": "Success",
+            "val": 2
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596481556+00:00",
+            "success": "Success",
+            "val": "5/16 7:47am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596607389+00:00",
+            "success": "Success",
+            "val": "5/17 2:22pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596730973+00:00",
+            "success": "Success",
+            "val": "5/18 10:28am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596855348+00:00",
+            "success": "Success",
+            "val": "5/19 11:55am"
+          }
+        ],
+        "total_score": -6
+      },
+      "espn_id": 5467,
+      "eup_id": 5,
+      "golfer_name": "Jordan Spieth",
+      "group": 1
+    },
+    {
+      "bettor_name": "Player1",
+      "detailed_statistics": {
+        "eup_id": 6,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596996098+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597128223+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597251598+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597375264+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596886431+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597012973+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597144848+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597268014+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596897014+00:00",
+            "success": "Success",
+            "val": -5
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597022181+00:00",
+            "success": "Success",
+            "val": -6
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597153931+00:00",
+            "success": "Success",
+            "val": -4
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597277431+00:00",
+            "success": "Success",
+            "val": 0
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.596986514+00:00",
+            "success": "Success",
+            "val": "5/16 1:01pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597119514+00:00",
+            "success": "Success",
+            "val": "5/17 8:46am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597242764+00:00",
+            "success": "Success",
+            "val": "5/18 12:40pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597366639+00:00",
+            "success": "Success",
+            "val": "5/19 1:35pm"
+          }
+        ],
+        "total_score": -15
+      },
+      "espn_id": 10592,
+      "eup_id": 6,
+      "golfer_name": "Collin Morikawa",
+      "group": 2
+    },
+    {
+      "bettor_name": "Player2",
+      "detailed_statistics": {
+        "eup_id": 7,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597507973+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597632223+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597756098+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597879765+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597397598+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597524639+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597649848+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597772556+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597408306+00:00",
+            "success": "Success",
+            "val": -1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597533806+00:00",
+            "success": "Success",
+            "val": -6
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597659014+00:00",
+            "success": "Success",
+            "val": -1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597781806+00:00",
+            "success": "Success",
+            "val": 0
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597498223+00:00",
+            "success": "Success",
+            "val": "5/16 7:36am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597623723+00:00",
+            "success": "Success",
+            "val": "5/17 2:11pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597747348+00:00",
+            "success": "Success",
+            "val": "5/18 11:56am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597870973+00:00",
+            "success": "Success",
+            "val": "5/19 11:35am"
+          }
+        ],
+        "total_score": -8
+      },
+      "espn_id": 5860,
+      "eup_id": 7,
+      "golfer_name": "Hideki Matsuyama",
+      "group": 2
+    },
+    {
+      "bettor_name": "Player3",
+      "detailed_statistics": {
+        "eup_id": 8,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.598008473+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.598148015+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597900765+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.598024390+00:00",
+            "success": "Success",
+            "val": 1
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597911765+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.598033806+00:00",
+            "success": "Success",
+            "val": -1
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.597998806+00:00",
+            "success": "Success",
+            "val": "5/16 7:03am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.598138931+00:00",
+            "success": "Success",
+            "val": "5/17 1:38pm"
+          }
+        ],
+        "total_score": 0
+      },
+      "espn_id": 4375972,
+      "eup_id": 8,
+      "golfer_name": "Ludvig Åberg",
+      "group": 2
+    },
+    {
+      "bettor_name": "Player4",
+      "detailed_statistics": {
+        "eup_id": 9,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592912264+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593036889+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592803514+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592929472+00:00",
+            "success": "Success",
+            "val": 1
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592814139+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592938889+00:00",
+            "success": "Success",
+            "val": 4
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592902639+00:00",
+            "success": "Success",
+            "val": "5/16 1:23pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593028264+00:00",
+            "success": "Success",
+            "val": "5/17 9:08am"
+          }
+        ],
+        "total_score": 4
+      },
+      "espn_id": 11119,
+      "eup_id": 9,
+      "golfer_name": "Wyndham Clark",
+      "group": 2
+    },
+    {
+      "bettor_name": "Player5",
+      "detailed_statistics": {
+        "eup_id": 10,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593181972+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593306389+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593059472+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593198805+00:00",
+            "success": "Success",
+            "val": 1
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593069847+00:00",
+            "success": "Success",
+            "val": -2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593208472+00:00",
+            "success": "Success",
+            "val": 2
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593172389+00:00",
+            "success": "Success",
+            "val": "5/16 1:01pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593297805+00:00",
+            "success": "Success",
+            "val": "5/17 8:46am"
+          }
+        ],
+        "total_score": 0
+      },
+      "espn_id": 9037,
+      "eup_id": 10,
+      "golfer_name": "Matt Fitzpatrick",
+      "group": 2
+    },
+    {
+      "bettor_name": "Player1",
+      "detailed_statistics": {
+        "eup_id": 11,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593439472+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593563680+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593688347+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593812514+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593330222+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593457055+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593582305+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593705014+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593340680+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593466347+00:00",
+            "success": "Success",
+            "val": -4
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593591472+00:00",
+            "success": "Success",
+            "val": -2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593714305+00:00",
+            "success": "Success",
+            "val": 0
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593430055+00:00",
+            "success": "Success",
+            "val": "5/16 12:28pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593554930+00:00",
+            "success": "Success",
+            "val": "5/17 8:13am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593679722+00:00",
+            "success": "Success",
+            "val": "5/18 11:01am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593803722+00:00",
+            "success": "Success",
+            "val": "5/19 10:35am"
+          }
+        ],
+        "total_score": -6
+      },
+      "espn_id": 1680,
+      "eup_id": 11,
+      "golfer_name": "Jason Day",
+      "group": 3
+    },
+    {
+      "bettor_name": "Player2",
+      "detailed_statistics": {
+        "eup_id": 12,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593944014+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594067722+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594215847+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594337014+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593834514+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593960472+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594084222+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594231222+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593845055+00:00",
+            "success": "Success",
+            "val": -3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593969639+00:00",
+            "success": "Success",
+            "val": -6
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594117139+00:00",
+            "success": "Success",
+            "val": -4
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594240389+00:00",
+            "success": "Success",
+            "val": -7
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.593934180+00:00",
+            "success": "Success",
+            "val": "5/16 8:09am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594059014+00:00",
+            "success": "Success",
+            "val": "5/17 2:44pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594207139+00:00",
+            "success": "Success",
+            "val": "5/18 12:18pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.594328597+00:00",
+            "success": "Success",
+            "val": "5/19 1:15pm"
+          }
+        ],
+        "total_score": -20
+      },
+      "espn_id": 10046,
+      "eup_id": 12,
+      "golfer_name": "Bryson DeChambeau",
+      "group": 3
+    },
+    {
+      "bettor_name": "Player3",
+      "detailed_statistics": {
+        "eup_id": 13,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591623638+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591751055+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591444263+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591640597+00:00",
+            "success": "Success",
+            "val": 1
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591474930+00:00",
+            "success": "Success",
+            "val": -1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591651055+00:00",
+            "success": "Success",
+            "val": 1
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591612638+00:00",
+            "success": "Success",
+            "val": "5/16 1:12pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591742305+00:00",
+            "success": "Success",
+            "val": "5/17 8:57am"
+          }
+        ],
+        "total_score": 0
+      },
+      "espn_id": 9780,
+      "eup_id": 13,
+      "golfer_name": "Jon Rahm",
+      "group": 3
+    },
+    {
+      "bettor_name": "Player4",
+      "detailed_statistics": {
+        "eup_id": 14,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591887763+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592014013+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592152514+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592274764+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591777472+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591905680+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592031597+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592168805+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591788013+00:00",
+            "success": "Success",
+            "val": -3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591915097+00:00",
+            "success": "Success",
+            "val": -1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592040972+00:00",
+            "success": "Success",
+            "val": -2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592177972+00:00",
+            "success": "Success",
+            "val": -2
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.591878138+00:00",
+            "success": "Success",
+            "val": "5/16 7:47am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592005263+00:00",
+            "success": "Success",
+            "val": "5/17 2:22pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592143639+00:00",
+            "success": "Success",
+            "val": "5/18 10:28am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592266014+00:00",
+            "success": "Success",
+            "val": "5/19 11:05am"
+          }
+        ],
+        "total_score": -8
+      },
+      "espn_id": 8973,
+      "eup_id": 14,
+      "golfer_name": "Max Homa",
+      "group": 3
+    },
+    {
+      "bettor_name": "Player5",
+      "detailed_statistics": {
+        "eup_id": 15,
+        "holes_completed": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592406764+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592531014+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592657514+00:00",
+            "success": "Success",
+            "val": 18
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592781180+00:00",
+            "success": "Success",
+            "val": 18
+          }
+        ],
+        "rounds": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592298430+00:00",
+            "success": "Success",
+            "val": 0
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592424264+00:00",
+            "success": "Success",
+            "val": 1
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592550014+00:00",
+            "success": "Success",
+            "val": 2
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592674847+00:00",
+            "success": "Success",
+            "val": 3
+          }
+        ],
+        "scores": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592309014+00:00",
+            "success": "Success",
+            "val": -4
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592433305+00:00",
+            "success": "Success",
+            "val": -3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592559722+00:00",
+            "success": "Success",
+            "val": 3
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592684180+00:00",
+            "success": "Success",
+            "val": -5
+          }
+        ],
+        "success_fail": "NoData",
+        "tee_times": [
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592397014+00:00",
+            "success": "Success",
+            "val": "5/16 7:47am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592522472+00:00",
+            "success": "Success",
+            "val": "5/17 2:22pm"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592648847+00:00",
+            "success": "Success",
+            "val": "5/18 11:45am"
+          },
+          {
+            "last_refresh_date": "2025-01-04T02:37:22.592772639+00:00",
+            "success": "Success",
+            "val": "5/19 9:05am"
+          }
+        ],
+        "total_score": -9
+      },
+      "espn_id": 6798,
+      "eup_id": 15,
+      "golfer_name": "Brooks Koepka",
+      "group": 3
+    }
+  ]
+}

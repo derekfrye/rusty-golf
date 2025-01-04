@@ -1,7 +1,7 @@
 use actix_web::web::{self, Data};
 use actix_web::{HttpResponse, Responder};
 use serde_json::json;
-use sqlx_middleware::db::{Db, DbConfigAndPool};
+use sqlx_middleware::db::{Db, ConfigAndPool};
 
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
@@ -218,7 +218,7 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
 pub async fn scores(
     cache_map: Data<CacheMap>,
     query: web::Query<HashMap<String, String>>,
-    abc: Data<DbConfigAndPool>,
+    abc: Data<ConfigAndPool>,
 ) -> impl Responder {
     let db = Db::new(abc.get_ref().clone()).unwrap();
 

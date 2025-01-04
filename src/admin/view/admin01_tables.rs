@@ -10,7 +10,7 @@ use maud::{html, Markup};
 use serde_json::{json, Value};
 use sqlx_middleware::{
     convenience_items::{test_is_db_setup, MissingDbObjects},
-    db::{self, DatabaseSetupState, Db},
+    db::{self, QueryState, Db},
     model::{CheckType, DatabaseItem, DatabaseTable},
 };
 
@@ -91,13 +91,13 @@ impl CreateTableReturn {
 
         let all_objs_setup_successfully = db_obj_setup_state
             .iter()
-            .all(|x| x.db_last_exec_state == db::DatabaseSetupState::QueryReturnedSuccessfully);
+            .all(|x| x.db_last_exec_state == db::QueryState::QueryReturnedSuccessfully);
 
         let mut json_data = json!([]);
         let mut last_message = String::new();
         if !all_objs_setup_successfully {
             let missing_objs = db_obj_setup_state.iter().filter(|x| {
-                x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully
+                x.db_last_exec_state != db::QueryState::QueryReturnedSuccessfully
             });
 
             if let Some(x) = missing_objs.clone().last() {
@@ -164,7 +164,7 @@ impl CreateTableReturn {
 
         html! {
             @if detailed_output {
-                @for dbresult in db_obj_setup_state.iter().filter(|x| x.db_last_exec_state != db::DatabaseSetupState::QueryReturnedSuccessfully) {
+                @for dbresult in db_obj_setup_state.iter().filter(|x| x.db_last_exec_state != db::QueryState::QueryReturnedSuccessfully) {
                     @let message = format!("db result: {:?}, table name: {}, db err msg: {}"
                         , dbresult.db_last_exec_state
                         , dbresult.db_object_name
@@ -290,7 +290,7 @@ impl CreateTableReturn {
         let message: String;
         match actual_table_creation {
             Ok(x) => {
-                if x.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+                if x.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
                     message = "Tables created successfully".to_string();
                 } else {
                     message = format!(
@@ -315,7 +315,7 @@ impl CreateTableReturn {
         let message2: String;
         match actual_constraint_creation {
             Ok(x) => {
-                if x.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully {
+                if x.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
                     message2 = "Table constraints created successfully".to_string();
                 } else {
                     message2 = format!(

@@ -1,6 +1,6 @@
 use rusty_golf::admin::router;
 use rusty_golf::controller::score::scores;
-use sqlx_middleware::db::{DatabaseSetupState, DatabaseType, Db, DbConfigAndPool};
+use sqlx_middleware::db::{QueryState, DatabaseType, Db, ConfigAndPool};
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::model::{get_title_from_db, CacheMap};
 
@@ -50,12 +50,12 @@ async fn main() -> std::io::Result<()> {
     cfg.manager = Some(ManagerConfig {
         recycling_method: RecyclingMethod::Fast,
     });
-    let dbcn = DbConfigAndPool::new(cfg, DatabaseType::Postgres).await;
+    let dbcn = ConfigAndPool::new(cfg, DatabaseType::Postgres).await;
 
 
     let mut cfg2 = deadpool_postgres::Config::new();
     cfg2.dbname = Some("test.db".to_string());
-    let sqlitex = DbConfigAndPool::new(cfg2, DatabaseType::Sqlite).await;
+    let sqlitex = ConfigAndPool::new(cfg2, DatabaseType::Sqlite).await;
     let _db2 = Db::new(sqlitex).unwrap();
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
@@ -76,7 +76,7 @@ async fn main() -> std::io::Result<()> {
 
 async fn index(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<DbConfigAndPool>,
+    abc: Data<ConfigAndPool>,
 ) -> impl Responder {
     let db = Db::new(abc.get_ref().clone()).unwrap();
     let event_str = query
@@ -90,7 +90,7 @@ async fn index(
             let title_test = get_title_from_db(&db, id).await;
             match title_test {
                 Ok(t) => {
-                    if t.db_last_exec_state == DatabaseSetupState::QueryReturnedSuccessfully
+                    if t.db_last_exec_state == QueryState::QueryReturnedSuccessfully
                     {
                         title = t.return_result.clone();
                     }
@@ -115,7 +115,7 @@ async fn index(
 
 async fn admin(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<DbConfigAndPool>,
+    abc: Data<ConfigAndPool>,
 ) -> HttpResponse {
     let db = Db::new(abc.get_ref().clone()).unwrap();
     let mut router = router::AdminRouter::new();
