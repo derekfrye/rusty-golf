@@ -1,8 +1,8 @@
 use actix_web::{test, App};
 use serde_json::Value;
-// use sqlx::query;
-use sqlx_middleware::db::convenience_items::{create_tables, MissingDbObjects};
-use sqlx_middleware::model::{CheckType, QueryAndParams, RowValues};
+
+use sqlx_middleware::convenience_items::{create_tables, MissingDbObjects};
+use sqlx_middleware::model::CheckType;
 // use sqlx::sqlite::SqlitePoolOptions;
 use std::sync::Arc;
 use std::{collections::HashMap, vec};
@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 
 // use rusty_golf::controller::score;
 use rusty_golf::{controller::score::scores, model::CacheMap};
-use sqlx_middleware::db::db::{DatabaseSetupState, Db, DbConfigAndPool};
+use sqlx_middleware::db::{DatabaseSetupState, Db, DbConfigAndPool};
 
 #[tokio::test]
 async fn test_scores_endpoint() {
@@ -20,8 +20,7 @@ async fn test_scores_endpoint() {
     let mut cfg = deadpool_postgres::Config::new();
     cfg.dbname = Some(":memory:".to_string());
 
-    let sqlite_configandpool =
-        DbConfigAndPool::new(cfg, sqlx_middleware::db::db::DatabaseType::Sqlite).await;
+    let sqlite_configandpool = DbConfigAndPool::new(cfg, sqlx_middleware::db::DatabaseType::Sqlite).await;
     let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
 
     let tables = vec![

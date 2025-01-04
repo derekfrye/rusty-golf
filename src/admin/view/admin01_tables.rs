@@ -9,10 +9,8 @@ use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
 use sqlx_middleware::{
-    db::{
-        convenience_items::{test_is_db_setup, MissingDbObjects},
-        db::{self, DatabaseSetupState, Db},
-    },
+    convenience_items::{test_is_db_setup, MissingDbObjects},
+    db::{self, DatabaseSetupState, Db},
     model::{CheckType, DatabaseItem, DatabaseTable},
 };
 
@@ -84,8 +82,7 @@ impl CreateTableReturn {
     async fn do_tables_exist(
         &mut self,
         detailed_output: bool,
-        check_type: CheckType,
-        // query: &str,
+        check_type: CheckType, // query: &str,
     ) -> Markup {
         let db_obj_setup_state =
             test_is_db_setup(&self.db, &check_type, self.table_exist_query, &self.tables)
@@ -281,14 +278,14 @@ impl CreateTableReturn {
         result.times_run = json!({ "times_run": times_run_int });
         result.times_run_int = times_run_int;
 
-        let actual_table_creation = sqlx_middleware::db::convenience_items::create_tables(
+        let actual_table_creation = sqlx_middleware::convenience_items::create_tables(
             &self.db,
             data.clone(),
             CheckType::Table,
             TABLES_AND_DDL,
         )
-        // .create_tables(data.clone(), CheckType::Table, TABLES_AND_DDL)
         .await;
+        // .create_tables(data.clone(), CheckType::Table, TABLES_AND_DDL)
 
         let message: String;
         match actual_table_creation {
@@ -308,7 +305,7 @@ impl CreateTableReturn {
             }
         }
 
-        let actual_constraint_creation = sqlx_middleware::db::convenience_items::create_tables(
+        let actual_constraint_creation = sqlx_middleware::convenience_items::create_tables(
             &self.db,
             data.clone(),
             CheckType::Constraint,

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use sqlx_middleware::db::db::{DatabaseSetupState, Db};
+use sqlx_middleware::db::{DatabaseSetupState, Db};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
 #[derive(Serialize, Deserialize, Clone)]

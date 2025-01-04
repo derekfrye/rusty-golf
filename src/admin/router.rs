@@ -53,7 +53,7 @@ impl AdminRouter {
     pub async fn router(
         &mut self,
         query: web::Query<HashMap<String, String>>,
-        db: sqlx_middleware::db::db::Db,
+        db: sqlx_middleware::db::Db,
     ) -> HttpResponse {
         let token_str = query
             .get("token")

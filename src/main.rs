@@ -1,6 +1,6 @@
 use rusty_golf::admin::router;
 use rusty_golf::controller::score::scores;
-use sqlx_middleware::db::db::{DatabaseSetupState, DatabaseType, Db, DbConfigAndPool};
+use sqlx_middleware::db::{DatabaseSetupState, DatabaseType, Db, DbConfigAndPool};
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::model::{get_title_from_db, CacheMap};
 
