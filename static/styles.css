@@ -62,7 +62,8 @@ th.topheader {
   /* font-size: 10pt; */ /* Set font size for table headers */
   font-style: italic;
 }
-td:first-child, td:nth-child(2) {
+td:first-child,
+td:nth-child(2) {
   text-align: left;
 }
 table.summary th,
@@ -153,49 +154,81 @@ p.refresh {
   font-style: none;
 }
 .animate {
-    animation: fadeIn 0.5s;
+  animation: fadeIn 0.5s;
 }
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .hidden {
-    display: none;
+  display: none;
 }
 
 .grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Two columns */
-    grid-template-rows: auto auto;  /* Two rows */
-    gap: 10px;                      /* Space between cells */
-    margin-bottom: 20px;            /* Space below the grid */
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two columns */
+  grid-template-rows: auto auto; /* Two rows */
+  gap: 10px; /* Space between cells */
+  margin-bottom: 20px; /* Space below the grid */
 }
 
 .grid-container > div {
-    background-color: #fff;         /* White background */
-    padding: 20px;                  /* Space inside cells */
-    border: 1px solid #ddd;         /* Light gray border */
-    text-align: left;             /* Center text horizontally */
-    font-size: 16px;                /* Adjust font size as needed */
-    color: #333;                    /* Text color matching existing scheme */
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+  background-color: #fff; /* White background */
+  padding: 20px; /* Space inside cells */
+  border: 1px solid #ddd; /* Light gray border */
+  text-align: left; /* Center text horizontally */
+  font-size: 16px; /* Adjust font size as needed */
+  color: #333; /* Text color matching existing scheme */
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.05); /* Subtle shadow */
 }
 
 .grid-container > div#landing_grid_1 {
-    /* Additional styles for the first cell if needed */
+  /* Additional styles for the first cell if needed */
 }
 
 /* Styles for cell headers */
 .cell-header {
-    font-size: 14px;             /* Adjust font size as needed */
-    font-weight: bold;
-    text-transform: uppercase;   /* Convert text to all caps */
-    color: #777;                 /* Medium light grey font */
-    margin-bottom: 8px;          /* Space between header and body */
+  font-size: 14px; /* Adjust font size as needed */
+  font-weight: bold;
+  text-transform: uppercase; /* Convert text to all caps */
+  color: #777; /* Medium light grey font */
+  margin-bottom: 8px; /* Space between header and body */
 }
 
 /* Styles for cell bodies */
 .cell-body {
-    font-size: 12px;             /* Adjust font size as needed */
-    color: #999;                 /* Lighter grey for body text */
+  font-size: 12px; /* Adjust font size as needed */
+  color: #999; /* Lighter grey for body text */
+}
+
+.stacked-bar-chart {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.bar-group-label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.bars {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.2rem;
+}
+.bar {
+  width: 20px;
+  border: 1px solid #ccc;
+}
+.total-label {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
 }

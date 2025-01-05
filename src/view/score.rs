@@ -8,6 +8,7 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
         @if !data.score_struct.is_empty() {
             (render_scoreboard(data))
             (render_summary_scores(data))
+            (render_stacked_bar_chart(data))
             (render_score_detail(data))
         }
     }
@@ -212,6 +213,37 @@ fn render_score_detail(data: &ScoreData) -> Markup {
                     }
                 }
             }
+        }
+    }
+}
+
+fn render_stacked_bar_chart(data: &ScoreData) -> Markup {
+    html! {
+    @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
+
+    @if !summary_scores.summary_scores.is_empty() {
+        h3 { "Upcoming Matches" }
+
+        div class="stacked-bar-chart" {
+            @for summary_score in &summary_scores.summary_scores {
+                div class="bar-group" {
+                    div class="bar-group-label" { (summary_score.bettor_name) }
+                    @let total_score: isize = summary_score.new_scores.iter().sum();
+
+                    div class="bars" {
+                        @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
+                            @let score = summary_score.new_scores[idx];
+                            @let height = (score * 10) as usize;
+                            div class="bar" style=(format!("height: {}px; background-color: {}", height, if idx % 2 == 0 { "#007BFF" } else { "#FF0000" })) {
+                                " "
+                            }
+                        }
+                    }
+
+                    div class="total-label" { "Total: " (total_score) }
+                }
+            }
+        }
         }
     }
 }

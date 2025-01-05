@@ -3,6 +3,7 @@ use rusty_golf::admin::router;
 use rusty_golf::controller::score::scores;
 use rusty_golf::model::{get_title_from_db, CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
+use rusty_golf::args::Args;
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};

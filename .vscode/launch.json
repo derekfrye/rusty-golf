@@ -12,7 +12,8 @@
                 "args": [
                     "build",
                     "--bin=rusty-golf",
-                    "--package=rusty-golf"
+                    "--package=rusty-golf",
+                    "--db=sqlite"
                 ],
                 "filter": {
                     "name": "rusty-golf",
