@@ -4,7 +4,6 @@ use rusty_golf::controller::score::scores;
 use rusty_golf::model::{get_title_from_db, CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 
-
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 // use chrono::{DateTime, Utc};
@@ -12,7 +11,7 @@ use actix_files::Files;
 // use serde_json::json;
 // use tokio_postgres::config;
 use std::collections::HashMap;
-use std::env;
+// use std::env;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
@@ -21,53 +20,36 @@ mod args;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // let dotenv_path = dotenv::dotenv();
-
-    // // Example fix for let_and_return: directly return the result
-    // if let Ok(path) = dotenv_path {
-    //     dbg!(
-    //         path.to_str(),
-    //         dotenv::var("TOKEN").unwrap(),
-    //         dotenv::var("DB_HOST").unwrap(),
-    //         dotenv::var("DB_PORT").unwrap()
-    //     );
-    // }
 
     let args = args::args_checks();
-    if let Err(e) = args.validate() {
-        eprintln!("Error: {}", e);
-        std::process::exit(1);
-    }
 
-    let mut db_pwd = env::var("DB_PASSWORD").unwrap_or_default();
-    if db_pwd == "/secrets/db_password" {
-        // open the file and read the contents
-        let contents = std::fs::read_to_string("/secrets/db_password")
-            .unwrap_or("tempPasswordWillbeReplacedIn!AdminPanel".to_string());
-        // set the password to the contents of the file
-        db_pwd = contents.trim().to_string();
-    }
     let mut cfg = deadpool_postgres::Config::new();
-    cfg.dbname = Some(env::var("DB_NAME").unwrap_or_default());
-    cfg.host = Some(env::var("DB_HOST").unwrap_or_default());
-    cfg.port = Some(
-        env::var("DB_PORT")
-            .unwrap_or_default()
-            .parse::<u16>()
-            .unwrap_or_default(),
-    );
-    cfg.user = Some(env::var("DB_USER").unwrap_or_default());
-    cfg.password = Some(db_pwd);
+    let dbcn: ConfigAndPool;
+    if args.db_type == DatabaseType::Postgres {
+        cfg.dbname = Some(args.db_name);
+        cfg.host = args.db_host;
+        cfg.port = args.db_port;
+        cfg.user = args.db_user;
+        cfg.password = args.db_password;
+        cfg.manager = Some(ManagerConfig {
+            recycling_method: RecyclingMethod::Fast,
+        });
+        dbcn = ConfigAndPool::new(cfg, DatabaseType::Postgres).await;
+    } else {
+        cfg.dbname = Some(args.db_name);
+        dbcn = ConfigAndPool::new(cfg, DatabaseType::Sqlite).await;
+    }
 
-    cfg.manager = Some(ManagerConfig {
-        recycling_method: RecyclingMethod::Fast,
-    });
-    let dbcn = ConfigAndPool::new(cfg, DatabaseType::Postgres).await;
-
-    let mut cfg2 = deadpool_postgres::Config::new();
-    cfg2.dbname = Some("test.db".to_string());
-    let sqlitex = ConfigAndPool::new(cfg2, DatabaseType::Sqlite).await;
-    let _db2 = Db::new(sqlitex).unwrap();
+    if args.db_startup_script.is_some() {
+        let db = Db::new(dbcn.clone()).unwrap();
+        let script = args.combined_sql_script;
+        // db.execute(&script).await.unwrap();
+        let query_and_params = sqlx_middleware::model::QueryAndParams {
+            query: script,
+            params: vec![],
+        };
+        let _result = db.exec_general_query(vec![query_and_params], false).await;
+    }
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
 

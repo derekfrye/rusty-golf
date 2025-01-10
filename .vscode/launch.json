@@ -13,14 +13,17 @@
                     "build",
                     "--bin=rusty-golf",
                     "--package=rusty-golf",
-                    "--db=sqlite"
                 ],
                 "filter": {
                     "name": "rusty-golf",
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": [
+                "--db-type=sqlite",
+                "--db-name=:memory:",
+                "--db-startup-script=src/admin/model/sql/schema/sqlite/00_event.sql;src/admin/model/sql/schema/sqlite/01_golfstatistic.sql;src/admin/model/sql/schema/sqlite/02_player.sql;src/admin/model/sql/schema/sqlite/03_golfuser.sql;src/admin/model/sql/schema/sqlite/04_event_user_player.sql;tests/test1.sql",
+            ],
             "cwd": "${workspaceFolder}",
         },
         {
