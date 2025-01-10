@@ -3,7 +3,7 @@ use rusty_golf::admin::router;
 use rusty_golf::controller::score::scores;
 use rusty_golf::model::{get_title_from_db, CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
-use rusty_golf::args::Args;
+
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -17,18 +17,26 @@ use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
+mod args;
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let dotenv_path = dotenv::dotenv();
+    // let dotenv_path = dotenv::dotenv();
 
-    // Example fix for let_and_return: directly return the result
-    if let Ok(path) = dotenv_path {
-        dbg!(
-            path.to_str(),
-            dotenv::var("TOKEN").unwrap(),
-            dotenv::var("DB_HOST").unwrap(),
-            dotenv::var("DB_PORT").unwrap()
-        );
+    // // Example fix for let_and_return: directly return the result
+    // if let Ok(path) = dotenv_path {
+    //     dbg!(
+    //         path.to_str(),
+    //         dotenv::var("TOKEN").unwrap(),
+    //         dotenv::var("DB_HOST").unwrap(),
+    //         dotenv::var("DB_PORT").unwrap()
+    //     );
+    // }
+
+    let args = args::args_checks();
+    if let Err(e) = args.validate() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
 
     let mut db_pwd = env::var("DB_PASSWORD").unwrap_or_default();
