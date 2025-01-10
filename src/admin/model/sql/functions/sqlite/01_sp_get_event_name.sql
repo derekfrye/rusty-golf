@@ -1,3 +1,3 @@
 SELECT e.name AS eventname
 FROM event AS e
-WHERE e.espn_id = $1;
+WHERE e.espn_id = ?;

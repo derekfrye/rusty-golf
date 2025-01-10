@@ -238,7 +238,12 @@ pub async fn get_title_from_db(
     db: &Db,
     event_id: i32,
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-    let query = "SELECT eventname FROM sp_get_event_name($1)";
+    // let query = "SELECT eventname FROM sp_get_event_name($1)";
+    let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
+       "SELECT eventname FROM sp_get_event_name($1)"
+    } else {
+        include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
+    };
     let query_and_params = QueryAndParams {
         query: query.to_string(),
         params: vec![RowValues::Int(event_id as i64)],
