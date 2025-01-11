@@ -171,14 +171,17 @@ fn render_thead(max_len_of_tee_times_in_rounds: usize, group: &usize) -> Markup 
 fn render_score_detail(data: &ScoreData) -> Markup {
     html! {
         h3 { "Details" }
-         @let grouped_scores = group_by_scores(data.score_struct.clone());
+
+        p class="playerdetailsmsg" { "Showing details for all players." }
+
+        @let grouped_scores = group_by_scores(data.score_struct.clone());
         @for (group, scores) in &grouped_scores {
             @let max_len_of_tee_times = scores.iter().map(|score| score.detailed_statistics.tee_times.len()).max().unwrap_or(0);
             table id=(format!("scores-table-{}", group)) {
                 (render_thead(max_len_of_tee_times, group) )
                 tbody {
                     @for score in scores {
-                        tr {
+                        tr class="playerrow" data-player=(score.bettor_name) {
                             td { (score.bettor_name) }
                             td { (score.golfer_name) }
 

@@ -42,5 +42,48 @@ document.addEventListener('click', (event) => {
                 chart.classList.add('hidden');
             }
         });
+
+
+        // Show/hide corresponding player row details
+        document.querySelectorAll('.playerrow').forEach(chart => {
+            if (chart.getAttribute('data-player') === selectedPlayer) {
+                chart.classList.add('visible');
+                chart.classList.remove('hidden');
+            } else {
+                chart.classList.remove('visible');
+                chart.classList.add('hidden');
+            }
+        });
+
+        // Show/hide corresponding player row details
+        const elements = document.querySelectorAll('p.playerdetailsmsg');
+        elements.forEach(element => {
+            // Update the text content of the <p> element
+            element.textContent = `Showing details for ${selectedPlayer}`;
+    
+            // Create the link element
+            const link = document.createElement('a');
+            link.href = '#'; // Use '#' to prevent navigation
+            link.textContent = ' Show all details instead.';
+            link.style.cursor = 'pointer'; // Makes it look like a clickable link
+    
+            // Add a click event listener to the link
+            link.addEventListener('click', (event) => {
+                event.preventDefault(); // Prevent default link behavior
+                
+                // Change the original text back
+                element.textContent = 'Showing details for all players.';
+    
+                // Find all elements with class 'playerrow' and update their visibility
+                const rows = document.querySelectorAll('.playerrow');
+                rows.forEach(row => {
+                    row.classList.add('visible');
+                    row.classList.remove('hidden');
+                });
+            });
+    
+            // Append the link to the <p> element
+            element.appendChild(link);
+        });
     }
 });

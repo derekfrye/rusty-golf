@@ -304,3 +304,10 @@ p.refresh {
   position: relative;
   margin-top: 1rem;
 }
+
+p.playerdetailsmsg {
+  /* margin-top: 20px; */
+  font-size: 0.6em;
+  font-style: italic;
+  color: #333;
+}
