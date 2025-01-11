@@ -310,6 +310,25 @@ h3.playerbars {
     margin-bottom: 0.3rem;
 }
 
+.bar-row[data-positive="true"] .bar {
+    left: 50%; /* Start from the middle and extend to the right */
+    transform: translateX(0%);
+}
+
+.bar-row[data-positive="false"] .bar {
+    left: 48%; /* Start from the middle and extend to the left */
+    transform: translateX(-100%);
+}
+
+.bar-row[data-positive="true"] .bar-label {
+    left: calc(50% + var(--bar-width) + 0.3rem); /* Position label to the right of the bar */
+}
+
+.bar-row[data-positive="false"] .bar-label {
+    left: calc(48% - var(--bar-width) - 1.3rem); /* Position label to the left of the bar */
+}
+
+
 .bar {
     height: 1.2rem;
     border-radius: 0.2rem;

@@ -257,14 +257,19 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
 
                 @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
                     @let chart_visibility = if idx == 0 { " visible" } else { " hidden" };
+
                     div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                             @let score = summary_score.new_scores[round_idx];
 
-                            div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3)) {
-                                    div class="bar" style=(format!("width: {}rem;",
+                            div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3))
+                                data-positive=(if score >= 0 { "true" } else { "false" })
+                            {
+                                div class="bar" style=(format!("width: {}rem;",
                                         score.abs() as f32 * 0.3,
-                                    )) {}
+                                    )) {
+
+                                }
                                 div class="bar-label" {
                                     (score)
                                 }
