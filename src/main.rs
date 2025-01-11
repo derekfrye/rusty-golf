@@ -6,12 +6,8 @@ use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-// use chrono::{DateTime, Utc};
 use actix_files::Files;
-// use serde_json::json;
-// use tokio_postgres::config;
 use std::collections::HashMap;
-// use std::env;
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
@@ -48,7 +44,17 @@ async fn main() -> std::io::Result<()> {
             query: script,
             params: vec![],
         };
-        let _result = db.exec_general_query(vec![query_and_params], false).await;
+        let result = db.exec_general_query(vec![query_and_params], false).await;
+        if result.is_err() || result.as_ref().unwrap().db_last_exec_state != QueryState::QueryReturnedSuccessfully {
+            let res_err = if result.is_err() {
+                result.err().unwrap().to_string()
+            } else {
+                "".to_string()
+            };
+            eprintln!("Fatal Error on db startup. {}", res_err);
+            eprintln!("Check your --db-startup-script, since you passed that var.");
+            std::process::exit(1);
+        }
     }
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));

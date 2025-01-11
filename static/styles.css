@@ -256,6 +256,25 @@ p.refresh {
     border: 1px solid #000;
 }
 
+.player-selection {
+    margin-bottom: 0; /* Remove extra margin */
+}
+
+p.playerdetailsmsg {
+  font-size: 0.6rem;
+  font-style: italic;
+  color: #333;
+}
+
+h4.playerdetails {
+  margin-top: 4rem;
+  font-style: italic;
+}
+
+h3.playerbars {
+  margin-top: 6rem;
+}
+
 {{/* view/scores.rs/render_drop_down_bar */}}
 
 .chart-container {
@@ -344,23 +363,4 @@ p.refresh {
 /* CSS Variable for Bar Width */
 :root {
     --bar-width: 0rem; /* Default width, overridden dynamically */
-}
-
-.player-selection {
-    margin-bottom: 0; /* Remove extra margin */
-}
-
-p.playerdetailsmsg {
-  font-size: 0.6rem;
-  font-style: italic;
-  color: #333;
-}
-
-h4.playerdetails {
-  margin-top: 4rem;
-  font-style: italic;
-}
-
-h3.playerbars {
-  margin-top: 6rem;
 }

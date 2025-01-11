@@ -102,6 +102,8 @@ impl CleanArgs {
             for file in files {
                 let script = fs::read_to_string(file).unwrap();
                 full_script.push_str(&script);
+                // push a newline just in case
+                full_script.push_str("\n");
             }
             combined_sql_script = full_script;
         }
