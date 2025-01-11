@@ -236,20 +236,20 @@ fn render_stacked_bar_chart(data: &ScoreData) -> Markup {
                 .collect::<Vec<isize>>()
                 .into_iter().max().unwrap_or(0).abs();
 
-            @let max_score = max_scorea.max(min_score);
+            @let max_score = ((max_scorea.max(min_score) as f64) * 0.3 * 10.0).round() / 10.0;
 
             @for summary_score in &summary_scores.summary_scores {
                 div class="bar-group" {
                     @let total_score: isize = summary_score.new_scores.iter().sum();
 
-                    div class="total-label" { "Total: " (total_score) }
+                    div class="total-label" { (total_score) }
 
                     div class="bars" style=(format!("height: {}em; display: flex; align-items: flex-end;", max_score)) {
                         @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                             @let score = summary_score.new_scores[idx];
                             div class="bar" style=(format!(
                                 "height: {}em; background-color: {};",
-                                    score.abs()
+                                    ((score.abs() as f64) * 0.3 * 10.0).round() / 10.0
                                 ,
                                 match idx {
                                     0 => "#007BFF",
