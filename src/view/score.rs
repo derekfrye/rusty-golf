@@ -7,7 +7,7 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
     html! {
         @if !data.score_struct.is_empty() {
             (render_scoreboard(data))
-            (render_summary_scores(data))
+            // (render_summary_scores(data))
             (render_stacked_bar_chart(data))
             (render_score_detail(data))
         }
@@ -79,41 +79,41 @@ fn render_scoreboard(data: &ScoreData) -> Markup {
     }
 }
 
-fn render_summary_scores(data: &ScoreData) -> Markup {
-    html! {
-        @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
-
-        @if !summary_scores.summary_scores.is_empty() {
-            h3 { "Summary" }
-
-            table class="summary" {
-                thead {
-                    tr {
-                        th { "Player" }
-                        @let num_rounds = summary_scores.summary_scores[0].computed_rounds.len();
-                        @for round in 0..num_rounds {
-                            th { "R" (round + 1) }
-                        }
-                        th { "Tot" }
-                    }
-                }
-                tbody {
-                    @for summary_score in &summary_scores.summary_scores {
-                        tr {
-                            td { (summary_score.bettor_name) }
-                            @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
-                                @let score = summary_score.new_scores[idx];
-                                td { (score) }
-                            }
-                            @let total = summary_score.new_scores.iter().sum::<isize>();
-                            td { (total) }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+// fn render_summary_scores(data: &ScoreData) -> Markup {
+//     html! {
+//         @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
+//
+//         @if !summary_scores.summary_scores.is_empty() {
+//             h3 { "Summary" }
+//
+//             table class="summary" {
+//                 thead {
+//                     tr {
+//                         th { "Player" }
+//                         @let num_rounds = summary_scores.summary_scores[0].computed_rounds.len();
+//                         @for round in 0..num_rounds {
+//                             th { "R" (round + 1) }
+//                         }
+//                         th { "Tot" }
+//                     }
+//                 }
+//                 tbody {
+//                     @for summary_score in &summary_scores.summary_scores {
+//                         tr {
+//                             td { (summary_score.bettor_name) }
+//                             @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
+//                                 @let score = summary_score.new_scores[idx];
+//                                 td { (score) }
+//                             }
+//                             @let total = summary_score.new_scores.iter().sum::<isize>();
+//                             td { (total) }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
 
 fn render_thead(max_len_of_tee_times_in_rounds: usize, group: &usize) -> Markup {
     html! {
@@ -222,25 +222,25 @@ fn render_stacked_bar_chart(data: &ScoreData) -> Markup {
     @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
 
     @if !summary_scores.summary_scores.is_empty() {
-        h3 { "Upcoming Matches" }
+        h3 { "Summary" }
 
         div class="stacked-bar-chart" {
             @for summary_score in &summary_scores.summary_scores {
                 div class="bar-group" {
-                    div class="bar-group-label" { (summary_score.bettor_name) }
                     @let total_score: isize = summary_score.new_scores.iter().sum();
+
+                    div class="total-label" { "Total: " (total_score) }
 
                     div class="bars" {
                         @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                             @let score = summary_score.new_scores[idx];
-                            @let height = (score * 10) as usize;
+                            @let height = -1 * score;
                             div class="bar" style=(format!("height: {}px; background-color: {}", height, if idx % 2 == 0 { "#007BFF" } else { "#FF0000" })) {
-                                " "
                             }
                         }
                     }
 
-                    div class="total-label" { "Total: " (total_score) }
+                    div class="bar-group-label" { (summary_score.bettor_name) }
                 }
             }
         }
