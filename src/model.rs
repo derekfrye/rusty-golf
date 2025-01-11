@@ -75,14 +75,14 @@ pub struct ScoreData {
     pub last_refresh: String,
 }
 
-pub struct SummaryScore {
+pub struct BettorScoreByRound {
     pub bettor_name: String,
     pub computed_rounds: Vec<isize>,
-    pub new_scores: Vec<isize>,
+    pub scores_aggregated_by_golf_grp_by_rd: Vec<isize>,
 }
 
-pub struct SummaryScores {
-    pub summary_scores: Vec<SummaryScore>,
+pub struct AllBettorScoresByRound {
+    pub summary_scores: Vec<BettorScoreByRound>,
 }
 
 // #[derive(Debug, Clone, PartialEq)]

@@ -302,6 +302,16 @@ h3.playerbars {
     background-color: black;
 }
 
+
+.bar {
+    height: 1.2rem;
+    border-radius: 0.2rem;
+    position: absolute;
+    left: 48%; /* Keeps the bar aligned with the "T" */
+    transform: translateX(-100%);
+    margin-top: 0.8rem;
+}
+
 .bar-row {
     position: relative;
     height: 1rem;
@@ -311,7 +321,7 @@ h3.playerbars {
 }
 
 .bar-row[data-positive="true"] .bar {
-    left: 50%; /* Start from the middle and extend to the right */
+    left: 52%; /* Start from the middle and extend to the right */
     transform: translateX(0%);
 }
 
@@ -321,21 +331,19 @@ h3.playerbars {
 }
 
 .bar-row[data-positive="true"] .bar-label {
-    left: calc(50% + var(--bar-width) + 0.3rem); /* Position label to the right of the bar */
+    left: calc(52% + var(--bar-width) + 0.3rem); /* Position label to the right of the bar */
 }
 
 .bar-row[data-positive="false"] .bar-label {
     left: calc(48% - var(--bar-width) - 1.3rem); /* Position label to the left of the bar */
 }
 
-
-.bar {
-    height: 1.2rem;
-    border-radius: 0.2rem;
+.bar-label {
+    font-size: 0.8rem;
     position: absolute;
-    left: 48%; /* Keeps the bar aligned with the "T" */
-    transform: translateX(-100%);
+    {{/* left: calc(48% - var(--bar-width) - 1.3rem); */}}
     margin-top: 0.8rem;
+    white-space: nowrap; /* Prevent wrapping of labels */
 }
 
 .chart .bar-row:nth-child(1) .bar {
@@ -368,15 +376,6 @@ h3.playerbars {
 
 .chart .bar-row:nth-child(n+8) .bar {
     background-color: #d4f0aa; /* Slightly brighter muted pale green */
-}
-
-
-.bar-label {
-    font-size: 0.8rem;
-    position: absolute;
-    left: calc(48% - var(--bar-width) - 1.3rem);
-    margin-top: 0.8rem;
-    white-space: nowrap; /* Prevent wrapping of labels */
 }
 
 /* CSS Variable for Bar Width */

@@ -105,10 +105,10 @@ fn render_summary_scores(data: &ScoreData) -> Markup {
                         tr {
                             td { (summary_score.bettor_name) }
                             @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
-                                @let score = summary_score.new_scores[idx];
+                                @let score = summary_score.scores_aggregated_by_golf_grp_by_rd[idx];
                                 td { (score) }
                             }
-                            @let total = summary_score.new_scores.iter().sum::<isize>();
+                            @let total = summary_score.scores_aggregated_by_golf_grp_by_rd.iter().sum::<isize>();
                             td { (total) }
                         }
                     }
@@ -260,7 +260,7 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
 
                     div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
-                            @let score = summary_score.new_scores[round_idx];
+                            @let score = summary_score.scores_aggregated_by_golf_grp_by_rd[round_idx];
 
                             div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3))
                                 data-positive=(if score >= 0 { "true" } else { "false" })

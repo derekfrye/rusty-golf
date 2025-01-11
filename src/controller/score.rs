@@ -7,7 +7,7 @@ use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
 use crate::model;
 
-use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, SummaryScore, SummaryScores};
+use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, BettorScoreByRound, AllBettorScoresByRound};
 use crate::view::score::render_scores_template;
 
 use std::collections::{BTreeMap, HashMap};
@@ -213,7 +213,7 @@ fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<S
     sorted_scores
 }
 
-pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
+pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresByRound {
     // key = bettor, value = hashmap of rounds and the corresponding score
     let mut rounds_by_bettor_storing_score_val: HashMap<String, Vec<(isize, isize)>> =
         HashMap::new();
@@ -238,7 +238,7 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
         }
     }
 
-    let mut summary_scores = SummaryScores {
+    let mut summary_scores = AllBettorScoresByRound {
         summary_scores: Vec::new(),
     };
     let mut bettor_names: Vec<String> = Vec::new();
@@ -273,10 +273,10 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> SummaryScores {
             let (computed_rounds, new_scores): (Vec<isize>, Vec<isize>) =
                 result.iter().cloned().unzip();
 
-            summary_scores.summary_scores.push(SummaryScore {
+            summary_scores.summary_scores.push(BettorScoreByRound {
                 bettor_name: bettor_name.clone(),
                 computed_rounds,
-                new_scores,
+                scores_aggregated_by_golf_grp_by_rd: new_scores,
             });
         }
     }
