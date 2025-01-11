@@ -229,8 +229,11 @@ p.refresh {
   margin-top: 0.5rem;
   font-size: 0.9rem;
 }
+
 .chart {
     display: none; /* Hide all charts by default */
+    position: relative;
+    margin-top: 1rem;
 }
 
 .chart.visible {
@@ -246,9 +249,7 @@ p.refresh {
     position: relative;
     width: 80%;
     max-width: 15rem;
-    {{/* height: 100px; */}}
-    {{/* margin: 0 auto; */}}
-    {{/* border: 1px solid #ccc; */}}
+    margin-top: 0; /* Remove extra margin */
 }
 
 .horizontal-line {
@@ -271,15 +272,20 @@ p.refresh {
 
 .bar-row {
     position: relative;
-    height: 1em;
+    height: 1rem;
     display: flex;
     align-items: center;
-    margin-bottom: 0.3em;
+    margin-bottom: 0.3rem;
 }
 
+{{/* rest of element style dynamically defined in score.rs */}}
 .bar {
-    height: 0.5em;
+    height: 1.2em;
     border-radius: 0.2em;
+    position: absolute;
+    left: 48%;
+    transform: translateX(-100%);
+    margin-top: 0.8rem;
 }
 
 .bar-label {
@@ -287,19 +293,12 @@ p.refresh {
     margin-left: 0.5em;
     position: relative;
     left: 50%;
+    margin-top: 0.8rem;
 }
+
 
 .player-selection {
     margin-bottom: 0; /* Remove extra margin */
-}
-
-.chart-container {
-    margin-top: 0; /* Remove extra margin */
-}
-
-.chart {
-  position: relative;
-  margin-top: 1rem;
 }
 
 p.playerdetailsmsg {

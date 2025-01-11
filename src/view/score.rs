@@ -257,9 +257,9 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                     div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                             @let score = summary_score.new_scores[round_idx];
-                            div class="bar-row" style="display: flex; align-items: center; margin-bottom: 0.3em; position: relative; height: 1em;" {
+                            div class="bar-row" {
                                 @if score < 0 {
-                                    div class="bar" style=(format!("width: {}em; height: 0.5em; background-color: {}; position: absolute; left: 50%; transform: translateX(-100%);",
+                                    div class="bar" style=(format!("width: {}rem; background-color: {};",
                                         -score as f32 * 0.3,
                                         match round_idx {
                                             0 => "#007BFF",
@@ -272,8 +272,8 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                                             _ => "#DAF7A6",
                                         }
                                     )) {}
-                                } else {
-                                    div class="bar" style=(format!("width: {}em; height: 0.5em; background-color: {}; position: absolute; left: 50%;",
+                                } @else {
+                                    div class="bar" style=(format!("width: {}rem; background-color: {};",
                                         score as f32 * 0.3,
                                         match round_idx {
                                             0 => "#007BFF",
@@ -287,7 +287,7 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                                         }
                                     )) {}
                                 }
-                                div class="bar-label" style=("margin-left: 0.5em; font-size: 0.8em; position: relative; left: 50%;") {
+                                div class="bar-label" {
                                     (score)
                                 }
                             }
