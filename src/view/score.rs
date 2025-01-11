@@ -172,15 +172,15 @@ fn render_thead(max_len_of_tee_times_in_rounds: usize, group: &usize) -> Markup 
 
 fn render_score_detail(data: &ScoreData) -> Markup {
     html! {
-        h3 class="playerdetails" { "Details" }
+        h3 class="playerdetails" { "Filter Details" }
 
         div class="playerdetails" {
             button class="playerdetailsbtn" onclick="toggleAllPlayersDetailDiv()" {
-                "Click to expand details"
+                "Click to show/hide details"
             }
 
             div class="playerdetailsdiv" style="display: none;" {
-                p class="playerdetailsmsg" { "Showing details for all players. Click a player button above to filter." }
+                p class="playerdetailsmsg" { "Showing details for all players. You can further filter by clicking links above." }
 
                 @let grouped_scores = group_by_scores(data.score_struct.clone());
                 @for (group, scores) in &grouped_scores {
@@ -233,6 +233,9 @@ fn render_score_detail(data: &ScoreData) -> Markup {
 
 fn render_drop_down_bar(data: &ScoreData) -> Markup {
     html! {
+
+        h3 class="playerdetails" { "Filter" }
+
         @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
 
         div class="drop-down-bar-chart" {

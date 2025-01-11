@@ -75,7 +75,7 @@ document.addEventListener('click', (event) => {
             // Create the link element
             const link = document.createElement('a');
             link.href = '#'; // Use '#' to prevent navigation
-            link.textContent = ' Show all details instead.';
+            link.textContent = ' Click here to reset filter.';
             link.style.cursor = 'pointer'; // Makes it look like a clickable link
     
             // Add a click event listener to the link
@@ -83,7 +83,8 @@ document.addEventListener('click', (event) => {
                 event.preventDefault(); // Prevent default link behavior
                 
                 // Change the original text back
-                element.textContent = 'Showing details for all players.';
+                // keep in sync with view/score.rs
+                element.textContent = 'Showing details for all players. You can further filter by clicking links above.';
     
                 // Find all elements with class 'playerrow' and update their visibility
                 const rows = document.querySelectorAll('.playerrow');
