@@ -85,6 +85,20 @@ pub struct AllBettorScoresByRound {
     pub summary_scores: Vec<BettorScoreByRound>,
 }
 
+// New Data Structures for the Function's Output
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DetailedScore {
+    pub bettor: String,
+    pub golfer: String,
+    pub round: i32,
+    pub score: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SummaryDetailedScores {
+    pub detailed_scores: Vec<DetailedScore>,
+}
+
 // #[derive(Debug, Clone, PartialEq)]
 //  enum CheckType {
 //     Table,

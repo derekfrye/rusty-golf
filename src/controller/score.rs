@@ -5,7 +5,7 @@ use sqlx_middleware::db::{ConfigAndPool, Db};
 
 use crate::controller::cache::{get_or_create_cache, xya};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model;
+use crate::model::{self, DetailedScore, SummaryDetailedScores};
 
 use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, BettorScoreByRound, AllBettorScoresByRound};
 use crate::view::score::render_scores_template;
@@ -278,6 +278,85 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresBy
                 computed_rounds,
                 scores_aggregated_by_golf_grp_by_rd: new_scores,
             });
+        }
+    }
+
+    summary_scores
+}
+
+pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
+    // Nested HashMap: bettor -> golfer -> round -> accumulated score
+    let mut scores_by_bettor_golfer_round: HashMap<String, HashMap<String, HashMap<i32, i32>>> = HashMap::new();
+
+    // Accumulate scores by bettor, golfer, and round
+    for score in scores {
+        let bettor_name = &score.bettor_name;
+        let golfer_name = &score.golfer_name;
+
+        for (round_idx, round_stat) in score.detailed_statistics.rounds.iter().enumerate() {
+            let round_number = (round_idx as i32) + 1; // Assuming rounds start at 1
+            let round_score = round_stat.val;
+
+            scores_by_bettor_golfer_round
+                .entry(bettor_name.clone())
+                .or_default()
+                .entry(golfer_name.clone())
+                .or_default()
+                .entry(round_number)
+                .and_modify(|e| *e += round_score)
+                .or_insert(round_score);
+        }
+    }
+
+    // To preserve the order of bettors and golfers as they appear in the input
+    let mut bettor_order: Vec<String> = Vec::new();
+    let mut golfer_order_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    for score in scores {
+        let bettor_name = &score.bettor_name;
+        let golfer_name = &score.golfer_name;
+
+        if !bettor_order.contains(bettor_name) {
+            bettor_order.push(bettor_name.clone());
+        }
+
+        golfer_order_map
+            .entry(bettor_name.clone())
+            .or_default()
+            .push(golfer_name.clone());
+    }
+
+    // Remove duplicate golfers while preserving order
+    for golfers in golfer_order_map.values_mut() {
+        let mut seen = HashMap::new();
+        golfers.retain(|golfer| seen.insert(golfer.clone(), ()).is_none());
+    }
+
+    // Build the summary scores
+    let mut summary_scores = SummaryDetailedScores {
+        detailed_scores: Vec::new(),
+    };
+
+    for bettor_name in bettor_order {
+        if let Some(golfers_map) = scores_by_bettor_golfer_round.get(&bettor_name) {
+            if let Some(golfers_ordered) = golfer_order_map.get(&bettor_name) {
+                for golfer_name in golfers_ordered {
+                    if let Some(rounds_map) = golfers_map.get(golfer_name) {
+                        // Collect and sort rounds
+                        let mut rounds: Vec<(i32, i32)> = rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
+                        rounds.sort_by_key(|&(round, _)| round);
+
+                        for (round, score) in rounds {
+                            summary_scores.detailed_scores.push(DetailedScore {
+                                bettor: bettor_name.clone(),
+                                golfer: golfer_name.clone(),
+                                round,
+                                score,
+                            });
+                        }
+                    }
+                }
+            }
         }
     }
 

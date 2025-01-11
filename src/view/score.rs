@@ -1,4 +1,4 @@
-use crate::controller::score::{group_by_bettor_name_and_round, group_by_scores};
+use crate::controller::score::{group_by_bettor_golfer_round, group_by_bettor_name_and_round, group_by_scores};
 use crate::model::ScoreData;
 
 use maud::{html, Markup};
@@ -236,12 +236,13 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
 
         h3 class="playerbars" { "Filter" }
 
-        @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
+        @let summary_scores = group_by_bettor_golfer_round(&data.score_struct);
+        @let summary_scores_x = group_by_bettor_name_and_round(&data.score_struct);
 
         div class="drop-down-bar-chart" {
             // Player selection dropdown
             div class="player-selection" {
-                @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
+                @for (idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
                     @let button_select = if idx == 0 { " selected" } else { "" };
                     button class=(format!("player-button{}", button_select)) data-player=(summary_score.bettor_name) {
                         (summary_score.bettor_name)
@@ -255,11 +256,11 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                 div class="horizontal-line"  {}
                 div class="vertical-line"  {}
 
-                @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
+                @for (idx, summary_score) in summary_scores.detailed_scores.iter().enumerate() {
                     @let chart_visibility = if idx == 0 { " visible" } else { " hidden" };
 
-                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
-                        @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
+                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor)  {
+                        @for (round_idx, _round) in summary_score.round.iter().enumerate() {
                             @let score = summary_score.scores_aggregated_by_golf_grp_by_rd[round_idx];
 
                             div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3))
