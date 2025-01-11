@@ -232,3 +232,15 @@ p.refresh {
   margin-top: 0.5rem;
   font-size: 0.9rem;
 }
+.chart {
+    display: none; /* Hide all charts by default */
+}
+
+.chart.visible {
+    display: block; /* Show the selected chart */
+}
+
+.player-button.selected {
+    font-weight: bold; /* Highlight the selected player button */
+    border: 1px solid #000;
+}

@@ -13,6 +13,7 @@ pub fn render_index_template(title: String) -> Markup {
             script src=(HTMX_PATH) defer {}
             script src="static/tablesort.js" defer {}
             script src="static/params.js" defer {}
+            script src="static/scores.js" defer {}
         }
         body {
             h1 {
