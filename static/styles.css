@@ -224,10 +224,7 @@ p.refresh {
   flex-direction: column-reverse;
   gap: 0.2rem;
 }
-{{/* .bar {
-  width: 20px;
-  border: 1px solid #ccc;
-} */}}
+
 .total-label {
   margin-top: 0.5rem;
   font-size: 0.9rem;
@@ -307,6 +304,17 @@ p.refresh {
 
 p.playerdetailsmsg {
   /* margin-top: 20px; */
+  font-size: 0.6em;
+  font-style: italic;
+  color: #333;
+}
+
+h3.playerdetails {
+  margin-top: 6rem;
+  font-style: italic;
+}
+
+.playerdetailsbtn {
   font-size: 0.6em;
   font-style: italic;
   color: #333;

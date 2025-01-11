@@ -22,6 +22,17 @@
 //     });
 // });
 
+function toggleAllPlayersDetailDiv() {
+    const playerDetailsDiv = document.querySelector('.playerdetailsdiv');
+    if (playerDetailsDiv) {
+      if (playerDetailsDiv.style.display === 'none') {
+        playerDetailsDiv.style.display = 'block';
+      } else {
+        playerDetailsDiv.style.display = 'none';
+      }
+    }
+  }
+
 
 document.addEventListener('click', (event) => {
     if (event.target.classList.contains('player-button')) {
@@ -59,7 +70,7 @@ document.addEventListener('click', (event) => {
         const elements = document.querySelectorAll('p.playerdetailsmsg');
         elements.forEach(element => {
             // Update the text content of the <p> element
-            element.textContent = `Showing details for ${selectedPlayer}`;
+            element.textContent = `Showing details for ${selectedPlayer}.`;
     
             // Create the link element
             const link = document.createElement('a');
