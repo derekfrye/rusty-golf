@@ -257,10 +257,10 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                     div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                             @let score = summary_score.new_scores[round_idx];
-                            div class="bar-row" {
-                                @if score < 0 {
+
+                            div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3)) {
                                     div class="bar" style=(format!("width: {}rem; background-color: {};",
-                                        -score as f32 * 0.3,
+                                        score.abs() as f32 * 0.3,
                                         match round_idx {
                                             0 => "#007BFF",
                                             1 => "#FF5733",
@@ -270,23 +270,8 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                                             5 => "#900C3F",
                                             6 => "#581845",
                                             _ => "#DAF7A6",
-                                        }
+                                        },
                                     )) {}
-                                } @else {
-                                    div class="bar" style=(format!("width: {}rem; background-color: {};",
-                                        score as f32 * 0.3,
-                                        match round_idx {
-                                            0 => "#007BFF",
-                                            1 => "#FF5733",
-                                            2 => "#33FF57",
-                                            3 => "#FFC300",
-                                            4 => "#C70039",
-                                            5 => "#900C3F",
-                                            6 => "#581845",
-                                            _ => "#DAF7A6",
-                                        }
-                                    )) {}
-                                }
                                 div class="bar-label" {
                                     (score)
                                 }

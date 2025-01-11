@@ -46,7 +46,7 @@ table {
 }
 th,
 td {
-  padding: 0.5em 0.5em;
+  padding: 0.5rem 0.5rem;
   text-align: right; /* Default alignment for all columns */
   border: 1px solid #ddd;
   white-space: nowrap; /* Prevent wrapping to ensure column width fits content */
@@ -54,7 +54,7 @@ td {
 }
 th {
   text-align: center; /* Left alignment for the first column */
-  min-width: 5em;
+  min-width: 5rem;
 }
 th.topheader {
   /* background-color: #f2f2f2; */
@@ -68,8 +68,8 @@ td:nth-child(2) {
 }
 table.summary th,
 table.summary td {
-  padding: 0.5em 0.5em; /* Adjusted padding for summary table */
-  min-width: 2.5em; /* Adjusted width for summary table */
+  padding: 0.5rem 0.5rem; /* Adjusted padding for summary table */
+  min-width: 2.5rem; /* Adjusted width for summary table */
 }
 table.summary td:first-child {
   text-align: left;
@@ -92,19 +92,19 @@ th.sortable::after {
   content: "\25b2\25bc"; /* Up and Down arrows */
   position: absolute;
   right: 5px; /* Adjust position to fit within the padding */
-  font-size: 0.75em; /* Adjust size as needed */
+  font-size: 0.75rem; /* Adjust size as needed */
   color: #ccc; /* Light gray color */
   opacity: 1;
 }
 th.sort-asc.sortable::after {
   content: "\25b2"; /* Up arrow */
-  font-size: 1em; /* Reset size */
+  font-size: 1rem; /* Reset size */
   color: #333; /* Darker color for active sort */
   opacity: 1;
 }
 th.sort-desc.sortable::after {
   content: "\25bc"; /* Down arrow */
-  font-size: 1em; /* Reset size */
+  font-size: 1rem; /* Reset size */
   color: #333; /* Darker color for active sort */
   opacity: 1;
 }
@@ -145,12 +145,12 @@ img {
 
 p.refresh {
   /* margin-top: 20px; */
-  font-size: 0.6em;
+  font-size: 0.6rem;
   font-style: italic;
   color: #333;
 }
 .kindatiny {
-  font-size: 0.7em;
+  font-size: 0.7rem;
   font-style: none;
 }
 .animate {
@@ -278,22 +278,26 @@ p.refresh {
     margin-bottom: 0.3rem;
 }
 
-{{/* rest of element style dynamically defined in score.rs */}}
 .bar {
-    height: 1.2em;
-    border-radius: 0.2em;
+    height: 1.2rem;
+    border-radius: 0.2rem;
     position: absolute;
-    left: 48%;
+    left: 48%; /* Keeps the bar aligned with the "T" */
     transform: translateX(-100%);
     margin-top: 0.8rem;
 }
 
 .bar-label {
-    font-size: 0.8em;
-    margin-left: 0.5em;
-    position: relative;
-    left: 50%;
+    font-size: 0.8rem;
+    position: absolute;
+    left: calc(48% - var(--bar-width) - 1.2rem);
     margin-top: 0.8rem;
+    white-space: nowrap; /* Prevent wrapping of labels */
+}
+
+/* CSS Variable for Bar Width */
+:root {
+    --bar-width: 0rem; /* Default width, overridden dynamically */
 }
 
 
@@ -302,8 +306,7 @@ p.refresh {
 }
 
 p.playerdetailsmsg {
-  /* margin-top: 20px; */
-  font-size: 0.6em;
+  font-size: 0.6rem;
   font-style: italic;
   color: #333;
 }
@@ -314,7 +317,7 @@ h3.playerdetails {
 }
 
 .playerdetailsbtn {
-  font-size: 0.6em;
+  font-size: 0.6rem;
   font-style: italic;
   color: #333;
 }
