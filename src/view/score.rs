@@ -300,64 +300,62 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
     html! {
         @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
 
-        // @if !summary_scores.summary_scores.is_empty() {
-            div class="drop-down-bar-chart" {
-                // Player selection dropdown
-                div class="player-selection" {
-                    @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
-                        @let button_select = match  idx { 0=> { " selected" }_ => { "" }};
-                        button class=(format!("player-button{}",button_select)) data-player=(summary_score.bettor_name) {
-                            (summary_score.bettor_name)
-                        }
+        div class="drop-down-bar-chart" {
+            // Player selection dropdown
+            div class="player-selection" {
+                @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
+                    @let button_select = if idx == 0 { " selected" } else { "" };
+                    button class=(format!("player-button{}", button_select)) data-player=(summary_score.bettor_name) {
+                        (summary_score.bettor_name)
                     }
                 }
+            }
 
-                // Graph rendering
-                div class="chart-container" {
-                    @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
-                        @let chart_visibility = match  idx { 0=> { " visible" }_ => { " hidden" }};
-                        div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name) {
-                            div class="horizontal-line" style=("width: 100%; height: 0.05em; background-color: #000; margin-bottom: 0.5em;") {}
+            // Graph rendering
+            div class="chart-container" {
+                @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
+                    @let chart_visibility = if idx == 0 { " visible" } else { " hidden" };
+                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name) {
+                        div class="horizontal-line" style=("position: relative; width: 100%; height: 0.05em; background-color: #000; margin-bottom: 0.5em;") {}
 
-                            @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
-                                @let score = summary_score.new_scores[round_idx];
-                                div class="bar-row" style=("display: flex; align-items: center; margin-bottom: 0.3em;") {
-                                    @if score < 0 {
-                                        div class="bar" style=(format!("width: {}em; height: 0.3em; background-color: {}; margin-right: auto;",
-                                            -score as f32 * 0.3,
-                                            match round_idx {
-                                                0 => "#007BFF",
-                                                1 => "#FF5733",
-                                                2 => "#33FF57",
-                                                3 => "#FFC300",
-                                                4 => "#C70039",
-                                                5 => "#900C3F",
-                                                6 => "#581845",
-                                                _ => "#DAF7A6",
-                                            }
-                                        )) {}
-                                    } else {
-                                        div class="bar" style=(format!("width: {}em; height: 0.3em; background-color: {}; margin-left: auto;",
-                                            score as f32 * 0.3,
-                                            match round_idx {
-                                                0 => "#007BFF",
-                                                1 => "#FF5733",
-                                                2 => "#33FF57",
-                                                3 => "#FFC300",
-                                                4 => "#C70039",
-                                                5 => "#900C3F",
-                                                6 => "#581845",
-                                                _ => "#DAF7A6",
-                                            }
-                                        )) {}
-                                    }
-                                    div class="bar-label" style=("margin-left: 0.5em; font-size: 0.8em;") { (score) }
+                        @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
+                            @let score = summary_score.new_scores[round_idx];
+                            div class="bar-row" style=("display: flex; align-items: center; margin-bottom: 0.3em; position: relative;") {
+                                @if score < 0 {
+                                    div class="bar" style=(format!("width: {}em; height: 0.3em; background-color: {}; position: absolute; left: 50%; transform: translateX(-100%);",
+                                        -score as f32 * 0.3,
+                                        match round_idx {
+                                            0 => "#007BFF",
+                                            1 => "#FF5733",
+                                            2 => "#33FF57",
+                                            3 => "#FFC300",
+                                            4 => "#C70039",
+                                            5 => "#900C3F",
+                                            6 => "#581845",
+                                            _ => "#DAF7A6",
+                                        }
+                                    )) {}
+                                } else {
+                                    div class="bar" style=(format!("width: {}em; height: 0.3em; background-color: {}; position: absolute; left: 50%; transform: translateX(0);",
+                                        score as f32 * 0.3,
+                                        match round_idx {
+                                            0 => "#007BFF",
+                                            1 => "#FF5733",
+                                            2 => "#33FF57",
+                                            3 => "#FFC300",
+                                            4 => "#C70039",
+                                            5 => "#900C3F",
+                                            6 => "#581845",
+                                            _ => "#DAF7A6",
+                                        }
+                                    )) {}
                                 }
+                                div class="bar-label" style=("margin-left: 0.5em; font-size: 0.8em; position: relative; left: 50%;") { (score) }
                             }
                         }
                     }
                 }
             }
-        // }
+        }
     }
 }
