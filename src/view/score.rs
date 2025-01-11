@@ -7,10 +7,10 @@ pub fn render_scores_template(data: &ScoreData) -> Markup {
     html! {
         @if !data.score_struct.is_empty() {
             (render_scoreboard(data))
-            (render_summary_scores(data))
+            // (render_summary_scores(data))
             // (render_stacked_bar_chart(data))
-            // (render_score_detail(data))
             (render_drop_down_bar(data))
+            (render_score_detail(data))
         }
     }
 }
@@ -313,16 +313,18 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
 
             // Graph rendering
             div class="chart-container" {
+                // Draw the "T" structure
+                div class="horizontal-line"  {}
+                div class="vertical-line"  {}
+
                 @for (idx, summary_score) in summary_scores.summary_scores.iter().enumerate() {
                     @let chart_visibility = if idx == 0 { " visible" } else { " hidden" };
-                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name) {
-                        div class="horizontal-line" style=("position: relative; width: 100%; height: 0.05em; background-color: #000; margin-bottom: 0.5em;") {}
-
+                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         @for (round_idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                             @let score = summary_score.new_scores[round_idx];
-                            div class="bar-row" style=("display: flex; align-items: center; margin-bottom: 0.3em; position: relative;") {
+                            div class="bar-row" style="display: flex; align-items: center; margin-bottom: 0.3em; position: relative; height: 1em;" {
                                 @if score < 0 {
-                                    div class="bar" style=(format!("width: {}em; height: 0.3em; background-color: {}; position: absolute; left: 50%; transform: translateX(-100%);",
+                                    div class="bar" style=(format!("width: {}em; height: 0.5em; background-color: {}; position: absolute; left: 50%; transform: translateX(-100%);",
                                         -score as f32 * 0.3,
                                         match round_idx {
                                             0 => "#007BFF",
@@ -336,7 +338,7 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                                         }
                                     )) {}
                                 } else {
-                                    div class="bar" style=(format!("width: {}em; height: 0.3em; background-color: {}; position: absolute; left: 50%; transform: translateX(0);",
+                                    div class="bar" style=(format!("width: {}em; height: 0.5em; background-color: {}; position: absolute; left: 50%;",
                                         score as f32 * 0.3,
                                         match round_idx {
                                             0 => "#007BFF",
@@ -350,7 +352,9 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                                         }
                                     )) {}
                                 }
-                                div class="bar-label" style=("margin-left: 0.5em; font-size: 0.8em; position: relative; left: 50%;") { (score) }
+                                div class="bar-label" style=("margin-left: 0.5em; font-size: 0.8em; position: relative; left: 50%;") {
+                                    (score)
+                                }
                             }
                         }
                     }
