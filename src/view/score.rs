@@ -225,17 +225,43 @@ fn render_stacked_bar_chart(data: &ScoreData) -> Markup {
         h3 { "Summary" }
 
         div class="stacked-bar-chart" {
+
+            @let min_score: isize = summary_scores.summary_scores.iter()
+                .map(|summary_score| summary_score.new_scores.iter().sum::<isize>())
+                .collect::<Vec<isize>>()
+                .into_iter().min().unwrap_or(0).abs();
+
+            @let max_scorea: isize = summary_scores.summary_scores.iter()
+                .map(|summary_score| summary_score.new_scores.iter().sum::<isize>())
+                .collect::<Vec<isize>>()
+                .into_iter().max().unwrap_or(0).abs();
+
+            @let max_score = max_scorea.max(min_score);
+
             @for summary_score in &summary_scores.summary_scores {
                 div class="bar-group" {
                     @let total_score: isize = summary_score.new_scores.iter().sum();
 
                     div class="total-label" { "Total: " (total_score) }
 
-                    div class="bars" {
+                    div class="bars" style=(format!("height: {}em; display: flex; align-items: flex-end;", max_score)) {
                         @for (idx, _round) in summary_score.computed_rounds.iter().enumerate() {
                             @let score = summary_score.new_scores[idx];
-                            @let height = -1 * score;
-                            div class="bar" style=(format!("height: {}px; background-color: {}", height, if idx % 2 == 0 { "#007BFF" } else { "#FF0000" })) {
+                            div class="bar" style=(format!(
+                                "height: {}em; background-color: {};",
+                                    score.abs()
+                                ,
+                                match idx {
+                                    0 => "#007BFF",
+                                    1 => "#FF5733",
+                                    2 => "#33FF57",
+                                    3 => "#FFC300",
+                                    4 => "#C70039",
+                                    5 => "#900C3F",
+                                    6 => "#581845",
+                                    _ => "#DAF7A6",
+                                }
+                            )) {
                             }
                         }
                     }
