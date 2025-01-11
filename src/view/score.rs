@@ -172,7 +172,7 @@ fn render_thead(max_len_of_tee_times_in_rounds: usize, group: &usize) -> Markup 
 
 fn render_score_detail(data: &ScoreData) -> Markup {
     html! {
-        h3 class="playerdetails" { "Filter Details" }
+        h4 class="playerdetails" { "Filter Details" }
 
         div class="playerdetails" {
             button class="playerdetailsbtn" onclick="toggleAllPlayersDetailDiv()" {
@@ -234,7 +234,7 @@ fn render_score_detail(data: &ScoreData) -> Markup {
 fn render_drop_down_bar(data: &ScoreData) -> Markup {
     html! {
 
-        h3 class="playerdetails" { "Filter" }
+        h3 class="playerbars" { "Filter" }
 
         @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
 
@@ -262,18 +262,8 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                             @let score = summary_score.new_scores[round_idx];
 
                             div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3)) {
-                                    div class="bar" style=(format!("width: {}rem; background-color: {};",
+                                    div class="bar" style=(format!("width: {}rem;",
                                         score.abs() as f32 * 0.3,
-                                        match round_idx {
-                                            0 => "#007BFF",
-                                            1 => "#FF5733",
-                                            2 => "#33FF57",
-                                            3 => "#FFC300",
-                                            4 => "#C70039",
-                                            5 => "#900C3F",
-                                            6 => "#581845",
-                                            _ => "#DAF7A6",
-                                        },
                                     )) {}
                                 div class="bar-label" {
                                     (score)

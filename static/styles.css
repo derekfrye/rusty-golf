@@ -115,6 +115,9 @@ th.sort-asc.sortable,
 th.sort-desc.sortable {
   background-color: #d4eaf7; /* Highlight sorted column */
 }
+
+{{/* view/scores.rs/render_scoreboard */}}
+
 .styled-table tbody tr:nth-child(1) {
   background-color: #d9ead3;
 }
@@ -207,9 +210,9 @@ p.refresh {
 
 .stacked-bar-chart {
   display: flex;
-  {{/* flex-direction: row; */}}
   gap: 1rem;
 }
+
 .bar-group {
   display: flex;
   flex-direction: column;
@@ -240,10 +243,20 @@ p.refresh {
     display: block; /* Show the selected chart */
 }
 
+{{/* view/scores.rs/render_score_detail */}}
+
+.playerdetailsbtn {
+  font-size: 0.6rem;
+  font-style: italic;
+  color: #333;
+}
+
 .player-button.selected {
     font-weight: bold; /* Highlight the selected player button */
     border: 1px solid #000;
 }
+
+{{/* view/scores.rs/render_drop_down_bar */}}
 
 .chart-container {
     position: relative;
@@ -287,10 +300,43 @@ p.refresh {
     margin-top: 0.8rem;
 }
 
+.chart .bar-row:nth-child(1) .bar {
+    background-color: #a6d8d3; /* Slightly brighter muted blue */
+}
+
+.chart .bar-row:nth-child(2) .bar {
+    background-color: #ffe8a3; /* Slightly brighter muted orange */
+}
+
+.chart .bar-row:nth-child(3) .bar {
+    background-color: #a8eac9; /* Slightly brighter muted green */
+}
+
+.chart .bar-row:nth-child(4) .bar {
+    background-color: #ffd966; /* Slightly brighter muted yellow */
+}
+
+.chart .bar-row:nth-child(5) .bar {
+    background-color: #f3a6ad; /* Slightly brighter muted red */
+}
+
+.chart .bar-row:nth-child(6) .bar {
+    background-color: #c8a6cc; /* Slightly brighter muted purple */
+}
+
+.chart .bar-row:nth-child(7) .bar {
+    background-color: #a896b0; /* Slightly brighter muted dark purple */
+}
+
+.chart .bar-row:nth-child(n+8) .bar {
+    background-color: #d4f0aa; /* Slightly brighter muted pale green */
+}
+
+
 .bar-label {
     font-size: 0.8rem;
     position: absolute;
-    left: calc(48% - var(--bar-width) - 1.2rem);
+    left: calc(48% - var(--bar-width) - 1.3rem);
     margin-top: 0.8rem;
     white-space: nowrap; /* Prevent wrapping of labels */
 }
@@ -299,7 +345,6 @@ p.refresh {
 :root {
     --bar-width: 0rem; /* Default width, overridden dynamically */
 }
-
 
 .player-selection {
     margin-bottom: 0; /* Remove extra margin */
@@ -311,13 +356,11 @@ p.playerdetailsmsg {
   color: #333;
 }
 
-h3.playerdetails {
-  margin-top: 6rem;
+h4.playerdetails {
+  margin-top: 4rem;
   font-style: italic;
 }
 
-.playerdetailsbtn {
-  font-size: 0.6rem;
-  font-style: italic;
-  color: #333;
+h3.playerbars {
+  margin-top: 6rem;
 }
