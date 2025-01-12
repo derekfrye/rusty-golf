@@ -271,9 +271,9 @@ h4.playerdetails {
   font-style: italic;
 }
 
-h3.playerbars {
-  margin-top: 6rem;
-}
+{{/* h3.playerbars {
+  margin-top: 1.8rem;
+} */}}
 
 {{/* view/scores.rs/render_drop_down_bar */}}
 

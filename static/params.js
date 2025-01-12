@@ -1,19 +1,23 @@
 document.addEventListener("DOMContentLoaded", function () {
-    function getQueryParams() {
+    function getAllQueryParams() {
         const params = new URLSearchParams(window.location.search);
-        const eventId = params.get('event');
-        const yr = params.get('yr');
-        //   console.log("URL Parameters:", Array.from(params.entries())); // Log all URL parameters
-        return { eventId, yr };
+        const queryParams = {};
+        for (const [key, value] of params.entries()) {
+            queryParams[key] = value;
+        }
+        return queryParams;
     }
 
-    const { eventId, yr } = getQueryParams();
-    // console.log("Extracted eventId:", eventId, "Extracted yr:", yr); // Log extracted values
+    const queryParams = getAllQueryParams();
+    const { event, yr, expanded, json, cache } = queryParams;
 
-    if (eventId && yr) {
-        const scoresUrl = `scores?event=${eventId}&yr=${yr}`;
+    if (event && yr) {
+        let scoresUrl = `scores?event=${event}&yr=${yr}`;
+        if (expanded) scoresUrl += `&expanded=${expanded}`;
+        if (json) scoresUrl += `&json=${json}`;
+        if (cache) scoresUrl += `&cache=${cache}`;
+
         htmx.ajax('GET', scoresUrl, { target: '#scores', swap: 'innerHTML' });
-
     } else {
         console.error("event or yr parameters are missing in the URL.");
     }

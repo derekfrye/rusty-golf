@@ -270,6 +270,7 @@ fn render_drop_down_bar(data: &ScoreData, grouped_data: &AllBettorScoresByRound)
                             // go through each of the rounds, sorted by round number
                             @for (i, _round_entry)  in golfer.rounds.iter().enumerate()  {
                                 @let score = golfer.scores.get(i).unwrap_or(&0);
+                              @let total_score=  golfer.scores.iter().map(|&x| x as isize).sum::<isize>();
                                 div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3))
                                     data-positive=(if *score >= 0 { "true" } else { "false" })
                                 {
