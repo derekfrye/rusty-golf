@@ -364,27 +364,31 @@ fn render_drop_down_bar(
                 }
             }
 
-            // Graph rendering
+            // Chart rendering
             div class="chart-container" {
-                // Draw the "T" structure
-                div class="horizontal-line"  {}
-                div class="vertical-line"  {}
+                
 
                 // Iterate over each bettor
                 @for (bettor_idx, summary_score) in grouped_data.summary_scores.iter().enumerate() {
                     @let chart_visibility = if bettor_idx == 0 { " visible" } else { " hidden" };
 
-                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
+                    div class=(format!("chart {}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         // Iterate over each preprocessed golfer for the current bettor
                         @for (golfer_idx, golfer_bars) in preprocessed_data.get(&summary_score.bettor_name).unwrap_or(&Vec::new()).iter().enumerate() {
-                            // Create bar-row with alternating background
-                            div class=(if golfer_bars.is_even { "bar-row even" } else { "bar-row odd" }) {
-                                // Bar-label: first 5 characters of golfer_name and total score
+                            
+                            div class="chart-row" {
+
+                            div class="label-container" {
                                 div class="bar-label" {
                                     (format!("{}: {}", &golfer_bars.short_name, golfer_bars.total_score))
                                 }
-
-                                // Bars container
+                            }
+                            // Create bar-row with alternating background
+                            div class=(format!("bar-row {}", if golfer_bars.is_even { "even" } else { "odd" })) {
+// Draw the "T" structure
+div class="horizontal-line"  {}
+div class="vertical-line"  {}
+                                // Bars Container
                                 div class="bars-container" {
                                     @for bar in &golfer_bars.bars {
                                         div class=(match bar.direction {
@@ -399,6 +403,7 @@ fn render_drop_down_bar(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

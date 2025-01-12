@@ -279,48 +279,71 @@ h4.playerdetails {
 
 .chart-container {
     position: relative;
-    width: 80%;
-    max-width: 15rem;
-    margin-top: 0; /* Remove extra margin */
-    z-index: 1; /* Base z-index */
+    width: 100%; /* Occupies full width of the parent */
+    max-width: 800px; /* Adjust as needed */
+    margin: 0 auto; /* Centers the chart */
 }
 
-.horizontal-line, .vertical-line {
-    position: absolute;
-    background-color: black;
-    z-index: 2; /* Bring lines to the front */
+.chart-row {
+    display: flex; /* Use Flexbox for alignment */
+    align-items: center; /* Vertically center the contents */
+    height: 2.5rem; /* Adjust height as needed */
+    margin-bottom: 0.5rem; /* Space between rows */
+    position: relative;
+    z-index: 2; /* Below the T structure */
+}
+
+.label-container {
+    flex: 0 0 10%; /* Occupies 10% of the chart-row's width */
+    display: flex;
+    justify-content: flex-end; /* Align labels to the right */
+    padding-right: 0.5rem; /* Space between label and bars */
+    box-sizing: border-box; /* Include padding in width */
+    text-align: right; /* Align text to the right */
+}
+
+.bar-label {
+    font-size: 0.9rem;
+    white-space: nowrap; /* Prevent label wrapping */
+}
+
+.bars-container {
+    width: 100%; /* Full width of the bar-row */
+    position: relative;
+    height: 100%; /* Match the height of bar-row */
+    overflow: hidden; /* Prevent bars from overflowing */
 }
 
 .horizontal-line {
     position: absolute;
-    top: 0; /* Position at the top */
+    top: 0; /* Position at the top of the chart-container */
     left: 0;
     width: 100%;
-    height: 1px;
+    height: 2px; /* Increased height for better visibility */
     background-color: black;
-    z-index: 2; /* Ensure it stays above bar-rows */
+    z-index: 3; /* Ensure it stays above other elements */
 }
 
 .vertical-line {
     position: absolute;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%); /* Center the vertical line precisely */
-    width: 1px;
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Precisely center the line */
+    width: 2px; /* Increased width for better visibility */
     height: 100%;
     background-color: black;
-    z-index: 2; /* Ensure it stays above bar-rows */
+    z-index: 3; /* Ensure it stays above other elements */
 }
 
 .bar-row {
+    flex: 1; /* Occupies the remaining 90% */
+    display: flex; /* Use Flexbox for alignment */
+    align-items: center; /* Vertically center bars */
     position: relative;
-    z-index: 1; /* Ensure bar-rows are below the lines */
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.3rem;
+    height: 100%; /* Match the height of chart-row */
+    z-index: 1; /* Below the T structure */
+    overflow: hidden; /* Prevent overflow of content */
 }
-
 
 
 .bar-row.even {
@@ -331,42 +354,20 @@ h4.playerdetails {
     background-color: #ffffff; /* No background */
 }
 
-.bar-label {
-    width: 8rem; /* Adjust as needed */
-    text-align: left;
-    margin-right: 1rem;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    flex-shrink: 0; /* Prevent the label from shrinking */
-}
-
-
-.bars-container {
-    position: relative;
-    width: 100%; /* Ensure it spans the full width of bar-row */
-    height: 1.2rem; /* Height of the bars */
-    overflow: hidden; /* Prevent overflow */
-}
-
-
 .bar {
     position: absolute;
     height: 100%;
-    border-radius: 0.2rem;
-    /* Remove max-width to allow bars to occupy full necessary space */
-    /* max-width: 50%; */
+    border-radius: 0.3rem;
+    z-index: 1; /* Below the T structure */
 }
 
 .bar.positive {
-    background-color: #a6d8d3; /* Muted blue for positive bars */
-    z-index: 1; /* Ensure bars are above the background but below lines */
+    background-color: #a6d8d3; /* Muted blue */
 }
 
 .bar.negative {
-    background-color: #f76c6c; /* Muted red for negative bars */
-    z-index: 1; /* Ensure bars are above the background but below lines */
+    background-color: #f76c6c; /* Muted red */
 }
-
 
 /* Optional: Different colors for different rounds */
 /*
