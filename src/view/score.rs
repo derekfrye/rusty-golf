@@ -1,11 +1,14 @@
+use std::collections::HashMap;
+
 use crate::controller::score::group_by_scores;
-use crate::model::{AllBettorScoresByRound, ScoreData};
+use crate::model::{AllBettorScoresByRound, DetailedScore, ScoreData, SummaryDetailedScores};
 
 use maud::{html, Markup};
 
 pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
     let summary_scores_x =
         crate::controller::score::group_by_bettor_name_and_round(&data.score_struct);
+        let detailed_scores = crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
 
     html! {
         @if !data.score_struct.is_empty() {
@@ -14,7 +17,7 @@ pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
                 (render_summary_scores(&summary_scores_x))
             }
             // (render_stacked_bar_chart(data))
-            (render_drop_down_bar(data, &summary_scores_x))
+            (render_drop_down_bar(data, &summary_scores_x, &detailed_scores))
             (render_score_detail(data))
         }
     }
@@ -234,18 +237,109 @@ fn render_score_detail(data: &ScoreData) -> Markup {
     }
 }
 
-fn render_drop_down_bar(data: &ScoreData, grouped_data: &AllBettorScoresByRound) -> Markup {
+// Structure to hold individual bar information
+struct Bar {
+    score: i32,
+    direction: Direction,
+    start_position: f32, // In rem units or percentage as per your design
+    width: f32,           // Width of the bar in rem
+}
+
+// Enum to represent the direction of the bar
+enum Direction {
+    Left,
+    Right,
+}
+
+// Structure to hold golfer information along with precomputed bars
+struct GolferBars {
+    name: String,
+    short_name: String,
+    total_score: isize,
+    bars: Vec<Bar>,
+    is_even: bool, // For alternating row colors
+}
+
+fn preprocess_golfer_data(
+    summary_scores_x: &AllBettorScoresByRound,
+    detailed_scores: &Vec<DetailedScore>, // Assuming this is your detailed scores structure
+) -> HashMap<String, Vec<GolferBars>> {
+    let mut bettor_golfers_map: HashMap<String, Vec<GolferBars>> = HashMap::new();
+
+    for (bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
+        let golfers: Vec<GolferBars> = detailed_scores
+            .iter()
+            .filter(|golfer| golfer.bettor_name == summary_score.bettor_name)
+            .enumerate()
+            .map(|(golfer_idx, golfer)| {
+                let short_name = golfer.golfer_name.chars().take(5).collect::<String>();
+
+                let total_score: isize = golfer.scores.iter().map(|&x| x as isize).sum();
+
+                // Calculate bars
+                let mut bars: Vec<Bar> = Vec::new();
+                let mut cumulative_left = 0.0;
+                let mut cumulative_right = 0.0;
+
+                for &score in &golfer.scores {
+                    let direction = if score >= 0 {
+                        Direction::Right
+                    } else {
+                        Direction::Left
+                    };
+                    let width = (score.abs() as f32) * 0.3;
+
+                    let start_position = match direction {
+                        Direction::Right => {
+                            let pos = 52.0 + cumulative_right;
+                            cumulative_right += width;
+                            pos
+                        }
+                        Direction::Left => {
+                            cumulative_left += width;
+                            48.0 - cumulative_left
+                        }
+                    };
+
+                    bars.push(Bar {
+                        score,
+                        direction,
+                        start_position,
+                        width,
+                    });
+                }
+
+                GolferBars {
+                    name: golfer.golfer_name.clone(),
+                    short_name,
+                    total_score,
+                    bars,
+                    is_even: golfer_idx % 2 == 0,
+                }
+            })
+            .collect();
+
+        bettor_golfers_map.insert(summary_score.bettor_name.clone(), golfers);
+    }
+
+    bettor_golfers_map
+}
+
+fn render_drop_down_bar(
+    data: &ScoreData,
+    grouped_data: &AllBettorScoresByRound,
+    detailed_scores: &SummaryDetailedScores,
+) -> Markup {
+    // Preprocess the data
+    let preprocessed_data = preprocess_golfer_data(&grouped_data, &detailed_scores.detailed_scores);
+
     html! {
-
         h3 class="playerbars" { "Filter" }
-
-        @let summary_scores = crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
-        @let summary_scores_x = grouped_data;
 
         div class="drop-down-bar-chart" {
             // Player selection dropdown
             div class="player-selection" {
-                @for (idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
+                @for (idx, summary_score) in grouped_data.summary_scores.iter().enumerate() {
                     @let button_select = if idx == 0 { " selected" } else { "" };
                     button class=(format!("player-button{}", button_select)) data-player=(summary_score.bettor_name) {
                         (summary_score.bettor_name)
@@ -259,23 +353,32 @@ fn render_drop_down_bar(data: &ScoreData, grouped_data: &AllBettorScoresByRound)
                 div class="horizontal-line"  {}
                 div class="vertical-line"  {}
 
-                // this struct is groupd by bettor, one entry per bettor, so let's continue using that to iterate
-                @for (idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
-                    @let chart_visibility = if idx == 0 { " visible" } else { " hidden" };
+                // Iterate over each bettor
+                @for (bettor_idx, summary_score) in grouped_data.summary_scores.iter().enumerate() {
+                    @let chart_visibility = if bettor_idx == 0 { " visible" } else { " hidden" };
 
                     div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
-                        // now we want to pull all golfers for this bettor
-                        @for (_golfer_idx, golfer) in summary_scores.detailed_scores.iter().filter(|golfer| golfer.bettor_name == summary_score.bettor_name).enumerate() {
-                            // @let score = summary_scores
-                            // go through each of the rounds, sorted by round number
-                            @for (i, _round_entry)  in golfer.rounds.iter().enumerate()  {
-                                @let score = golfer.scores.get(i).unwrap_or(&0);
-                              @let total_score=  golfer.scores.iter().map(|&x| x as isize).sum::<isize>();
-                                div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3))
-                                    data-positive=(if *score >= 0 { "true" } else { "false" })
-                                {
-                                    div class="bar" style=(format!("width: {}rem;",score.abs() as f32 * 0.3,)) { }
-                                    div class="bar-label" { (score) }
+                        // Iterate over each preprocessed golfer for the current bettor
+                        @for (golfer_idx, golfer_bars) in preprocessed_data.get(&summary_score.bettor_name).unwrap_or(&Vec::new()).iter().enumerate() {
+                            // Create bar-row with alternating background
+                            div class=(if golfer_bars.is_even { "bar-row even" } else { "bar-row odd" }) {
+                                // Bar-label: first 5 characters of golfer_name and total score
+                                div class="bar-label" {
+                                    (format!("{}: {}", &golfer_bars.short_name, golfer_bars.total_score))
+                                }
+
+                                // Bars container
+                                div class="bars-container" {
+                                    @for bar in &golfer_bars.bars {
+                                        div class=(match bar.direction {
+                                            Direction::Right => "bar positive",
+                                            Direction::Left => "bar negative",
+                                        })
+                                        style=(format!(
+                                            "left: {}%; width: {}rem;",
+                                            bar.start_position, bar.width
+                                        )) {}
+                                    }
                                 }
                             }
                         }

@@ -280,7 +280,7 @@ h4.playerdetails {
 .chart-container {
     position: relative;
     width: 80%;
-    max-width: 15rem;
+    max-width: 25rem;
     margin-top: 0; /* Remove extra margin */
 }
 
@@ -307,20 +307,42 @@ h4.playerdetails {
     height: 1.2rem;
     border-radius: 0.2rem;
     position: absolute;
-    left: 48%; /* Keeps the bar aligned with the "T" */
+    {{/* left: 48%; /* Keeps the bar aligned with the "T" */
     transform: translateX(-100%);
-    margin-top: 0.8rem;
+    margin-top: 0.8rem; */}}
+}
+
+.bars-container {
+    position: relative;
+    flex: 1;
+    height: 1.2rem; /* Height of the bars */
 }
 
 .bar-row {
     position: relative;
-    height: 1rem;
+    height: 2rem;
     display: flex;
     align-items: center;
     margin-bottom: 0.3rem;
 }
 
-.bar-row[data-positive="true"] .bar {
+.bar-row.even {
+    background-color: #f9f9f9; /* Light grey background */
+}
+
+.bar-row.odd {
+    background-color: #ffffff; /* No background */
+}
+
+.bar.positive {
+    background-color: #a6d8d3; /* Muted blue for positive bars */
+}
+
+.bar.negative {
+    background-color: #f76c6c; /* Muted red for negative bars */
+}
+
+{{/* .bar-row[data-positive="true"] .bar {
     left: 52%; /* Start from the middle and extend to the right */
     transform: translateX(0%);
 }
@@ -336,17 +358,17 @@ h4.playerdetails {
 
 .bar-row[data-positive="false"] .bar-label {
     left: calc(48% - var(--bar-width) - 1.3rem); /* Position label to the left of the bar */
-}
+} */}}
 
 .bar-label {
-    font-size: 0.8rem;
-    position: absolute;
-    {{/* left: calc(48% - var(--bar-width) - 1.3rem); */}}
-    margin-top: 0.8rem;
-    white-space: nowrap; /* Prevent wrapping of labels */
+    width: 8rem; /* Adjust as needed */
+    text-align: left;
+    margin-right: 1rem;
+    font-size: 0.9rem;
+    white-space: nowrap; /* Prevent wrapping */
 }
 
-.chart .bar-row:nth-child(1) .bar {
+{{/* .chart .bar-row:nth-child(1) .bar {
     background-color: #a6d8d3; /* Slightly brighter muted blue */
 }
 
@@ -376,7 +398,7 @@ h4.playerdetails {
 
 .chart .bar-row:nth-child(n+8) .bar {
     background-color: #d4f0aa; /* Slightly brighter muted pale green */
-}
+} */}}
 
 /* CSS Variable for Bar Width */
 :root {
