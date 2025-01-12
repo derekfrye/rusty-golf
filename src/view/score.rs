@@ -243,6 +243,7 @@ struct Bar {
     direction: Direction,
     start_position: f32, // In percentage
     width: f32,           // Width of the bar in percentage
+    round: i32,
 }
 
 // Enum to represent the direction of the bar
@@ -266,6 +267,8 @@ fn preprocess_golfer_data(
 ) -> HashMap<String, Vec<GolferBars>> {
     let mut bettor_golfers_map: HashMap<String, Vec<GolferBars>> = HashMap::new();
 
+    let step_factor = 4.0;
+
     for (bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
         let golfers: Vec<GolferBars> = detailed_scores
             .iter()
@@ -285,7 +288,7 @@ fn preprocess_golfer_data(
                 let total_width: f32 = golfer
                     .scores
                     .iter()
-                    .map(|&score| (score.abs() as f32) * 2.0)
+                    .map(|&score| (score.abs() as f32) * step_factor)
                     .sum();
 
                 // Determine scaling factor if total_width exceeds 100%
@@ -302,16 +305,16 @@ fn preprocess_golfer_data(
                         Direction::Left
                     };
                     // Convert score to percentage with scaling
-                    let width = (score.abs() as f32) * 2.0 * scaling_factor;
+                    let width = (score.abs() as f32) * step_factor * scaling_factor;
 
                     let start_position = match direction {
                         Direction::Right => {
                             let pos = 50.0 + cumulative_right;
-                            cumulative_right += width;
+                            cumulative_right += width + 0.1; // Add a small gap
                             pos
                         }
                         Direction::Left => {
-                            cumulative_left += width;
+                            cumulative_left += width + 0.1; // Add a small gap
                             50.0 - cumulative_left
                         }
                     };
@@ -321,6 +324,7 @@ fn preprocess_golfer_data(
                         direction,
                         start_position,
                         width,
+                        round: bars.len() as i32 + 1,
                     });
                 }
 
@@ -398,7 +402,10 @@ div class="vertical-line"  {}
                                         style=(format!(
                                             "left: {}%; width: {}%;",
                                             bar.start_position, bar.width
-                                        )) {}
+                                        )) { 
+                                            div class="bar-text" {
+                                                "R"(bar.round)", "( bar.score) }
+                                            }
                                     }
                                 }
                             }

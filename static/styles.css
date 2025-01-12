@@ -356,9 +356,13 @@ h4.playerdetails {
 
 .bar {
     position: absolute;
-    height: 100%;
-    border-radius: 0.3rem;
+    height: 85%; /* Occupy 85% of the vertical space */
+    top: 50%; /* Move the top of the bar to the middle */
+    transform: translateY(-50%); /* Center the bar vertically */
+    border-radius: 0.3rem; /* Retain rounded corners */
     z-index: 1; /* Below the T structure */
+     margin-left: 0.1rem; /* Space on the left side */
+    margin-right: 0.1rem; /* Space on the right side */
 }
 
 .bar.positive {
@@ -367,6 +371,16 @@ h4.playerdetails {
 
 .bar.negative {
     background-color: #f76c6c; /* Muted red */
+}
+
+.bar-text {
+    position: absolute;
+    top: 50%; /* Position at the middle */
+    transform: translateY(-50%); /* Center vertically */
+    z-index: 2; /* Above the bars */
+    padding: 0.2rem; /* Space around the text */
+    font-size: 0.6rem; /* Adjust font size as needed */
+    color: #333; /* Dark grey text */
 }
 
 /* Optional: Different colors for different rounds */
