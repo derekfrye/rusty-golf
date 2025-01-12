@@ -1,17 +1,20 @@
-use crate::controller::score::{group_by_bettor_golfer_round, group_by_bettor_name_and_round, group_by_scores};
-use crate::model::ScoreData;
+use crate::controller::score::group_by_scores;
+use crate::model::{AllBettorScoresByRound, ScoreData};
 
 use maud::{html, Markup};
 
 pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
+    let summary_scores_x =
+        crate::controller::score::group_by_bettor_name_and_round(&data.score_struct);
+
     html! {
         @if !data.score_struct.is_empty() {
             (render_scoreboard(data))
             @if expanded {
-                (render_summary_scores(data))
+                (render_summary_scores(&summary_scores_x))
             }
             // (render_stacked_bar_chart(data))
-            (render_drop_down_bar(data))
+            (render_drop_down_bar(data, &summary_scores_x))
             (render_score_detail(data))
         }
     }
@@ -82,9 +85,9 @@ fn render_scoreboard(data: &ScoreData) -> Markup {
     }
 }
 
-fn render_summary_scores(data: &ScoreData) -> Markup {
+fn render_summary_scores(grouped_data: &AllBettorScoresByRound) -> Markup {
     html! {
-        @let summary_scores = group_by_bettor_name_and_round(&data.score_struct);
+        @let summary_scores = grouped_data;
 
         @if !summary_scores.summary_scores.is_empty() {
             h3 { "Summary" }
@@ -231,13 +234,13 @@ fn render_score_detail(data: &ScoreData) -> Markup {
     }
 }
 
-fn render_drop_down_bar(data: &ScoreData) -> Markup {
+fn render_drop_down_bar(data: &ScoreData, grouped_data: &AllBettorScoresByRound) -> Markup {
     html! {
 
         h3 class="playerbars" { "Filter" }
 
-        @let summary_scores = group_by_bettor_golfer_round(&data.score_struct);
-        @let summary_scores_x = group_by_bettor_name_and_round(&data.score_struct);
+        @let summary_scores = crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
+        @let summary_scores_x = grouped_data;
 
         div class="drop-down-bar-chart" {
             // Player selection dropdown
@@ -256,23 +259,22 @@ fn render_drop_down_bar(data: &ScoreData) -> Markup {
                 div class="horizontal-line"  {}
                 div class="vertical-line"  {}
 
-                @for (idx, summary_score) in summary_scores.detailed_scores.iter().enumerate() {
+                // this struct is groupd by bettor, one entry per bettor, so let's continue using that to iterate
+                @for (idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
                     @let chart_visibility = if idx == 0 { " visible" } else { " hidden" };
 
-                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor)  {
-                        @for (round_idx, _round) in summary_score.round.iter().enumerate() {
-                            @let score = summary_score.scores_aggregated_by_golf_grp_by_rd[round_idx];
-
-                            div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3))
-                                data-positive=(if score >= 0 { "true" } else { "false" })
-                            {
-                                div class="bar" style=(format!("width: {}rem;",
-                                        score.abs() as f32 * 0.3,
-                                    )) {
-
-                                }
-                                div class="bar-label" {
-                                    (score)
+                    div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
+                        // now we want to pull all golfers for this bettor
+                        @for (_golfer_idx, golfer) in summary_scores.detailed_scores.iter().filter(|golfer| golfer.bettor_name == summary_score.bettor_name).enumerate() {
+                            // @let score = summary_scores
+                            // go through each of the rounds, sorted by round number
+                            @for (i, _round_entry)  in golfer.rounds.iter().enumerate()  {
+                                @let score = golfer.scores.get(i).unwrap_or(&0);
+                                div class="bar-row" style=(format!("--bar-width: {}rem;", score.abs() as f32 * 0.3))
+                                    data-positive=(if *score >= 0 { "true" } else { "false" })
+                                {
+                                    div class="bar" style=(format!("width: {}rem;",score.abs() as f32 * 0.3,)) { }
+                                    div class="bar-label" { (score) }
                                 }
                             }
                         }

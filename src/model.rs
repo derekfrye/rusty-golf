@@ -88,10 +88,10 @@ pub struct AllBettorScoresByRound {
 // New Data Structures for the Function's Output
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DetailedScore {
-    pub bettor: String,
-    pub golfer: String,
-    pub round: i32,
-    pub score: i32,
+    pub bettor_name: String,
+    pub golfer_name: String,
+    pub rounds: Vec<i32>,
+    pub scores: Vec<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

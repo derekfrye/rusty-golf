@@ -47,21 +47,33 @@ pub async fn scores(
         .unwrap_or(&String::new())
         .trim()
         .to_string();
-    let cache: bool = cache_str.parse().unwrap_or(true);
+    let cache: bool = match cache_str.as_str() {
+        "1" => true,
+        "0" => false,
+        _ => cache_str.parse().unwrap_or_default(),
+    };
 
     let json_str = query
         .get("json")
         .unwrap_or(&String::new())
         .trim()
         .to_string();
-    let json: bool = json_str.parse().unwrap_or_default();
+    let json: bool = match json_str.as_str() {
+        "1" => true,
+        "0" => false,
+        _ => json_str.parse().unwrap_or_default(),
+    };
 
     let expanded_str = query
         .get("expanded")
         .unwrap_or(&String::new())
         .trim()
         .to_string();
-    let expanded: bool = expanded_str.parse().unwrap_or_default();
+    let expanded: bool = match expanded_str.as_str() {
+        "1" => true,
+        "0" => false,
+        _ => expanded_str.parse().unwrap_or_default(),
+    };
 
     let total_cache =
         get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, db).await;
@@ -286,44 +298,41 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresBy
 
 pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
     // Nested HashMap: bettor -> golfer -> round -> accumulated score
-    let mut scores_by_bettor_golfer_round: HashMap<String, HashMap<String, HashMap<i32, i32>>> = HashMap::new();
+    let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
+
+    // To preserve the order of bettors and golfers as they appear in the input
+    let mut bettor_order: Vec<String> = Vec::new();
+    let mut golfer_order_map: HashMap<String, Vec<String>> = HashMap::new();
 
     // Accumulate scores by bettor, golfer, and round
     for score in scores {
         let bettor_name = &score.bettor_name;
         let golfer_name = &score.golfer_name;
 
-        for (round_idx, round_stat) in score.detailed_statistics.rounds.iter().enumerate() {
-            let round_number = (round_idx as i32) + 1; // Assuming rounds start at 1
-            let round_score = round_stat.val;
-
-            scores_by_bettor_golfer_round
-                .entry(bettor_name.clone())
-                .or_default()
-                .entry(golfer_name.clone())
-                .or_default()
-                .entry(round_number)
-                .and_modify(|e| *e += round_score)
-                .or_insert(round_score);
-        }
-    }
-
-    // To preserve the order of bettors and golfers as they appear in the input
-    let mut bettor_order: Vec<String> = Vec::new();
-    let mut golfer_order_map: HashMap<String, Vec<String>> = HashMap::new();
-
-    for score in scores {
-        let bettor_name = &score.bettor_name;
-        let golfer_name = &score.golfer_name;
-
+        // Track the order of bettors
         if !bettor_order.contains(bettor_name) {
             bettor_order.push(bettor_name.clone());
         }
 
+        // Track the order of golfers per bettor
         golfer_order_map
             .entry(bettor_name.clone())
             .or_default()
             .push(golfer_name.clone());
+
+        for (round_idx, score) in score.detailed_statistics.scores.iter().enumerate() {
+            let round_val = (round_idx as i32) + 1; // Assuming rounds start at 1
+            let round_score = score.val;
+
+            scores_map
+                .entry(bettor_name.clone())
+                .or_default()
+                .entry(golfer_name.clone())
+                .or_default()
+                .entry(round_val)
+                .and_modify(|e| *e += round_score)
+                .or_insert(round_score);
+        }
     }
 
     // Remove duplicate golfers while preserving order
@@ -338,22 +347,21 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
     };
 
     for bettor_name in bettor_order {
-        if let Some(golfers_map) = scores_by_bettor_golfer_round.get(&bettor_name) {
+        if let Some(golfers_map) = scores_map.get(&bettor_name) {
             if let Some(golfers_ordered) = golfer_order_map.get(&bettor_name) {
                 for golfer_name in golfers_ordered {
                     if let Some(rounds_map) = golfers_map.get(golfer_name) {
-                        // Collect and sort rounds
                         let mut rounds: Vec<(i32, i32)> = rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
                         rounds.sort_by_key(|&(round, _)| round);
 
-                        for (round, score) in rounds {
-                            summary_scores.detailed_scores.push(DetailedScore {
-                                bettor: bettor_name.clone(),
-                                golfer: golfer_name.clone(),
-                                round,
-                                score,
-                            });
-                        }
+                        let (round_numbers, scores) = rounds.iter().cloned().unzip();
+
+                        summary_scores.detailed_scores.push(DetailedScore {
+                            bettor_name: bettor_name.clone(),
+                            golfer_name: golfer_name.clone(),
+                            rounds: round_numbers,
+                            scores,
+                        });
                     }
                 }
             }
