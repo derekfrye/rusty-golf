@@ -292,21 +292,26 @@ h4.playerdetails {
 }
 
 .horizontal-line {
-    top: 50%; /* Position horizontally in the middle */
+    position: absolute;
+    top: 0; /* Position at the top */
     left: 0;
     width: 100%;
     height: 1px;
+    background-color: black;
+    z-index: 2; /* Ensure it stays above bar-rows */
 }
 
 .vertical-line {
+    position: absolute;
     top: 0;
     left: 50%;
+    transform: translateX(-50%); /* Center the vertical line precisely */
     width: 1px;
     height: 100%;
-    z-index: 2; /* Ensure vertical line is above other elements */
+    background-color: black;
+    z-index: 2; /* Ensure it stays above bar-rows */
 }
 
-/* Adjust bar-row z-index if necessary */
 .bar-row {
     position: relative;
     z-index: 1; /* Ensure bar-rows are below the lines */
@@ -315,6 +320,7 @@ h4.playerdetails {
     align-items: center;
     margin-bottom: 0.3rem;
 }
+
 
 
 .bar-row.even {
@@ -337,25 +343,30 @@ h4.playerdetails {
 
 .bars-container {
     position: relative;
-    width: 100%; /* Ensure it spans the full width */
-    height: 1.2rem;
-    overflow: hidden; /* Prevent overflow if any */
+    width: 100%; /* Ensure it spans the full width of bar-row */
+    height: 1.2rem; /* Height of the bars */
+    overflow: hidden; /* Prevent overflow */
 }
 
 
-/* Optional: Limit the maximum width of individual bars */
 .bar {
-    max-width: 50%; /* Adjust as needed */
-    box-sizing: border-box; /* Ensure padding/border are included in width */
+    position: absolute;
+    height: 100%;
+    border-radius: 0.2rem;
+    /* Remove max-width to allow bars to occupy full necessary space */
+    /* max-width: 50%; */
 }
 
 .bar.positive {
     background-color: #a6d8d3; /* Muted blue for positive bars */
+    z-index: 1; /* Ensure bars are above the background but below lines */
 }
 
 .bar.negative {
     background-color: #f76c6c; /* Muted red for negative bars */
+    z-index: 1; /* Ensure bars are above the background but below lines */
 }
+
 
 /* Optional: Different colors for different rounds */
 /*
