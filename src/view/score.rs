@@ -262,7 +262,7 @@ struct GolferBars {
 
 fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
-    detailed_scores: &Vec<DetailedScore>, // Assuming this is your detailed scores structure
+    detailed_scores: &Vec<DetailedScore>,
 ) -> HashMap<String, Vec<GolferBars>> {
     let mut bettor_golfers_map: HashMap<String, Vec<GolferBars>> = HashMap::new();
 
@@ -281,25 +281,38 @@ fn preprocess_golfer_data(
                 let mut cumulative_left = 0.0;
                 let mut cumulative_right = 0.0;
 
+                // First, calculate total required width
+                let total_width: f32 = golfer
+                    .scores
+                    .iter()
+                    .map(|&score| (score.abs() as f32) * 2.0)
+                    .sum();
+
+                // Determine scaling factor if total_width exceeds 100%
+                let scaling_factor = if total_width > 100.0 {
+                    100.0 / total_width
+                } else {
+                    1.0
+                };
+
                 for &score in &golfer.scores {
                     let direction = if score >= 0 {
                         Direction::Right
                     } else {
                         Direction::Left
                     };
-                    // Convert score to percentage. Adjust the multiplier as needed.
-                    // For example, 1 score unit = 2%
-                    let width = (score.abs() as f32) * 2.0;
+                    // Convert score to percentage with scaling
+                    let width = (score.abs() as f32) * 2.0 * scaling_factor;
 
                     let start_position = match direction {
                         Direction::Right => {
-                            let pos = 52.0 + cumulative_right;
+                            let pos = 50.0 + cumulative_right;
                             cumulative_right += width;
                             pos
                         }
                         Direction::Left => {
                             cumulative_left += width;
-                            48.0 - cumulative_left
+                            50.0 - cumulative_left
                         }
                     };
 
@@ -326,6 +339,8 @@ fn preprocess_golfer_data(
 
     bettor_golfers_map
 }
+
+
 
 fn render_drop_down_bar(
     data: &ScoreData,
