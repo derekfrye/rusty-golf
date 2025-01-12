@@ -280,7 +280,7 @@ h4.playerdetails {
 .chart-container {
     position: relative;
     width: 80%;
-    max-width: 25rem;
+    max-width: 15rem;
     margin-top: 0; /* Remove extra margin */
 }
 
@@ -302,25 +302,9 @@ h4.playerdetails {
     background-color: black;
 }
 
-
-.bar {
-    height: 1.2rem;
-    border-radius: 0.2rem;
-    position: absolute;
-    {{/* left: 48%; /* Keeps the bar aligned with the "T" */
-    transform: translateX(-100%);
-    margin-top: 0.8rem; */}}
-}
-
-.bars-container {
-    position: relative;
-    flex: 1;
-    height: 1.2rem; /* Height of the bars */
-}
-
 .bar-row {
     position: relative;
-    height: 2rem;
+    height: 2rem; /* Increased height to accommodate multiple bars */
     display: flex;
     align-items: center;
     margin-bottom: 0.3rem;
@@ -334,32 +318,6 @@ h4.playerdetails {
     background-color: #ffffff; /* No background */
 }
 
-.bar.positive {
-    background-color: #a6d8d3; /* Muted blue for positive bars */
-}
-
-.bar.negative {
-    background-color: #f76c6c; /* Muted red for negative bars */
-}
-
-{{/* .bar-row[data-positive="true"] .bar {
-    left: 52%; /* Start from the middle and extend to the right */
-    transform: translateX(0%);
-}
-
-.bar-row[data-positive="false"] .bar {
-    left: 48%; /* Start from the middle and extend to the left */
-    transform: translateX(-100%);
-}
-
-.bar-row[data-positive="true"] .bar-label {
-    left: calc(52% + var(--bar-width) + 0.3rem); /* Position label to the right of the bar */
-}
-
-.bar-row[data-positive="false"] .bar-label {
-    left: calc(48% - var(--bar-width) - 1.3rem); /* Position label to the left of the bar */
-} */}}
-
 .bar-label {
     width: 8rem; /* Adjust as needed */
     text-align: left;
@@ -368,39 +326,34 @@ h4.playerdetails {
     white-space: nowrap; /* Prevent wrapping */
 }
 
-{{/* .chart .bar-row:nth-child(1) .bar {
-    background-color: #a6d8d3; /* Slightly brighter muted blue */
+.bars-container {
+    position: relative;
+    flex: 1;
+    height: 1.2rem; /* Height of the bars */
 }
 
-.chart .bar-row:nth-child(2) .bar {
-    background-color: #ffe8a3; /* Slightly brighter muted orange */
+.bar {
+    position: absolute;
+    height: 100%;
+    border-radius: 0.2rem;
 }
 
-.chart .bar-row:nth-child(3) .bar {
-    background-color: #a8eac9; /* Slightly brighter muted green */
+.bar.positive {
+    background-color: #a6d8d3; /* Muted blue for positive bars */
 }
 
-.chart .bar-row:nth-child(4) .bar {
-    background-color: #ffd966; /* Slightly brighter muted yellow */
+.bar.negative {
+    background-color: #f76c6c; /* Muted red for negative bars */
 }
 
-.chart .bar-row:nth-child(5) .bar {
-    background-color: #f3a6ad; /* Slightly brighter muted red */
-}
-
-.chart .bar-row:nth-child(6) .bar {
-    background-color: #c8a6cc; /* Slightly brighter muted purple */
-}
-
-.chart .bar-row:nth-child(7) .bar {
-    background-color: #a896b0; /* Slightly brighter muted dark purple */
-}
-
-.chart .bar-row:nth-child(n+8) .bar {
-    background-color: #d4f0aa; /* Slightly brighter muted pale green */
-} */}}
-
-/* CSS Variable for Bar Width */
-:root {
-    --bar-width: 0rem; /* Default width, overridden dynamically */
-}
+/* Optional: Different colors for different rounds */
+/*
+.bar.round-1 { background-color: #a6d8d3; }
+.bar.round-2 { background-color: #ffe8a3; }
+.bar.round-3 { background-color: #a8eac9; }
+.bar.round-4 { background-color: #ffd966; }
+.bar.round-5 { background-color: #f3a6ad; }
+.bar.round-6 { background-color: #c8a6cc; }
+.bar.round-7 { background-color: #a896b0; }
+.bar.round-8 { background-color: #d4f0aa; }
+*/

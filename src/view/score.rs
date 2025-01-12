@@ -241,8 +241,8 @@ fn render_score_detail(data: &ScoreData) -> Markup {
 struct Bar {
     score: i32,
     direction: Direction,
-    start_position: f32, // In rem units or percentage as per your design
-    width: f32,           // Width of the bar in rem
+    start_position: f32, // In percentage
+    width: f32,           // Width of the bar in percentage
 }
 
 // Enum to represent the direction of the bar
@@ -287,7 +287,9 @@ fn preprocess_golfer_data(
                     } else {
                         Direction::Left
                     };
-                    let width = (score.abs() as f32) * 0.3;
+                    // Convert score to percentage. Adjust the multiplier as needed.
+                    // For example, 1 score unit = 2%
+                    let width = (score.abs() as f32) * 2.0;
 
                     let start_position = match direction {
                         Direction::Right => {
@@ -375,7 +377,7 @@ fn render_drop_down_bar(
                                             Direction::Left => "bar negative",
                                         })
                                         style=(format!(
-                                            "left: {}%; width: {}rem;",
+                                            "left: {}%; width: {}%;",
                                             bar.start_position, bar.width
                                         )) {}
                                     }
