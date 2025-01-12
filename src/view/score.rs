@@ -8,7 +8,8 @@ use maud::{html, Markup};
 pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
     let summary_scores_x =
         crate::controller::score::group_by_bettor_name_and_round(&data.score_struct);
-        let detailed_scores = crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
+    let detailed_scores =
+        crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
 
     html! {
         @if !data.score_struct.is_empty() {
@@ -17,7 +18,7 @@ pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
                 (render_summary_scores(&summary_scores_x))
             }
             // (render_stacked_bar_chart(data))
-            (render_drop_down_bar(data, &summary_scores_x, &detailed_scores))
+            (render_drop_down_bar(&summary_scores_x, &detailed_scores))
             (render_score_detail(data))
         }
     }
@@ -242,7 +243,7 @@ struct Bar {
     score: i32,
     direction: Direction,
     start_position: f32, // In percentage
-    width: f32,           // Width of the bar in percentage
+    width: f32,          // Width of the bar in percentage
     round: i32,
 }
 
@@ -254,7 +255,7 @@ enum Direction {
 
 // Structure to hold golfer information along with precomputed bars
 struct GolferBars {
-    name: String,
+    // name: String,
     short_name: String,
     total_score: isize,
     bars: Vec<Bar>,
@@ -267,15 +268,29 @@ fn preprocess_golfer_data(
 ) -> HashMap<String, Vec<GolferBars>> {
     let mut bettor_golfers_map: HashMap<String, Vec<GolferBars>> = HashMap::new();
 
-    let step_factor = 4.0;
+    let step_factor = 3.0;
 
-    for (bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
+    for (_bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
         let golfers: Vec<GolferBars> = detailed_scores
             .iter()
             .filter(|golfer| golfer.bettor_name == summary_score.bettor_name)
             .enumerate()
             .map(|(golfer_idx, golfer)| {
-                let short_name = golfer.golfer_name.chars().take(5).collect::<String>();
+                let short_name_x = golfer.golfer_name.split_whitespace().into_iter();
+                let short_name = if short_name_x.clone().count() >= 2 {
+                    short_name_x.clone().nth(1).unwrap_or(" ").to_string()
+                } else {
+                    golfer.golfer_name.to_string()
+                };
+
+                let short_name = format!(
+                    "{}. {}",
+                    &golfer.golfer_name.chars().take(1).collect::<String>(),
+                    short_name.chars().take(5).collect::<String>()
+                );
+                // .map(|x| x.chars().next().unwrap_or(' '))
+                // .collect::<String>();
+                //  .next().unwrap_or(&golfer.golfer_name).chars().take(5).collect::<String>();
 
                 let total_score: isize = golfer.scores.iter().map(|&x| x as isize).sum();
 
@@ -299,13 +314,15 @@ fn preprocess_golfer_data(
                 };
 
                 for &score in &golfer.scores {
-                    let direction = if score >= 0 {
+                    let direction = if score > 0 {
                         Direction::Right
                     } else {
                         Direction::Left
                     };
                     // Convert score to percentage with scaling
-                    let width = (score.abs() as f32) * step_factor * scaling_factor;
+                    let width = (if score.abs() == 0 { 1 } else { score.abs() } as f32)
+                        * step_factor
+                        * scaling_factor;
 
                     let start_position = match direction {
                         Direction::Right => {
@@ -329,7 +346,7 @@ fn preprocess_golfer_data(
                 }
 
                 GolferBars {
-                    name: golfer.golfer_name.clone(),
+                    // name: golfer.golfer_name.clone(),
                     short_name,
                     total_score,
                     bars,
@@ -344,10 +361,7 @@ fn preprocess_golfer_data(
     bettor_golfers_map
 }
 
-
-
 fn render_drop_down_bar(
-    data: &ScoreData,
     grouped_data: &AllBettorScoresByRound,
     detailed_scores: &SummaryDetailedScores,
 ) -> Markup {
@@ -370,45 +384,46 @@ fn render_drop_down_bar(
 
             // Chart rendering
             div class="chart-container" {
-                
 
                 // Iterate over each bettor
                 @for (bettor_idx, summary_score) in grouped_data.summary_scores.iter().enumerate() {
-                    @let chart_visibility = if bettor_idx == 0 { " visible" } else { " hidden" };
 
+                    @let chart_visibility = if bettor_idx == 0 { " visible" } else { " hidden" };
                     div class=(format!("chart {}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         // Iterate over each preprocessed golfer for the current bettor
-                        @for (golfer_idx, golfer_bars) in preprocessed_data.get(&summary_score.bettor_name).unwrap_or(&Vec::new()).iter().enumerate() {
-                            
+                        @for (_golfer_idx, golfer_bars) in preprocessed_data.get(&summary_score.bettor_name).unwrap_or(&Vec::new()).iter().enumerate() {
+
                             div class="chart-row" {
 
-                            div class="label-container" {
-                                div class="bar-label" {
-                                    (format!("{}: {}", &golfer_bars.short_name, golfer_bars.total_score))
-                                }
-                            }
-                            // Create bar-row with alternating background
-                            div class=(format!("bar-row {}", if golfer_bars.is_even { "even" } else { "odd" })) {
-// Draw the "T" structure
-div class="horizontal-line"  {}
-div class="vertical-line"  {}
-                                // Bars Container
-                                div class="bars-container" {
-                                    @for bar in &golfer_bars.bars {
-                                        div class=(match bar.direction {
-                                            Direction::Right => "bar positive",
-                                            Direction::Left => "bar negative",
-                                        })
-                                        style=(format!(
-                                            "left: {}%; width: {}%;",
-                                            bar.start_position, bar.width
-                                        )) { 
-                                            div class="bar-text" {
-                                                "R"(bar.round)", "( bar.score) }
-                                            }
+                                div class="label-container" {
+                                    div class="bar-label" {
+                                        (format!("{:<8}: {:<3}", &golfer_bars.short_name, golfer_bars.total_score))
                                     }
                                 }
-                            }
+                                // Create bar-row with alternating background
+                                div class=(format!("bar-row {}", if golfer_bars.is_even { "even" } else { "odd" })) {
+                                    // Draw the "T" structure
+                                    div class="horizontal-line"  {}
+                                    div class="vertical-line"  {}
+                                    // Bars Container
+                                    div class="bars-container" {
+                                        @for bar in &golfer_bars.bars {
+                                            div class=(match bar.direction {
+                                                    Direction::Right => "bar positive",
+                                                    Direction::Left => match bar.score {
+                                                        0 => "bar zero",
+                                                        _ => "bar negative",
+                                                    }
+                                                })
+                                            style=(format!("left: {}%; width: {}%;",bar.start_position, bar.width)) {
+
+                                                div class="bar-text" {
+                                                    "R"(bar.round)": "( bar.score)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                         }
                     }
                     }

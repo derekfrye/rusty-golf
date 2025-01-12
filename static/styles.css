@@ -280,8 +280,8 @@ h4.playerdetails {
 .chart-container {
     position: relative;
     width: 100%; /* Occupies full width of the parent */
-    max-width: 800px; /* Adjust as needed */
-    margin: 0 auto; /* Centers the chart */
+    {{/* max-width: 800px; /* Adjust as needed */ */}}
+    {{/* margin: 0 auto; /* Centers the chart */ */}}
 }
 
 .chart-row {
@@ -294,16 +294,20 @@ h4.playerdetails {
 }
 
 .label-container {
-    flex: 0 0 10%; /* Occupies 10% of the chart-row's width */
-    display: flex;
-    justify-content: flex-end; /* Align labels to the right */
+    {{/* flex: 0 0 10%; /* Occupies 10% of the chart-row's width */ */}}
+    {{/* display: flex; */}}
+    {{/* justify-content: flex-end; /* Align labels to the right */ */}}
+    align-items: center; /* Vertically center text */
     padding-right: 0.5rem; /* Space between label and bars */
     box-sizing: border-box; /* Include padding in width */
     text-align: right; /* Align text to the right */
+    {{/* font-family: monospace; /* Use fixed-width font */ */}}
+    width: 14ch; /* Fixed width to ensure all labels pretend to have 10 characters */
+    white-space: nowrap; /* Prevent wrapping */
 }
 
 .bar-label {
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     white-space: nowrap; /* Prevent label wrapping */
 }
 
@@ -361,16 +365,20 @@ h4.playerdetails {
     transform: translateY(-50%); /* Center the bar vertically */
     border-radius: 0.3rem; /* Retain rounded corners */
     z-index: 1; /* Below the T structure */
-     margin-left: 0.1rem; /* Space on the left side */
+    margin-left: 0.1rem; /* Space on the left side */
     margin-right: 0.1rem; /* Space on the right side */
 }
 
-.bar.positive {
+.bar.negative {
     background-color: #a6d8d3; /* Muted blue */
 }
 
-.bar.negative {
+.bar.positive {
     background-color: #f76c6c; /* Muted red */
+}
+
+.bar.zero {
+    background-color: #f0f0f0; /* Light grey */
 }
 
 .bar-text {
@@ -378,8 +386,8 @@ h4.playerdetails {
     top: 50%; /* Position at the middle */
     transform: translateY(-50%); /* Center vertically */
     z-index: 2; /* Above the bars */
-    padding: 0.2rem; /* Space around the text */
-    font-size: 0.6rem; /* Adjust font size as needed */
+    padding: 0.0rem; /* Space around the text */
+    font-size: 0.55rem; /* Adjust font size as needed */
     color: #333; /* Dark grey text */
 }
 
