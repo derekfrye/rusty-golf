@@ -4,3 +4,4 @@
 target
 /examples/db_password.txt
 test.db
+sqlx-middleware/
