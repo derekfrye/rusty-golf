@@ -138,7 +138,7 @@ pub async fn fetch_scores_from_espn(
                     score: score as i32,
                     par: par as i32,
                     success: ResultStatus::Success,
-                    last_refresh_date: chrono::Utc::now().to_rfc3339(),
+                    // last_refresh_date: chrono::Utc::now().to_rfc3339(),
                     score_display,
                 };
                 line_scoress.push(line_score);
@@ -153,7 +153,7 @@ pub async fn fetch_scores_from_espn(
             golfer_score.rounds.push(IntStat {
                 val: i as i32,
                 success,
-                last_refresh_date: chrono::Utc::now().to_rfc3339(),
+                // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
             let score = display_value
@@ -163,7 +163,7 @@ pub async fn fetch_scores_from_espn(
             golfer_score.round_scores.push(IntStat {
                 val: score,
                 success: ResultStatus::Success,
-                last_refresh_date: chrono::Utc::now().to_rfc3339(),
+                // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
             // expected 1985-04-12T23:20:50.52Z
@@ -197,14 +197,14 @@ pub async fn fetch_scores_from_espn(
             golfer_score.tee_times.push(StringStat {
                 val: special_format_time,
                 success: ResultStatus::Success,
-                last_refresh_date: chrono::Utc::now().to_rfc3339(),
+                // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
             let holes_completed = line_scores_tmp.map(|ls| ls.len()).unwrap_or(0);
             golfer_score.holes_completed_by_round.push(IntStat {
                 val: holes_completed as i32,
                 success: ResultStatus::Success,
-                last_refresh_date: chrono::Utc::now().to_rfc3339(),
+                // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
         }
 

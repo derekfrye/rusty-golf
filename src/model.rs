@@ -47,14 +47,14 @@ pub enum ResultStatus {
 pub struct StringStat {
     pub val: String,
     pub success: ResultStatus,
-    pub last_refresh_date: String,
+    // pub last_refresh_date: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct IntStat {
     pub val: i32,
     pub success: ResultStatus,
-    pub last_refresh_date: String,
+    // pub last_refresh_date: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -64,7 +64,7 @@ pub struct LineScore {
     pub par: i32,
     pub score_display: ScoreDsiplay,
     pub success: ResultStatus,
-    pub last_refresh_date: String,
+    // pub last_refresh_date: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
