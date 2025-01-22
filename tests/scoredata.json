@@ -1,0 +1,1184 @@
+{
+    "bettor_struct": [
+        Bettors {
+            "bettor_name": "Player2",
+            "total_score": -46,
+            "scoreboard_position_name": "TOP GOLFER",
+            "scoreboard_position": 0,
+        },
+        Bettors {
+            "bettor_name": "Player1",
+            "total_score": -33,
+            "scoreboard_position_name": "FIRST LOSER",
+            "scoreboard_position": 1,
+        },
+        Bettors {
+            "bettor_name": "Player4",
+            "total_score": -25,
+            "scoreboard_position_name": "MEH",
+            "scoreboard_position": 2,
+        },
+        Bettors {
+            "bettor_name": "Player5",
+            "total_score": -15,
+            "scoreboard_position_name": "SEEN BETTER DAYS",
+            "scoreboard_position": 3,
+        },
+        Bettors {
+            "bettor_name": "Player3",
+            "total_score": -13,
+            "scoreboard_position_name": "NOT A CHANCE",
+            "scoreboard_position": 4,
+        },
+    ],
+    "score_struct": [
+        Scores {
+            "eup_id": 1,
+            "espn_id": 3470,
+            "golfer_name": "Rory McIlroy",
+            "bettor_name": "Player1",
+            "detailed_statistics": Statistic {
+                "eup_id": 1,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -5,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -4,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":25am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "2":00pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "11":12am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "11":45am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -12,
+            },
+            "group": 1,
+        },
+        Scores {
+            "eup_id": 2,
+            "espn_id": 4364873,
+            "golfer_name": "Viktor Hovland",
+            "bettor_name": "Player2",
+            "detailed_statistics": Statistic {
+                "eup_id": 2,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -5,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -5,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -5,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":36am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "2":11pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "12":18pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "1":15pm",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -18,
+            },
+            "group": 1,
+        },
+        Scores {
+            "eup_id": 3,
+            "espn_id": 9478,
+            "golfer_name": "Scottie Scheffler",
+            "bettor_name": "Player3",
+            "detailed_statistics": Statistic {
+                "eup_id": 3,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -4,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -5,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -6,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "1":23pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "9":08am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "12":29pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "11":15am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -13,
+            },
+            "group": 1,
+        },
+        Scores {
+            "eup_id": 4,
+            "espn_id": 10140,
+            "golfer_name": "Xander Schauffele",
+            "bettor_name": "Player4",
+            "detailed_statistics": Statistic {
+                "eup_id": 4,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -9,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -6,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":03am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "1":38pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "12":40pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "1":35pm",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -21,
+            },
+            "group": 1,
+        },
+        Scores {
+            "eup_id": 5,
+            "espn_id": 5467,
+            "golfer_name": "Jordan Spieth",
+            "bettor_name": "Player5",
+            "detailed_statistics": Statistic {
+                "eup_id": 5,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -4,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":47am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "2":22pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "10":28am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "11":55am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -6,
+            },
+            "group": 1,
+        },
+        Scores {
+            "eup_id": 6,
+            "espn_id": 10592,
+            "golfer_name": "Collin Morikawa",
+            "bettor_name": "Player1",
+            "detailed_statistics": Statistic {
+                "eup_id": 6,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -5,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -6,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -4,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "1":01pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "8":46am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "12":40pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "1":35pm",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -15,
+            },
+            "group": 2,
+        },
+        Scores {
+            "eup_id": 7,
+            "espn_id": 5860,
+            "golfer_name": "Hideki Matsuyama",
+            "bettor_name": "Player2",
+            "detailed_statistics": Statistic {
+                "eup_id": 7,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -6,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":36am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "2":11pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "11":56am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "11":35am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -8,
+            },
+            "group": 2,
+        },
+        Scores {
+            "eup_id": 8,
+            "espn_id": 4375972,
+            "golfer_name": "Ludvig Åberg",
+            "bettor_name": "Player3",
+            "detailed_statistics": Statistic {
+                "eup_id": 8,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -1,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":03am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "1":38pm",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": 0,
+            },
+            "group": 2,
+        },
+        Scores {
+            "eup_id": 9,
+            "espn_id": 11119,
+            "golfer_name": "Wyndham Clark",
+            "bettor_name": "Player4",
+            "detailed_statistics": Statistic {
+                "eup_id": 9,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 4,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "1":23pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "9":08am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": 4,
+            },
+            "group": 2,
+        },
+        Scores {
+            "eup_id": 10,
+            "espn_id": 9037,
+            "golfer_name": "Matt Fitzpatrick",
+            "bettor_name": "Player5",
+            "detailed_statistics": Statistic {
+                "eup_id": 10,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "1":01pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "8":46am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": 0,
+            },
+            "group": 2,
+        },
+        Scores {
+            "eup_id": 11,
+            "espn_id": 1680,
+            "golfer_name": "Jason Day",
+            "bettor_name": "Player1",
+            "detailed_statistics": Statistic {
+                "eup_id": 11,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -4,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "12":28pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "8":13am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "11":01am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "10":35am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -6,
+            },
+            "group": 3,
+        },
+        Scores {
+            "eup_id": 12,
+            "espn_id": 10046,
+            "golfer_name": "Bryson DeChambeau",
+            "bettor_name": "Player2",
+            "detailed_statistics": Statistic {
+                "eup_id": 12,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -6,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -4,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -7,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "8":09am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "2":44pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "12":18pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "1":15pm",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -20,
+            },
+            "group": 3,
+        },
+        Scores {
+            "eup_id": 13,
+            "espn_id": 9780,
+            "golfer_name": "Jon Rahm",
+            "bettor_name": "Player3",
+            "detailed_statistics": Statistic {
+                "eup_id": 13,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "1":12pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "8":57am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": 0,
+            },
+            "group": 3,
+        },
+        Scores {
+            "eup_id": 14,
+            "espn_id": 8973,
+            "golfer_name": "Max Homa",
+            "bettor_name": "Player4",
+            "detailed_statistics": Statistic {
+                "eup_id": 14,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -2,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":47am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "2":22pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "10":28am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "11":05am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -8,
+            },
+            "group": 3,
+        },
+        Scores {
+            "eup_id": 15,
+            "espn_id": 6798,
+            "golfer_name": "Brooks Koepka",
+            "bettor_name": "Player5",
+            "detailed_statistics": Statistic {
+                "eup_id": 15,
+                "rounds": [
+                    IntStat {
+                        "val": 0,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 1,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 2,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                ],
+                "round_scores": [
+                    IntStat {
+                        "val": -4,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 3,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": -5,
+                        "success": Success,
+                    },
+                ],
+                "tee_times": [
+                    StringStat {
+                        "val": "5/16 "7":47am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/17 "2":22pm",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/18 "11":45am",
+                        "success": Success,
+                    },
+                    StringStat {
+                        "val": "5/19 "9":05am",
+                        "success": Success,
+                    },
+                ],
+                "holes_completed_by_round": [
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                    IntStat {
+                        "val": 18,
+                        "success": Success,
+                    },
+                ],
+                "line_scores": [],
+                "success_fail": NoData,
+                "total_score": -9,
+            },
+            "group": 3,
+        },
+    ],
+    "last_refresh": "0m, 1s",
+}

@@ -76,7 +76,7 @@ pub async fn scores(
     };
 
     let total_cache =
-        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, db).await;
+        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &db).await;
 
     match total_cache {
         Ok(cache) => {
@@ -94,12 +94,12 @@ pub async fn scores(
 }
 
 
-async fn get_data_for_scores_page(
+pub async fn get_data_for_scores_page(
     event_id: i32,
     year: i32,
     cache_map: &CacheMap,
     use_cache: bool,
-    db: sqlx_middleware::db::Db,
+    db: &sqlx_middleware::db::Db,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
@@ -108,7 +108,6 @@ async fn get_data_for_scores_page(
         }
     }
 
-    // reviewed, ok now for debugging
     let aactive_golfers = model::get_golfers_from_db(&db, event_id).await;
     let active_golfers = match aactive_golfers {
         Ok(active_golfers) => active_golfers.return_result,
@@ -118,38 +117,8 @@ async fn get_data_for_scores_page(
     };
 
     let start_time = Instant::now();
-    // reviewed, ok now for debugging
-    let scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id).await;
+    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id).await.unwrap();
 
-    // ok
-    let mut golfers_and_scores: Vec<Scores> = scores
-        .iter()
-        .map(|score| {
-            let active_golfer = active_golfers
-                .iter()
-                .find(|g| g.eup_id == score.eup_id)
-                .unwrap();
-            Scores {
-                eup_id: score.eup_id,
-                golfer_name: active_golfer.golfer_name.clone(),
-                detailed_statistics: score.clone(),
-                bettor_name: active_golfer.bettor_name.clone(),
-                group: active_golfer.group,
-                espn_id: active_golfer.espn_id,
-            }
-        })
-        .collect();
-
-    // ok
-    golfers_and_scores.sort_by(|a, b| {
-        if a.group == b.group {
-            a.eup_id.cmp(&b.eup_id)
-        } else {
-            a.group.cmp(&b.group)
-        }
-    });
-
-    // ok
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &golfers_and_scores {
         *totals.entry(golfer.bettor_name.clone()).or_insert(0) +=

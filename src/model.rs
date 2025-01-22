@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use sqlx_middleware::db::{Db, QueryState};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Bettors {
     pub bettor_name: String,
     pub total_score: i32,
@@ -14,7 +14,7 @@ pub struct Bettors {
     pub scoreboard_position: usize,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Scores {
     pub eup_id: i64,
     pub espn_id: i64,
@@ -24,7 +24,7 @@ pub struct Scores {
     pub group: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Statistic {
     pub eup_id: i64,
     pub rounds: Vec<IntStat>,
@@ -36,28 +36,28 @@ pub struct Statistic {
     pub total_score: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub enum ResultStatus {
     NoData,
     NoDisplayValue,
     Success,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StringStat {
     pub val: String,
     pub success: ResultStatus,
     // pub last_refresh_date: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IntStat {
     pub val: i32,
     pub success: ResultStatus,
     // pub last_refresh_date: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LineScore {
     pub hole: i32,
     pub score: i32,
@@ -67,7 +67,7 @@ pub struct LineScore {
     // pub last_refresh_date: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ScoreDsiplay {
     Eagle,
     Birdie,
@@ -117,7 +117,7 @@ pub struct Cache {
     pub cached_time: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ScoreData {
     pub bettor_struct: Vec<Bettors>,
     pub score_struct: Vec<Scores>,
