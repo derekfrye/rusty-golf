@@ -28,9 +28,10 @@ pub struct Scores {
 pub struct Statistic {
     pub eup_id: i64,
     pub rounds: Vec<IntStat>,
-    pub scores: Vec<IntStat>,
+    pub round_scores: Vec<IntStat>,
     pub tee_times: Vec<StringStat>,
-    pub holes_completed: Vec<IntStat>,
+    pub holes_completed_by_round: Vec<IntStat>,
+    pub line_scores: Vec<LineScore>,
     pub success_fail: ResultStatus,
     pub total_score: i32,
 }
@@ -54,6 +55,33 @@ pub struct IntStat {
     pub val: i32,
     pub success: ResultStatus,
     pub last_refresh_date: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LineScore {
+    pub hole: i32,
+    pub score: i32,
+    pub par: i32,
+    pub score_display: ScoreDsiplay,
+    pub success: ResultStatus,
+    pub last_refresh_date: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum ScoreDsiplay {
+    Eagle,
+    Birdie,
+    Par,
+    Bogey,
+    DoubleBogey,
+    TripleBogey,
+    QuadrupleBogey,
+    QuintupleBogey,
+    SextupleBogey,
+    SeptupleBogey,
+    OctupleBogey,
+    NonupleBogey,
+    DodecupleBogey,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -228,9 +256,10 @@ pub async fn get_golfers_from_db(
                                 .copied()
                                 .unwrap_or_default(),
                             rounds: vec![],
-                            scores: vec![],
+                            round_scores: vec![],
                             tee_times: vec![],
-                            holes_completed: vec![],
+                            holes_completed_by_round: vec![],
+                            line_scores: vec![],
                             success_fail: ResultStatus::NoData,
                             total_score: 0,
                         },

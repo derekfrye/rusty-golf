@@ -5,6 +5,7 @@ use chrono::DateTime;
 use reqwest::Client;
 // use serde::{Deserialize, Serialize};
 use serde_json::Value;
+// use tokio::{fs::File, io::AsyncWriteExt};
 use tokio::sync::mpsc;
 
 pub async fn get_json_from_espn(
@@ -45,51 +46,72 @@ pub async fn fetch_scores_from_espn(
     let num_scores = scores.len();
     let group_size = (num_scores + 3) / 4;
     let (tx, mut rx) = mpsc::channel(4);
+    let mut result: PlayerJsonResponse = PlayerJsonResponse {
+        data: Vec::new(),
+        eup_ids: Vec::new(),
+    };
 
-    for i in 0..4 {
-        let group = scores
-            .iter()
-            .skip(i * group_size)
-            .take(group_size)
-            .cloned()
-            .collect::<Vec<_>>();
+    if cfg!(debug_assertions) {
+        result = get_json_from_espn(scores, year, event_id).await.unwrap();
+    } else {
+        // four threads
+        for i in 0..4 {
+            let group = scores
+                .iter()
+                .skip(i * group_size)
+                .take(group_size)
+                .cloned()
+                .collect::<Vec<_>>();
 
-        let tx = tx.clone();
-        // let state = self.clone();
+            let tx = tx.clone();
+            // let state = self.clone();
 
-        tokio::task::spawn(async move {
-            match get_json_from_espn(group, year, event_id).await {
-                Ok(result) => tx.send(Some(result)).await.unwrap(),
-                Err(_) => tx.send(None).await.unwrap(),
-            }
-        });
+            tokio::task::spawn(async move {
+                match get_json_from_espn(group, year, event_id).await {
+                    Ok(result) => tx.send(Some(result)).await.unwrap(),
+                    Err(_) => tx.send(None).await.unwrap(),
+                }
+            });
+        }
+
+        drop(tx);
     }
-
-    drop(tx);
 
     let mut json_responses = PlayerJsonResponse {
         data: Vec::new(),
         eup_ids: Vec::new(),
     };
 
-    while let Some(Some(result)) = rx.recv().await {
+    if cfg!(debug_assertions) {
         json_responses.data.extend(result.data);
         json_responses.eup_ids.extend(result.eup_ids);
+    } else {
+        while let Some(Some(result)) = rx.recv().await {
+            json_responses.data.extend(result.data);
+            json_responses.eup_ids.extend(result.eup_ids);
+        }
     }
 
     let mut golfer_scores = Vec::new();
 
     for (idx, result) in json_responses.data.iter().enumerate() {
+        // let x = serde_json::to_string_pretty(&result).unwrap();
+        // //save to a file
+        // if idx == 0 {
+        //     let mut file = File::create("tests/espn.json_responses.json").await.unwrap();
+        //     file.write_all(x.as_bytes()).await.unwrap();
+        // }
         let rounds_temp = result.get("rounds").and_then(Value::as_array);
         let vv = vec![];
         let rounds = rounds_temp.unwrap_or(&vv);
-        // let rounds = result.get("rounds").and_then(Value::as_array).unwrap_or(&vec![]);
+
         let mut golfer_score = Statistic {
             eup_id: json_responses.eup_ids[idx],
             rounds: Vec::new(),
-            scores: Vec::new(),
+            round_scores: Vec::new(),
             tee_times: Vec::new(),
-            holes_completed: Vec::new(),
+            holes_completed_by_round: Vec::new(),
+            line_scores: Vec::new(),
             success_fail: ResultStatus::NoData,
             total_score: 0,
         };
@@ -99,7 +121,20 @@ pub async fn fetch_scores_from_espn(
                 .get("displayValue")
                 .and_then(Value::as_str)
                 .unwrap_or("");
-            let line_scores = round.get("linescores").and_then(Value::as_array);
+            let line_scores_tmp = round.get("linescores").and_then(Value::as_array);
+            let line_scores = line_scores_tmp.unwrap_or(&vv);
+            // dbg!(&line_scores);
+            for (idx, line_score) in line_scores.iter().enumerate() {
+                let line_score_value = line_score
+                    .get("displayValue")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                golfer_score.line_scores.push(StringStat {
+                    val: line_score_value.to_string(),
+                    success: ResultStatus::Success,
+                    last_refresh_date: chrono::Utc::now().to_rfc3339(),
+                });
+            }
 
             let success = if !display_value.is_empty() {
                 ResultStatus::Success
@@ -117,7 +152,7 @@ pub async fn fetch_scores_from_espn(
                 .trim_start_matches('+')
                 .parse::<i32>()
                 .unwrap_or(0);
-            golfer_score.scores.push(IntStat {
+            golfer_score.round_scores.push(IntStat {
                 val: score,
                 success: ResultStatus::Success,
                 last_refresh_date: chrono::Utc::now().to_rfc3339(),
@@ -157,15 +192,15 @@ pub async fn fetch_scores_from_espn(
                 last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
-            let holes_completed = line_scores.map(|ls| ls.len()).unwrap_or(0);
-            golfer_score.holes_completed.push(IntStat {
+            let holes_completed = line_scores_tmp.map(|ls| ls.len()).unwrap_or(0);
+            golfer_score.holes_completed_by_round.push(IntStat {
                 val: holes_completed as i32,
                 success: ResultStatus::Success,
                 last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
         }
 
-        golfer_score.total_score = golfer_score.scores.iter().map(|s| s.val).sum();
+        golfer_score.total_score = golfer_score.round_scores.iter().map(|s| s.val).sum();
         golfer_scores.push(golfer_score);
     }
 

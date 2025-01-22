@@ -208,15 +208,15 @@ fn render_score_detail(data: &ScoreData) -> Markup {
                                                 (stats.tee_times[index].val)
                                             }
                                             td class="cells hideable" data-round=({ index + 1 }) {
-                                                @if index < stats.holes_completed.len() {
-                                                    (stats.holes_completed[index].val)
+                                                @if index < stats.holes_completed_by_round.len() {
+                                                    (stats.holes_completed_by_round[index].val)
                                                 } @else {
                                                     "N/A"
                                                 }
                                             }
                                             td class="cells" data-round=({ index + 1 }) {
-                                                @if index < stats.scores.len() {
-                                                    (stats.scores[index].val)
+                                                @if index < stats.round_scores.len() {
+                                                    (stats.round_scores[index].val)
                                                 } @else {
                                                     "N/A"
                                                 }

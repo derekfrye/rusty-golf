@@ -238,7 +238,7 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresBy
         // let golfers_name = &score.golfer_name;
         // let _ = golfers_name.len();
 
-        for (round_idx, round_score) in score.detailed_statistics.scores.iter().enumerate() {
+        for (round_idx, round_score) in score.detailed_statistics.round_scores.iter().enumerate() {
             let a_single_bettors_scores = rounds_by_bettor_storing_score_val
                 .entry(bettor_name.clone())
                 .or_default();
@@ -320,7 +320,7 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
             .or_default()
             .push(golfer_name.clone());
 
-        for (round_idx, score) in score.detailed_statistics.scores.iter().enumerate() {
+        for (round_idx, score) in score.detailed_statistics.round_scores.iter().enumerate() {
             let round_val = (round_idx as i32) + 1; // Assuming rounds start at 1
             let round_score = score.val;
 
