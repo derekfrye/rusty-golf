@@ -3,6 +3,7 @@ APP_NAME = rusty-golf
 IMAGE_NAME = djf/$(APP_NAME)
 SQLX_MIDDLEWARE_SRC = ../sqlx-middleware
 SQLX_MIDDLEWARE_DEST = sqlx-middleware
+USERNM = `id -un 1000`
 BUILD_CONTEXT = .
 
 # Default target
@@ -18,7 +19,7 @@ $(SQLX_MIDDLEWARE_DEST):
 .PHONY: build
 build: $(SQLX_MIDDLEWARE_DEST)
 	@echo "Building Docker image..."
-	podman build -t $(IMAGE_NAME) $(BUILD_CONTEXT)
+	podman build -t $(IMAGE_NAME) $(BUILD_CONTEXT) --build-arg USERNAME=$(USERNM)
 
 # Clean up the build context
 .PHONY: clean
