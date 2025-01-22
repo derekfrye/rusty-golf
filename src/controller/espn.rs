@@ -1,6 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, vec};
 
-use crate::model::{IntStat, PlayerJsonResponse, ResultStatus, Scores, Statistic, StringStat};
+use crate::model::{
+    IntStat, LineScore, PlayerJsonResponse, ResultStatus, ScoreDsiplay, Scores, Statistic,
+    StringStat,
+};
 use chrono::DateTime;
 use reqwest::Client;
 // use serde::{Deserialize, Serialize};
@@ -124,16 +127,21 @@ pub async fn fetch_scores_from_espn(
             let line_scores_tmp = round.get("linescores").and_then(Value::as_array);
             let line_scores = line_scores_tmp.unwrap_or(&vv);
             // dbg!(&line_scores);
+
+            let mut line_scoress: Vec<LineScore> = vec![];
             for (idx, line_score) in line_scores.iter().enumerate() {
-                let line_score_value = line_score
-                    .get("displayValue")
-                    .and_then(Value::as_str)
-                    .unwrap_or("");
-                golfer_score.line_scores.push(StringStat {
-                    val: line_score_value.to_string(),
+                let par = line_score.get("par").and_then(Value::as_i64).unwrap_or(0);
+                let score = line_score.get("value").and_then(Value::as_i64).unwrap_or(0);
+                let score_display = ScoreDsiplay::from_i32((par - score).try_into().unwrap());
+                let line_score = LineScore {
+                    hole: idx as i32,
+                    score: score as i32,
+                    par: par as i32,
                     success: ResultStatus::Success,
                     last_refresh_date: chrono::Utc::now().to_rfc3339(),
-                });
+                    score_display,
+                };
+                line_scoress.push(line_score);
             }
 
             let success = if !display_value.is_empty() {

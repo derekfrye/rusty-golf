@@ -84,6 +84,27 @@ pub enum ScoreDsiplay {
     DodecupleBogey,
 }
 
+impl ScoreDsiplay {
+    pub fn from_i32(i: i32) -> Self {
+        match i {
+            0 => ScoreDsiplay::Eagle,
+            1 => ScoreDsiplay::Birdie,
+            2 => ScoreDsiplay::Par,
+            3 => ScoreDsiplay::Bogey,
+            4 => ScoreDsiplay::DoubleBogey,
+            5 => ScoreDsiplay::TripleBogey,
+            6 => ScoreDsiplay::QuadrupleBogey,
+            7 => ScoreDsiplay::QuintupleBogey,
+            8 => ScoreDsiplay::SextupleBogey,
+            9 => ScoreDsiplay::SeptupleBogey,
+            10 => ScoreDsiplay::OctupleBogey,
+            11 => ScoreDsiplay::NonupleBogey,
+            12 => ScoreDsiplay::DodecupleBogey,
+            _ => ScoreDsiplay::Par,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerJsonResponse {
     pub data: Vec<HashMap<String, serde_json::Value>>,
