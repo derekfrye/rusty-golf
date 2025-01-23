@@ -63,14 +63,14 @@ pub struct LineScore {
     pub hole: i32,
     pub score: i32,
     pub par: i32,
-    pub score_display: ScoreDsiplay,
+    pub score_display: ScoreDisplay,
     pub success: ResultStatus,
     // pub last_refresh_date: String,
 }
 
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum ScoreDsiplay {
+pub enum ScoreDisplay {
     DoubleCondor,
     Condor,
     Albatross,
@@ -89,26 +89,26 @@ pub enum ScoreDsiplay {
     DodecupleBogey,
 }
 
-impl ScoreDsiplay {
+impl ScoreDisplay {
     pub fn from_i32(i: i32) -> Self {
         match i {
-            -5 => ScoreDsiplay::DoubleCondor,
-            -4 => ScoreDsiplay::Condor,
-            -3 => ScoreDsiplay::Albatross,
-            -2 => ScoreDsiplay::Eagle,
-            -1 => ScoreDsiplay::Birdie,
-            0 => ScoreDsiplay::Par,
-            1 => ScoreDsiplay::Bogey,
-            2 => ScoreDsiplay::DoubleBogey,
-            3 => ScoreDsiplay::TripleBogey,
-            4 => ScoreDsiplay::QuadrupleBogey,
-            5 => ScoreDsiplay::QuintupleBogey,
-            6 => ScoreDsiplay::SextupleBogey,
-            7 => ScoreDsiplay::SeptupleBogey,
-            8 => ScoreDsiplay::OctupleBogey,
-            9 => ScoreDsiplay::NonupleBogey,
-            10 => ScoreDsiplay::DodecupleBogey,
-            _ => ScoreDsiplay::Par,
+            -5 => ScoreDisplay::DoubleCondor,
+            -4 => ScoreDisplay::Condor,
+            -3 => ScoreDisplay::Albatross,
+            -2 => ScoreDisplay::Eagle,
+            -1 => ScoreDisplay::Birdie,
+            0 => ScoreDisplay::Par,
+            1 => ScoreDisplay::Bogey,
+            2 => ScoreDisplay::DoubleBogey,
+            3 => ScoreDisplay::TripleBogey,
+            4 => ScoreDisplay::QuadrupleBogey,
+            5 => ScoreDisplay::QuintupleBogey,
+            6 => ScoreDisplay::SextupleBogey,
+            7 => ScoreDisplay::SeptupleBogey,
+            8 => ScoreDisplay::OctupleBogey,
+            9 => ScoreDisplay::NonupleBogey,
+            10 => ScoreDisplay::DodecupleBogey,
+            _ => ScoreDisplay::Par,
         }
     }
 }

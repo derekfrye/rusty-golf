@@ -1,7 +1,7 @@
 use std::{collections::HashMap, vec};
 
 use crate::model::{
-    IntStat, LineScore, PlayerJsonResponse, ResultStatus, ScoreDsiplay, Scores, Statistic,
+    IntStat, LineScore, PlayerJsonResponse, ResultStatus, ScoreDisplay, Scores, Statistic,
     StringStat,
 };
 use chrono::DateTime;
@@ -146,7 +146,7 @@ pub async fn fetch_scores_from_espn(
                     .trim_start_matches('+')
                     .parse::<i64>()
                     .unwrap_or(0);
-                let score_display = ScoreDsiplay::from_i32((par - score).try_into().unwrap());
+                let score_display = ScoreDisplay::from_i32((par - score).try_into().unwrap());
 
                 let line_score_tmp = LineScore {
                     hole: (idx as i32) + 1,
