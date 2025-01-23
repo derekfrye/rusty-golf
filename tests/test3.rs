@@ -79,21 +79,75 @@ async fn test_get_data_for_scores_page() {
         .await
         .unwrap();
 
-// load reference json
-let reference_result_str = include_str!("test3_espn_json_responses.json");
-let reference_result: Value = serde_json::from_str(reference_result_str).unwrap();
+    // load reference json
+    let reference_result_str = include_str!("test3_espn_json_responses.json");
+    let reference_result: Value = serde_json::from_str(reference_result_str).unwrap();
 
-let bryson_espn_entry = x.score_struct.iter().find(|s| s.golfer_name == "Bryson DeChambeau").unwrap();
-let bryson_reference_entry = reference_result["data"].as_array().unwrap().iter().find(|s| s["golfer_name"] == "Bryson DeChambeau").unwrap();
-assert_eq!(bryson_espn_entry.detailed_statistics.total_score as i64 , bryson_reference_entry["total_score"].as_i64().unwrap());
-assert_eq!(bryson_espn_entry.eup_id, bryson_reference_entry.get("eup_id").unwrap().as_i64().unwrap());
-
-
+    let bryson_espn_entry = x
+        .score_struct
+        .iter()
+        .find(|s| s.golfer_name == "Bryson DeChambeau")
+        .unwrap();
+    let bryson_reference_entry = reference_result
+        .get("score_struct")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s.get("golfer_name").unwrap() == "Bryson DeChambeau")
+        .unwrap();
+    assert_eq!(
+        bryson_espn_entry.detailed_statistics.total_score as i64,
+        bryson_reference_entry
+            .get("detailed_statistics")
+            .unwrap()
+            .get("total_score")
+            .unwrap()
+            .as_i64()
+            .unwrap()
+    );
+    assert_eq!(
+        bryson_espn_entry.eup_id,
+        bryson_reference_entry
+            .get("eup_id")
+            .unwrap()
+            .as_i64()
+            .unwrap()
+    );
 
     // let xx = serde_json::to_string_pretty(&x).unwrap();
-    // println!("{}",xx); // test3_scoredata.json
+    // println!("{}", xx); // test3_scoredata.json
     // let a = 1 + 1;
 
+    let left = bryson_reference_entry
+        .get("detailed_statistics")
+        .unwrap()
+        .get("line_scores")
+        .unwrap()
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| {
+            s.get("hole").unwrap().as_i64().unwrap() == 13
+                && s.get("round").unwrap().as_i64().unwrap() == 2
+        })
+        .unwrap()
+        .get("score")
+        .unwrap()
+        .as_i64()
+        .unwrap() as i32;
+    println!("{}", left);
+    let right = bryson_espn_entry
+        .detailed_statistics
+        .line_scores
+        .iter()
+        .find(|s| s.hole == 13 && s.round == 2)
+        .unwrap()
+        .score;
+    println!("{}", right);
+
+    assert_eq!(left, right);
+    assert_eq!(left, 3); // line 6824 in test3_espn_json_responses.json
 
     // let active_golfers = model::get_golfers_from_db(&sql_db, 401580351).await.unwrap().return_result;
 

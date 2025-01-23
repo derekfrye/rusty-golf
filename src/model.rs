@@ -59,6 +59,7 @@ pub struct IntStat {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LineScore {
+    pub round: i32,
     pub hole: i32,
     pub score: i32,
     pub par: i32,
@@ -66,6 +67,7 @@ pub struct LineScore {
     pub success: ResultStatus,
     // pub last_refresh_date: String,
 }
+
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ScoreDsiplay {

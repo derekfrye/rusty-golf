@@ -119,17 +119,20 @@ pub async fn fetch_scores_from_espn(
             total_score: 0,
         };
 
+        // let mut line_scores: Vec<LineScore> = vec![];
         for (i, round) in rounds.iter().enumerate() {
             let line_scores_tmp = round.get("linescores").and_then(Value::as_array);
             let line_scores_json = line_scores_tmp.unwrap_or(&vv);
+            // let x = serde_json::to_string_pretty(round.get("linescores").unwrap()).unwrap();
+            // let z = x.len();
             // dbg!(&line_scores);
 
             // let mut line_scores: Vec<LineScore> = vec![];
 
-            if line_scores_json.len() > i && line_scores_json[i] != Value::Null {
-                let line_score= line_scores_json[i].as_object().unwrap();
-                let par = line_score.get("par").and_then(Value::as_i64);
-                let score = line_score.get("displayValue").and_then(Value::as_str);
+            for (idx, ln_score) in line_scores_json.iter().enumerate() {
+                // let line_score = line_scores_json[i].as_object().unwrap();
+                let par = ln_score.get("par").and_then(Value::as_i64);
+                let score = ln_score.get("displayValue").and_then(Value::as_str);
 
                 let success = if par.is_none() || score.is_none() {
                     ResultStatus::NoData
@@ -152,6 +155,7 @@ pub async fn fetch_scores_from_espn(
                     success,
                     // last_refresh_date: chrono::Utc::now().to_rfc3339(),
                     score_display,
+                    round: i as i32,
                 };
                 golfer_score.line_scores.push(line_score_tmp);
             }
