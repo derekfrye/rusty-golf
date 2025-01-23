@@ -1,5 +1,3 @@
-
-
 use sqlx_middleware::convenience_items::{create_tables, MissingDbObjects};
 use sqlx_middleware::model::{CheckType, QueryAndParams};
 // use sqlx::sqlite::SqlitePoolOptions;
@@ -8,8 +6,8 @@ use std::{collections::HashMap, vec};
 use tokio::sync::RwLock;
 
 // use rusty_golf::controller::score;
-use rusty_golf::{ model::CacheMap, controller::score::get_data_for_scores_page};
-use sqlx_middleware::db::{ConfigAndPool, Db,};
+use rusty_golf::{controller::score::get_data_for_scores_page, model::CacheMap};
+use sqlx_middleware::db::{ConfigAndPool, Db};
 
 #[tokio::test]
 async fn test_get_data_for_scores_page() {
@@ -75,15 +73,21 @@ async fn test_get_data_for_scores_page() {
         .await
         .unwrap();
 
-        let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
-let x = get_data_for_scores_page(401580351, 2024, &cache_map, false, &sql_db).await.unwrap();
-dbg!(x);
-let a = 1+1;
+    let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
+    let x = get_data_for_scores_page(401580351, 2024, &cache_map, false, &sql_db)
+        .await
+        .unwrap();
+
+    // let xx = serde_json::to_string_pretty(&x).unwrap();
+    // println!("{}",xx); // test3_scoredata.json
+    // let a = 1 + 1;
+
+    
 
 
-        // let active_golfers = model::get_golfers_from_db(&sql_db, 401580351).await.unwrap().return_result;
+    // let active_golfers = model::get_golfers_from_db(&sql_db, 401580351).await.unwrap().return_result;
 
-        // let scores = fetch_scores_from_espn(active_golfers.clone(), 2024, 401580351).await.unwrap();
+    // let scores = fetch_scores_from_espn(active_golfers.clone(), 2024, 401580351).await.unwrap();
 
     // Step 5: Initialize the cache
     // let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
