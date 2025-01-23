@@ -69,6 +69,9 @@ pub struct LineScore {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ScoreDsiplay {
+    DoubleCondor,
+    Condor,
+    Albatross,
     Eagle,
     Birdie,
     Par,
@@ -87,19 +90,22 @@ pub enum ScoreDsiplay {
 impl ScoreDsiplay {
     pub fn from_i32(i: i32) -> Self {
         match i {
-            0 => ScoreDsiplay::Eagle,
-            1 => ScoreDsiplay::Birdie,
-            2 => ScoreDsiplay::Par,
-            3 => ScoreDsiplay::Bogey,
-            4 => ScoreDsiplay::DoubleBogey,
-            5 => ScoreDsiplay::TripleBogey,
-            6 => ScoreDsiplay::QuadrupleBogey,
-            7 => ScoreDsiplay::QuintupleBogey,
-            8 => ScoreDsiplay::SextupleBogey,
-            9 => ScoreDsiplay::SeptupleBogey,
-            10 => ScoreDsiplay::OctupleBogey,
-            11 => ScoreDsiplay::NonupleBogey,
-            12 => ScoreDsiplay::DodecupleBogey,
+            -5 => ScoreDsiplay::DoubleCondor,
+            -4 => ScoreDsiplay::Condor,
+            -3 => ScoreDsiplay::Albatross,
+            -2 => ScoreDsiplay::Eagle,
+            -1 => ScoreDsiplay::Birdie,
+            0 => ScoreDsiplay::Par,
+            1 => ScoreDsiplay::Bogey,
+            2 => ScoreDsiplay::DoubleBogey,
+            3 => ScoreDsiplay::TripleBogey,
+            4 => ScoreDsiplay::QuadrupleBogey,
+            5 => ScoreDsiplay::QuintupleBogey,
+            6 => ScoreDsiplay::SextupleBogey,
+            7 => ScoreDsiplay::SeptupleBogey,
+            8 => ScoreDsiplay::OctupleBogey,
+            9 => ScoreDsiplay::NonupleBogey,
+            10 => ScoreDsiplay::DodecupleBogey,
             _ => ScoreDsiplay::Par,
         }
     }

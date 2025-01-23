@@ -1,3 +1,4 @@
+use serde_json::Value;
 use sqlx_middleware::convenience_items::{create_tables, MissingDbObjects};
 use sqlx_middleware::model::{CheckType, QueryAndParams};
 // use sqlx::sqlite::SqlitePoolOptions;
@@ -78,11 +79,20 @@ async fn test_get_data_for_scores_page() {
         .await
         .unwrap();
 
+// load reference json
+let reference_result_str = include_str!("test3_espn_json_responses.json");
+let reference_result: Value = serde_json::from_str(reference_result_str).unwrap();
+
+let bryson_espn_entry = x.score_struct.iter().find(|s| s.golfer_name == "Bryson DeChambeau").unwrap();
+let bryson_reference_entry = reference_result["data"].as_array().unwrap().iter().find(|s| s["golfer_name"] == "Bryson DeChambeau").unwrap();
+assert_eq!(bryson_espn_entry.detailed_statistics.total_score as i64 , bryson_reference_entry["total_score"].as_i64().unwrap());
+assert_eq!(bryson_espn_entry.eup_id, bryson_reference_entry.get("eup_id").unwrap().as_i64().unwrap());
+
+
+
     // let xx = serde_json::to_string_pretty(&x).unwrap();
     // println!("{}",xx); // test3_scoredata.json
     // let a = 1 + 1;
-
-    
 
 
     // let active_golfers = model::get_golfers_from_db(&sql_db, 401580351).await.unwrap().return_result;

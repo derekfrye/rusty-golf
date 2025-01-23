@@ -124,10 +124,12 @@ pub async fn fetch_scores_from_espn(
             let line_scores_json = line_scores_tmp.unwrap_or(&vv);
             // dbg!(&line_scores);
 
-            let mut line_scores: Vec<LineScore> = vec![];
-            for (idx, line_score) in line_scores_json.iter().enumerate() {
+            // let mut line_scores: Vec<LineScore> = vec![];
+
+            if line_scores_json.len() > i && line_scores_json[i] != Value::Null {
+                let line_score= line_scores_json[i].as_object().unwrap();
                 let par = line_score.get("par").and_then(Value::as_i64);
-                let score = line_score.get("value").and_then(Value::as_i64);
+                let score = line_score.get("displayValue").and_then(Value::as_str);
 
                 let success = if par.is_none() || score.is_none() {
                     ResultStatus::NoData
@@ -136,23 +138,25 @@ pub async fn fetch_scores_from_espn(
                 };
 
                 let par = par.unwrap_or(0);
-                let score = score.unwrap_or(0);
+                let score = score
+                    .unwrap_or("")
+                    .trim_start_matches('+')
+                    .parse::<i64>()
+                    .unwrap_or(0);
                 let score_display = ScoreDsiplay::from_i32((par - score).try_into().unwrap());
 
                 let line_score_tmp = LineScore {
-                    hole: idx as i32,
+                    hole: (idx as i32) + 1,
                     score: score as i32,
                     par: par as i32,
                     success,
                     // last_refresh_date: chrono::Utc::now().to_rfc3339(),
                     score_display,
                 };
-                line_scores.push(line_score_tmp);
+                golfer_score.line_scores.push(line_score_tmp);
             }
 
-            let display_value = round
-                .get("displayValue")
-                .and_then(Value::as_str);
+            let display_value = round.get("displayValue").and_then(Value::as_str);
 
             let success = if display_value.is_none() || !display_value.unwrap_or("").is_empty() {
                 ResultStatus::Success
@@ -211,7 +215,7 @@ pub async fn fetch_scores_from_espn(
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
-            let holes_completed = line_scores.len();
+            let holes_completed = golfer_score.line_scores.len();
             golfer_score.holes_completed_by_round.push(IntStat {
                 val: holes_completed as i32,
                 success: ResultStatus::Success,
@@ -232,32 +236,30 @@ pub async fn fetch_scores_from_espn(
     // })
 
     let mut golfers_and_scores: Vec<Scores> = golfer_scores
-    .iter()
-    .map(|statistic| {
-        let active_golfer = &scores
-            .iter()
-            .find(|g| g.eup_id == statistic.eup_id)
-            .unwrap();
-        Scores {
-            eup_id: statistic.eup_id,
-            golfer_name: active_golfer.golfer_name.clone(),
-            detailed_statistics: statistic.clone(),
-            bettor_name: active_golfer.bettor_name.clone(),
-            group: active_golfer.group,
-            espn_id: active_golfer.espn_id,
+        .iter()
+        .map(|statistic| {
+            let active_golfer = &scores
+                .iter()
+                .find(|g| g.eup_id == statistic.eup_id)
+                .unwrap();
+            Scores {
+                eup_id: statistic.eup_id,
+                golfer_name: active_golfer.golfer_name.clone(),
+                detailed_statistics: statistic.clone(),
+                bettor_name: active_golfer.bettor_name.clone(),
+                group: active_golfer.group,
+                espn_id: active_golfer.espn_id,
+            }
+        })
+        .collect();
+
+    golfers_and_scores.sort_by(|a, b| {
+        if a.group == b.group {
+            a.eup_id.cmp(&b.eup_id)
+        } else {
+            a.group.cmp(&b.group)
         }
-    })
-    .collect();
+    });
 
-golfers_and_scores.sort_by(|a, b| {
-    if a.group == b.group {
-        a.eup_id.cmp(&b.eup_id)
-    } else {
-        a.group.cmp(&b.group)
-    }
-});
-
-Ok(golfers_and_scores)
-
-
+    Ok(golfers_and_scores)
 }
