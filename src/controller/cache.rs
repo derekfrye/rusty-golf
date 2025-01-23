@@ -19,7 +19,7 @@ pub async fn get_or_create_cache(event: i32, year: i32, cache_map: CacheMap) -> 
     new_cache
 }
 
-pub fn xya(cache: Cache) -> Result<ScoreData, Box<dyn std::error::Error>> {
+pub fn check_cache_expired(cache: Cache) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cached_time = chrono::DateTime::parse_from_rfc3339(&cache.cached_time).unwrap();
     let cached_time_utc: DateTime<Utc> = cached_time.with_timezone(&Utc);
     let now = chrono::Utc::now();

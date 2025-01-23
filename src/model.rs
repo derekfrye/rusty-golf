@@ -355,3 +355,53 @@ pub async fn get_title_from_db(
     }
     Ok(dbresult)
 }
+
+pub async fn store_scores_in_db(
+    db: &Db,
+    event_id: i32,
+) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
+    // let query = "SELECT eventname FROM sp_get_event_name($1)";
+    let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
+       "SELECT eventname FROM sp_get_event_name($1)"
+    } else {
+        include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
+    };
+    let query_and_params = QueryAndParams {
+        query: query.to_string(),
+        params: vec![RowValues::Int(event_id as i64)],
+    };
+    let result = db.exec_general_query(vec![query_and_params], true).await;
+
+    let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+
+    let missing_tables = match result {
+        Ok(r) => {
+            dbresult.db_last_exec_state = r.db_last_exec_state;
+            dbresult.error_message = r.error_message;
+            r.return_result[0].results.clone()
+        }
+        Err(e) => {
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+            dbresult.error_message = Some(emessage);
+            vec![]
+        }
+    };
+
+    let zz: Vec<_> = missing_tables
+        .iter()
+        .filter_map(|row| {
+            let exists_index = row.column_names.iter().position(|col| col == "eventname")?;
+
+            match &row.rows[exists_index] {
+                RowValues::Text(value) => Some(value),
+
+                _ => None,
+            }
+        })
+        .collect();
+    if !zz.is_empty() {
+        dbresult.return_result = zz[0].to_string();
+    }
+    Ok(dbresult)
+}

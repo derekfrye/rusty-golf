@@ -3,7 +3,7 @@ use actix_web::{HttpResponse, Responder};
 use serde_json::json;
 use sqlx_middleware::db::{ConfigAndPool, Db};
 
-use crate::controller::cache::{get_or_create_cache, xya};
+use crate::controller::cache::{get_or_create_cache, check_cache_expired};
 use crate::controller::espn::fetch_scores_from_espn;
 use crate::model::{self, DetailedScore, SummaryDetailedScores};
 
@@ -103,7 +103,7 @@ pub async fn get_data_for_scores_page(
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
-        if let Ok(cache) = xya(cache) {
+        if let Ok(cache) = check_cache_expired(cache) {
             return Ok(cache);
         }
     }
