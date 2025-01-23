@@ -280,8 +280,6 @@ h4.playerdetails {
 .chart-container {
     position: relative;
     width: 100%; /* Occupies full width of the parent */
-    {{/* max-width: 800px; /* Adjust as needed */ */}}
-    {{/* margin: 0 auto; /* Centers the chart */ */}}
 }
 
 .chart-row {

@@ -68,7 +68,6 @@ pub struct LineScore {
     // pub last_refresh_date: String,
 }
 
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ScoreDisplay {
     DoubleCondor,
@@ -312,7 +311,7 @@ pub async fn get_title_from_db(
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
     // let query = "SELECT eventname FROM sp_get_event_name($1)";
     let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
-       "SELECT eventname FROM sp_get_event_name($1)"
+        "SELECT eventname FROM sp_get_event_name($1)"
     } else {
         include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
     };
@@ -359,10 +358,11 @@ pub async fn get_title_from_db(
 pub async fn store_scores_in_db(
     db: &Db,
     event_id: i32,
+    scores: &Vec<Scores>,
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
     // let query = "SELECT eventname FROM sp_get_event_name($1)";
     let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
-       "SELECT eventname FROM sp_get_event_name($1)"
+        "SELECT eventname FROM sp_get_event_name($1)"
     } else {
         include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
     };

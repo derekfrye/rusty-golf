@@ -66,6 +66,7 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
             .route("/admin", web::get().to(admin))
+            .route("/health", web::get().to(|| HttpResponse::Ok()))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
     .bind("0.0.0.0:8081")?

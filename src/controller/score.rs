@@ -3,11 +3,13 @@ use actix_web::{HttpResponse, Responder};
 use serde_json::json;
 use sqlx_middleware::db::{ConfigAndPool, Db};
 
-use crate::controller::cache::{get_or_create_cache, check_cache_expired};
+use crate::controller::cache::{check_cache_expired, get_or_create_cache};
 use crate::controller::espn::fetch_scores_from_espn;
 use crate::model::{self, DetailedScore, SummaryDetailedScores};
 
-use crate::model::{Bettors, Cache, CacheMap, ScoreData, Scores, BettorScoreByRound, AllBettorScoresByRound};
+use crate::model::{
+    AllBettorScoresByRound, BettorScoreByRound, Bettors, Cache, CacheMap, ScoreData, Scores,
+};
 use crate::view::score::render_scores_template;
 
 use std::collections::{BTreeMap, HashMap};
@@ -93,7 +95,6 @@ pub async fn scores(
     }
 }
 
-
 pub async fn get_data_for_scores_page(
     event_id: i32,
     year: i32,
@@ -117,7 +118,9 @@ pub async fn get_data_for_scores_page(
     };
 
     let start_time = Instant::now();
-    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id).await.unwrap();
+    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id)
+        .await
+        .unwrap();
 
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &golfers_and_scores {
@@ -320,7 +323,8 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
             if let Some(golfers_ordered) = golfer_order_map.get(&bettor_name) {
                 for golfer_name in golfers_ordered {
                     if let Some(rounds_map) = golfers_map.get(golfer_name) {
-                        let mut rounds: Vec<(i32, i32)> = rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
+                        let mut rounds: Vec<(i32, i32)> =
+                            rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
                         rounds.sort_by_key(|&(round, _)| round);
 
                         let (round_numbers, scores) = rounds.iter().cloned().unzip();
