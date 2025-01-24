@@ -1,6 +1,6 @@
-insert into event (name, espn_id) values ('PGA Championship', 401580351);
+insert into event (name, espn_id, year) values ('PGA Championship', 401580351, 2024);
 -- or https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/players?region=us&lang=en&event=401580351
--- golfer specific: https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/401580360/playersummary?season=2024&player=3470
+--golfer specific: https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/401580360/playersummary?season=2024&player=3470
 insert into golfer (name, espn_id) values ('Davis Thompson',4602218);
 insert into golfer (name, espn_id) values ('Peter Malnati',5692);
 insert into golfer (name, espn_id) values ('Stephan Jaeger',6937);

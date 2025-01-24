@@ -24,17 +24,17 @@ async fn test_get_data_for_scores_page() {
 
     let tables = vec![
         "event",
-        "golfstatistic",
-        "player",
-        "golfuser",
+        // "golfstatistic",
+        "golfer",
+        "bettor",
         "event_user_player",
         "eup_statistic",
     ];
     let ddl = vec![
         include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/01_golfstatistic.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/02_player.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/03_golfuser.sql"),
+        // include_str!("../src/admin/model/sql/schema/sqlite/01_golfstatistic.sql"),
+        include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
+        include_str!("../src/admin/model/sql/schema/sqlite/03_bettor.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/04_event_user_player.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql"),
     ];

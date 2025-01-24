@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS eup_statistic (
     eup_stat_id INTEGER NOT NULL PRIMARY KEY,
     event_id INT NOT NULL REFERENCES event(event_id),
     eup_id INT NOT NULL REFERENCES event_user_player(eup_id),
-    group INT NOT NULL,
+    grp INT NOT NULL,
     
     -- pub rounds: Vec<IntStat>,
     -- pub round_scores: Vec<IntStat>,
