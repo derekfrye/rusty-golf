@@ -1,4 +1,4 @@
-use deadpool_postgres::tokio_postgres::Row;
+// use deadpool_postgres::tokio_postgres::Row;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -6,6 +6,7 @@ use tokio::sync::RwLock;
 
 use sqlx_middleware::db::{Db, QueryState};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
+use sqlx_middleware::FromRow; // Re-exported trait
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Bettors {
@@ -25,7 +26,7 @@ pub struct Scores {
     pub group: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, FromRow)]
 pub struct Statistic {
     pub eup_id: i64,
     pub rounds: Vec<IntStat>,
@@ -372,7 +373,7 @@ pub async fn get_scores_from_db(
             dbresult.db_last_exec_state = r.db_last_exec_state;
             dbresult.error_message = r.error_message;
             if r.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
-                let rows = r.return_result[0].results.clone();
+                let rows = r.return_result[0].results;
                 let scores = rows
                     .iter()
                     .map(|row| Scores {
