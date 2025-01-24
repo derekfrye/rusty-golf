@@ -258,7 +258,7 @@ pub async fn get_golfers_from_db(
                             .unwrap_or_default()
                             .to_string(),
                         bettor_name: row
-                            .get("playername")
+                            .get("bettorname")
                             .and_then(|v| v.as_text())
                             .unwrap_or_default()
                             .to_string(),
