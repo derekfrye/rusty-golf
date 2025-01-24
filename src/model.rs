@@ -155,11 +155,6 @@ pub struct SummaryDetailedScores {
     pub detailed_scores: Vec<DetailedScore>,
 }
 
-// #[derive(Debug, Clone, PartialEq)]
-//  enum CheckType {
-//     Table,
-//     Constraint,
-// }
 
 pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
     (
@@ -360,7 +355,42 @@ pub async fn store_scores_in_db(
     event_id: i32,
     scores: &Vec<Scores>,
 ) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-    // let query = "SELECT eventname FROM sp_get_event_name($1)";
+    
+    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> Vec<String> {
+        let mut insert_stms = vec![];
+        for score in scores {
+            let mut insert_stmt = format!(
+                "INSERT INTO eup_statistic (
+                    event_id
+                    , eup_id
+                    , group
+                    , rounds
+                    , round_scores
+                    , tee_times
+                    , holes_completed_by_round
+                    , line_scores
+                ) 
+                VALUES (
+                    {}, {}, {}, {}, {}, {}, {}, {}
+                )
+                WHERE NOT EXISTS (SELECT 1 FROM eup_statistic WHERE event_id = {} and eup_id = {} );",
+                event_id,
+                score.eup_id,
+                score.group,
+               serde_json::to_string(score.detailed_statistics.rounds.as_slice()).unwrap(),
+                serde_json::to_string(score.detailed_statistics.round_scores.as_slice()).unwrap(),
+                serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).unwrap(),
+                serde_json::to_string(score.detailed_statistics.holes_completed_by_round.as_slice()).unwrap(),
+                serde_json::to_string(score.detailed_statistics.line_scores.as_slice()).unwrap(),
+                event_id,
+                score.eup_id
+            );
+            insert_stms.push(insert_stmt);
+        }
+        insert_stms
+    }
+
+
     let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
         "SELECT eventname FROM sp_get_event_name($1)"
     } else {
