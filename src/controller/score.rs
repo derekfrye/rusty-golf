@@ -118,7 +118,7 @@ pub async fn get_data_for_scores_page(
     };
 
     let start_time = Instant::now();
-    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id)
+    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, &db)
         .await
         .unwrap();
 

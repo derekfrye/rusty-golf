@@ -1,13 +1,13 @@
 use std::{collections::HashMap, vec};
 
 use crate::model::{
-    IntStat, LineScore, PlayerJsonResponse, ResultStatus, ScoreDisplay, Scores, Statistic,
-    StringStat,
+    get_scores_from_db, store_scores_in_db, IntStat, LineScore, PlayerJsonResponse, ResultStatus, ScoreDisplay, Scores, Statistic, StringStat
 };
 use chrono::DateTime;
 use reqwest::Client;
 // use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sqlx_middleware::db::{self,  QueryState};
 // use tokio::{fs::File, io::AsyncWriteExt};
 use tokio::sync::mpsc;
 
@@ -42,6 +42,32 @@ pub async fn get_json_from_espn(
 }
 
 pub async fn fetch_scores_from_espn(
+    scores: Vec<Scores>,
+    year: i32,
+    event_id: i32,
+    db  : &db::Db,
+) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
+    let x = go_get_espn_data(scores, year, event_id).await.unwrap();
+let y = store_espn_results(&x, year, event_id, db).await.unwrap();
+    Ok(y)
+}
+
+async fn store_espn_results(
+    scores: &Vec<Scores>,
+    year: i32,
+    event_id: i32,
+    db: &db::Db,
+) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
+    let x=store_scores_in_db(db, event_id, scores).await.unwrap();
+    let y = get_scores_from_db(db, event_id).await.unwrap();
+    if y.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
+        Ok(y.return_result)
+    } else {
+        Err("Error storing scores".into())
+    }
+}
+
+async fn go_get_espn_data(
     scores: Vec<Scores>,
     year: i32,
     event_id: i32,

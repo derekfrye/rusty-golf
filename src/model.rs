@@ -1,3 +1,4 @@
+use deadpool_postgres::tokio_postgres::Row;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -154,7 +155,6 @@ pub struct DetailedScore {
 pub struct SummaryDetailedScores {
     pub detailed_scores: Vec<DetailedScore>,
 }
-
 
 pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
     (
@@ -350,17 +350,94 @@ pub async fn get_title_from_db(
     Ok(dbresult)
 }
 
+pub async fn get_scores_from_db(
+    db: &Db,
+    event_id: i32,
+) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
+    let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
+        "SELECT * FROM sp_get_scores($1)"
+    } else {
+        include_str!("admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
+    };
+    let query_and_params = QueryAndParams {
+        query: query.to_string(),
+        params: vec![RowValues::Int(event_id as i64)],
+    };
+    let result = db.exec_general_query(vec![query_and_params], true).await;
+
+    let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult::<Vec<Scores>>::default();
+
+    match result {
+        Ok(r) => {
+            dbresult.db_last_exec_state = r.db_last_exec_state;
+            dbresult.error_message = r.error_message;
+            if r.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
+                let rows = r.return_result[0].results.clone();
+                let scores = rows
+                    .iter()
+                    .map(|row| Scores {
+                        // parse column 0 as an int32
+                        group: row
+                            .get("grp")
+                            .and_then(|v| v.as_int())
+                            .copied()
+                            .unwrap_or_default(),
+                        golfer_name: row
+                            .get("golfername")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default()
+                            .to_string(),
+                        bettor_name: row
+                            .get("playername")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default()
+                            .to_string(),
+                        eup_id: row
+                            .get("eup_id")
+                            .and_then(|v| v.as_int())
+                            .copied()
+                            .unwrap_or_default(),
+                        espn_id: row
+                            .get("espn_id")
+                            .and_then(|v| v.as_int())
+                            .copied()
+                            .unwrap_or_default(),
+                        detailed_statistics: Statistic {
+                            eup_id: row
+                                .get("eup_id")
+                                .and_then(|v| v.as_int())
+                                .copied()
+                                .unwrap_or_default(),
+                            rounds: vec![],
+                            round_scores: vec![],
+                            tee_times: vec![],
+                            holes_completed_by_round: vec![],
+                            line_scores: vec![],
+                            success_fail: ResultStatus::NoData,
+                            total_score: 0,
+                        },
+                    })
+                    .collect();
+                dbresult.return_result = scores;
+            }
+        }
+        Err(e) => {
+            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+            dbresult.error_message = Some(emessage);
+        }
+    }
+}
+
 pub async fn store_scores_in_db(
     db: &Db,
     event_id: i32,
     scores: &Vec<Scores>,
-) -> Result<DatabaseResult<String>, Box<dyn std::error::Error>> {
-    
-    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> Vec<String> {
+) -> Result<(), Box<dyn std::error::Error>> {
+    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> QueryAndParams {
         let mut insert_stms = vec![];
+        let mut params = vec![];
         for score in scores {
-            let mut insert_stmt = format!(
-                "INSERT INTO eup_statistic (
+            let insert_stmt = "INSERT INTO eup_statistic (
                     event_id
                     , eup_id
                     , group
@@ -371,67 +448,81 @@ pub async fn store_scores_in_db(
                     , line_scores
                 ) 
                 VALUES (
-                    {}, {}, {}, {}, {}, {}, {}, {}
+                    ?, ?, ?, ?, ?, ?, ?, ?
                 )
-                WHERE NOT EXISTS (SELECT 1 FROM eup_statistic WHERE event_id = {} and eup_id = {} );",
-                event_id,
-                score.eup_id,
-                score.group,
-               serde_json::to_string(score.detailed_statistics.rounds.as_slice()).unwrap(),
-                serde_json::to_string(score.detailed_statistics.round_scores.as_slice()).unwrap(),
-                serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).unwrap(),
-                serde_json::to_string(score.detailed_statistics.holes_completed_by_round.as_slice()).unwrap(),
-                serde_json::to_string(score.detailed_statistics.line_scores.as_slice()).unwrap(),
-                event_id,
-                score.eup_id
-            );
+                ON CONFLICT (event_id, eup_id) DO UPDATE SET
+                    group = EXCLUDED.group
+                    , rounds = EXCLUDED.rounds
+                    , round_scores = EXCLUDED.round_scores
+                    , tee_times = EXCLUDED.tee_times
+                    , holes_completed_by_round = EXCLUDED.holes_completed_by_round
+                    , line_scores = EXCLUDED.line_scores"
+                .to_string();
+            let param = vec![
+                RowValues::Int(event_id as i64),
+                RowValues::Int(score.eup_id),
+                RowValues::Int(score.group),
+                RowValues::Text(
+                    serde_json::to_string(score.detailed_statistics.rounds.as_slice()).unwrap(),
+                ),
+                RowValues::Text(
+                    serde_json::to_string(score.detailed_statistics.round_scores.as_slice())
+                        .unwrap(),
+                ),
+                RowValues::Text(
+                    serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).unwrap(),
+                ),
+                RowValues::Text(
+                    serde_json::to_string(
+                        score
+                            .detailed_statistics
+                            .holes_completed_by_round
+                            .as_slice(),
+                    )
+                    .unwrap(),
+                ),
+                RowValues::Text(
+                    serde_json::to_string(score.detailed_statistics.line_scores.as_slice())
+                        .unwrap(),
+                ),
+            ];
             insert_stms.push(insert_stmt);
+            params.push(param);
         }
-        insert_stms
+        QueryAndParams {
+            query: insert_stms.join("\n"),
+            params: params.into_iter().flatten().collect(),
+        }
     }
 
-
-    let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
-        "SELECT eventname FROM sp_get_event_name($1)"
-    } else {
-        include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
-    };
-    let query_and_params = QueryAndParams {
-        query: query.to_string(),
-        params: vec![RowValues::Int(event_id as i64)],
-    };
-    let result = db.exec_general_query(vec![query_and_params], true).await;
+    let query_and_params =
+        if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Sqlite {
+            let x = build_insert_stms(scores, event_id);
+            QueryAndParams {
+                query: x.query,
+                params: x.params,
+            }
+        } else {
+            QueryAndParams {
+                query: "".to_string(),
+                params: vec![RowValues::Int(event_id as i64)],
+            }
+        };
+    let result = db.exec_general_query(vec![query_and_params], false).await;
 
     let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
 
-    let missing_tables = match result {
+    let res = match result {
         Ok(r) => {
             dbresult.db_last_exec_state = r.db_last_exec_state;
             dbresult.error_message = r.error_message;
-            r.return_result[0].results.clone()
         }
         Err(e) => {
             let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
             let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
             dbresult.error_message = Some(emessage);
-            vec![]
         }
     };
 
-    let zz: Vec<_> = missing_tables
-        .iter()
-        .filter_map(|row| {
-            let exists_index = row.column_names.iter().position(|col| col == "eventname")?;
-
-            match &row.rows[exists_index] {
-                RowValues::Text(value) => Some(value),
-
-                _ => None,
-            }
-        })
-        .collect();
-    if !zz.is_empty() {
-        dbresult.return_result = zz[0].to_string();
-    }
-    Ok(dbresult)
+    Ok(res)
 }
