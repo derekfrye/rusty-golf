@@ -15,7 +15,7 @@ FROM (
     JOIN event_user_player AS eup ON g.golfer_id = eup.player_id
     JOIN event AS e ON eup.event_id = e.event_id
     JOIN bettor AS b ON b.user_id = eup.user_id
-    WHERE e.espn_id = ?
+    WHERE e.espn_id = ?1
     ) AS t
 ORDER BY grp,
     eup_id;

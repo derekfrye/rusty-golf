@@ -1,7 +1,8 @@
 use actix_web::web::{self, Data};
 use actix_web::{HttpResponse, Responder};
 use serde_json::json;
-use sqlx_middleware::db::{ConfigAndPool, Db};
+use sqlx_middleware::middleware::ConfigAndPool;
+use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType, Db};
 
 use crate::controller::cache::{check_cache_expired, get_or_create_cache};
 use crate::controller::espn::fetch_scores_from_espn;
@@ -20,7 +21,10 @@ pub async fn scores(
     query: web::Query<HashMap<String, String>>,
     abc: Data<ConfigAndPool>,
 ) -> impl Responder {
-    let db = Db::new(abc.get_ref().clone()).unwrap();
+    // let db = Db::new(abc.get_ref().clone()).unwrap();
+    let config_and_pool = abc.get_ref().clone();
+    // let pool = abc.get_ref().clone().pool.get().await.unwrap();
+    // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
     let event_str = query
         .get("event")
@@ -77,8 +81,14 @@ pub async fn scores(
         _ => expanded_str.parse().unwrap_or_default(),
     };
 
+    let mut cfg = deadpool_postgres::Config::new();
+    let dbcn: ConfigAndPoolOld;
+    cfg.dbname = Some("xxx".to_string());
+    dbcn = ConfigAndPoolOld::new(cfg, DatabaseType::Sqlite).await;
+    let db = Db::new(dbcn.clone()).unwrap();
+    
     let total_cache =
-        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &db).await;
+        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &config_and_pool,&db).await;
 
     match total_cache {
         Ok(cache) => {
@@ -100,7 +110,8 @@ pub async fn get_data_for_scores_page(
     year: i32,
     cache_map: &CacheMap,
     use_cache: bool,
-    db: &sqlx_middleware::db::Db,
+    config_and_pool: &ConfigAndPool,
+    old_db: &Db,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
@@ -109,7 +120,7 @@ pub async fn get_data_for_scores_page(
         }
     }
 
-    let aactive_golfers = model::get_golfers_from_db(&db, event_id).await;
+    let aactive_golfers = model::get_golfers_from_db(config_and_pool, event_id).await;
     let active_golfers = match aactive_golfers {
         Ok(active_golfers) => active_golfers.return_result,
         Err(e) => {
@@ -118,7 +129,7 @@ pub async fn get_data_for_scores_page(
     };
 
     let start_time = Instant::now();
-    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, &db)
+    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, &old_db)
         .await
         .unwrap();
 

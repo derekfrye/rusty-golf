@@ -1,7 +1,7 @@
 use actix_web::{test, App};
 use serde_json::Value;
 
-use sqlx_middleware::convenience_items::{ create_tables3, MissingDbObjects};
+use sqlx_middleware::convenience_items::{create_tables3, MissingDbObjects};
 use sqlx_middleware::middleware::CheckType;
 // use sqlx_middleware::model::{CheckType, QueryAndParams};
 // use sqlx::sqlite::SqlitePoolOptions;
@@ -14,7 +14,8 @@ use rusty_golf::{controller::score::scores, model::CacheMap};
 // use sqlx_middleware::db::{ConfigAndPool, Db, QueryState};
 use sqlx_middleware::{
     middleware::{
-        ConfigAndPool, MiddlewarePool,
+        ConfigAndPool,
+        MiddlewarePool,
         MiddlewarePoolConnection,
         QueryAndParams, //RowValues, QueryState
     },
@@ -27,10 +28,10 @@ async fn test_scores_endpoint() {
     // let _ = env_logger::builder().is_test(true).try_init();
 
     // let mut cfg = deadpool_postgres::Config::new();
-    let x = "file::memory:?cache=shared".to_string();
+    let _x = "file::memory:?cache=shared".to_string();
+    let x = "xxx".to_string();
 
-    let config_and_pool =
-        ConfigAndPool::new_sqlite(x).await.unwrap();
+    let config_and_pool = ConfigAndPool::new_sqlite(x).await.unwrap();
     // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
 
     let tables = vec![
@@ -75,24 +76,6 @@ async fn test_scores_endpoint() {
     .await
     .unwrap();
 
-    // no need to check these things, if its going to err, it'll err
-
-    // if create_result.db_last_exec_state == QueryState::QueryError {
-    //     eprintln!("Error: {}", create_result.error_message.unwrap());
-    // }
-    // assert_eq!(
-    //     create_result.db_last_exec_state,
-    //     QueryState::QueryReturnedSuccessfully
-    // );
-    // assert_eq!(create_result.return_result, String::default());
-
-    // // Step 1: Set up an in-memory SQLite database
-    // let sqlite_pool = SqlitePoolOptions::new()
-    //     .max_connections(5)
-    //     .connect(":memory:")
-    //     .await
-    //     .expect("Failed to create SQLite pool");
-
     let setup_queries = include_str!("test1.sql");
     let query_and_params = QueryAndParams {
         query: setup_queries.to_string(),
@@ -101,35 +84,33 @@ async fn test_scores_endpoint() {
     };
 
     let pool = config_and_pool.pool.get().await.unwrap();
-        let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
-        let _res = match &conn {
-            MiddlewarePoolConnection::Sqlite(sconn) => {
-                // let conn = conn.lock().unwrap();
-                sconn
-                    .interact(move |xxx| {
-                        let converted_params = sqlx_middleware::sqlite_convert_params(
-                            &query_and_params.params
-                        )?;
-                        let tx = xxx.transaction()?;
+    let _res = match &conn {
+        MiddlewarePoolConnection::Sqlite(sconn) => {
+            // let conn = conn.lock().unwrap();
+            sconn
+                .interact(move |xxx| {
+                    let converted_params =
+                        sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    let tx = xxx.transaction()?;
 
-                        let result_set = {
-                            let mut stmt = tx.prepare(&query_and_params.query)?;
-                            let rs = sqlx_middleware::sqlite_build_result_set(
-                                &mut stmt,
-                                &converted_params
-                            )?;
-                            rs
-                        };
-                        Ok::<_, SqlMiddlewareDbError>(result_set)
-                    }).await
-                    .map_err(|e| format!("Error executing query: {:?}", e))
-            }
-            _ => {
-                panic!("Only sqlite is supported ");
-            }
-            // Result::<(), String>::Ok(())
-    }.unwrap();        
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params.query)?;
+                        let rs =
+                            sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                        rs
+                    };
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
+                .map_err(|e| format!("Error executing query: {:?}", e))
+        }
+        _ => {
+            panic!("Only sqlite is supported ");
+        } // Result::<(), String>::Ok(())
+    }
+    .unwrap();
 
     // let res = sql_db
     //     .exec_general_query(vec![query_and_params], false)
@@ -175,136 +156,137 @@ async fn test_scores_endpoint() {
             println!("Success!");
         }
         _status => {
-           
+            // Step 9: Assert the response status
+            //     let resp_body = test::read_body(resp).await;
+            // assert!(
+            //     resp.status().is_success(),
+            //     "Response was not successful: {}",
+            //     String::from_utf8_lossy(&resp_body)
+            // );
 
-    // Step 9: Assert the response status
-//     let resp_body = test::read_body(resp).await;
-// assert!(
-//     resp.status().is_success(),
-//     "Response was not successful: {}",
-//     String::from_utf8_lossy(&resp_body)
-// );
+            // Step 10: Parse the response body as JSON
+            let body: Value = test::read_body_json(resp).await;
+            // println!("Failed with status: {}, body: {}", status, String::from_utf8_lossy(&body));
 
-    // Step 10: Parse the response body as JSON
-    let body: Value = test::read_body_json(resp).await;
-    println!("Failed with status: {}, body: {}", status, String::from_utf8_lossy(&body));
+            // println!("{}", serde_json::to_string_pretty(&body).unwrap());
 
-    // println!("{}", serde_json::to_string_pretty(&body).unwrap());
+            // Step 11: Assert the JSON structure
+            assert!(body.is_object(), "Response is not a JSON object");
+            assert!(
+                body.get("bettor_struct").is_some(),
+                "Response JSON does not contain 'bettor_struct' field"
+            );
 
-    // Step 11: Assert the JSON structure
-    assert!(body.is_object(), "Response is not a JSON object");
-    assert!(
-        body.get("bettor_struct").is_some(),
-        "Response JSON does not contain 'bettor_struct' field"
-    );
+            let bettor_struct = body.get("bettor_struct").unwrap();
+            assert!(
+                bettor_struct.is_array(),
+                "'bettor_struct' field is not an array"
+            );
 
-    let bettor_struct = body.get("bettor_struct").unwrap();
-    assert!(
-        bettor_struct.is_array(),
-        "'bettor_struct' field is not an array"
-    );
+            let bettor_struct_array = bettor_struct.as_array().unwrap();
+            assert_eq!(
+                bettor_struct_array.len(),
+                5,
+                "Unexpected number of bettors returned"
+            );
 
-    let bettor_struct_array = bettor_struct.as_array().unwrap();
-    assert_eq!(
-        bettor_struct_array.len(),
-        5,
-        "Unexpected number of bettors returned"
-    );
+            // load reference json
+            let reference_result_str = include_str!("test1_expected_output.json");
+            let reference_result: Value = serde_json::from_str(reference_result_str).unwrap();
 
-    // load reference json
-    let reference_result_str = include_str!("test1_expected_output.json");
-    let reference_result: Value = serde_json::from_str(reference_result_str).unwrap();
+            // Check individual score entries
+            for bettor in bettor_struct_array {
+                assert!(
+                    bettor.get("bettor_name").is_some(),
+                    "Score entry missing 'bettor_name'"
+                );
+                assert!(
+                    bettor.get("total_score").is_some(),
+                    "Score entry missing 'total_score'"
+                );
+                assert!(
+                    bettor.get("scoreboard_position").is_some(),
+                    "Score entry missing 'scoreboard_position'"
+                );
 
-    // Check individual score entries
-    for bettor in bettor_struct_array {
-        assert!(
-            bettor.get("bettor_name").is_some(),
-            "Score entry missing 'bettor_name'"
-        );
-        assert!(
-            bettor.get("total_score").is_some(),
-            "Score entry missing 'total_score'"
-        );
-        assert!(
-            bettor.get("scoreboard_position").is_some(),
-            "Score entry missing 'scoreboard_position'"
-        );
+                let bettor_name = bettor.get("bettor_name").unwrap().as_str().unwrap();
+                let total_score = bettor.get("total_score").unwrap().as_i64().unwrap();
+                let scoreboard_position =
+                    bettor.get("scoreboard_position").unwrap().as_i64().unwrap();
 
-        let bettor_name = bettor.get("bettor_name").unwrap().as_str().unwrap();
-        let total_score = bettor.get("total_score").unwrap().as_i64().unwrap();
-        let scoreboard_position = bettor.get("scoreboard_position").unwrap().as_i64().unwrap();
+                // Check if the bettor name is in the reference JSON
+                let reference_array = reference_result
+                    .get("bettor_struct")
+                    .unwrap()
+                    .as_array()
+                    .unwrap();
+                let reference_bettor = reference_array
+                    .iter()
+                    .find(|s| s.get("bettor_name").unwrap().as_str().unwrap() == bettor_name)
+                    .unwrap();
 
-        // Check if the bettor name is in the reference JSON
-        let reference_array = reference_result
-            .get("bettor_struct")
-            .unwrap()
-            .as_array()
-            .unwrap();
-        let reference_bettor = reference_array
-            .iter()
-            .find(|s| s.get("bettor_name").unwrap().as_str().unwrap() == bettor_name)
-            .unwrap();
+                // Check if the total score matches
+                assert_eq!(
+                    total_score,
+                    reference_bettor
+                        .get("total_score")
+                        .unwrap()
+                        .as_i64()
+                        .unwrap(),
+                    "Total score mismatch for bettor '{}', expected {}, got {}",
+                    bettor_name,
+                    total_score,
+                    reference_bettor
+                        .get("total_score")
+                        .unwrap()
+                        .as_i64()
+                        .unwrap()
+                );
 
-        // Check if the total score matches
-        assert_eq!(
-            total_score,
-            reference_bettor
-                .get("total_score")
-                .unwrap()
-                .as_i64()
-                .unwrap(),
-            "Total score mismatch for bettor '{}', expected {}, got {}",
-            bettor_name,
-            total_score,
-            reference_bettor
-                .get("total_score")
-                .unwrap()
-                .as_i64()
-                .unwrap()
-        );
+                // Check if the scoreboard position matches
+                assert_eq!(
+                    scoreboard_position,
+                    reference_bettor
+                        .get("scoreboard_position")
+                        .unwrap()
+                        .as_i64()
+                        .unwrap(),
+                    "Scoreboard position mismatch for bettor '{}', expected {}, got {}",
+                    bettor_name,
+                    scoreboard_position,
+                    reference_bettor
+                        .get("scoreboard_position")
+                        .unwrap()
+                        .as_i64()
+                        .unwrap()
+                );
 
-        // Check if the scoreboard position matches
-        assert_eq!(
-            scoreboard_position,
-            reference_bettor
-                .get("scoreboard_position")
-                .unwrap()
-                .as_i64()
-                .unwrap(),
-            "Scoreboard position mismatch for bettor '{}', expected {}, got {}",
-            bettor_name,
-            scoreboard_position,
-            reference_bettor
-                .get("scoreboard_position")
-                .unwrap()
-                .as_i64()
-                .unwrap()
-        );
-
-        // Check if the scoreboard position name matches
-        assert_eq!(
-            bettor
-                .get("scoreboard_position_name")
-                .unwrap()
-                .as_str()
-                .unwrap(),
-            reference_bettor
-                .get("scoreboard_position_name")
-                .unwrap()
-                .as_str()
-                .unwrap(),
-            "Scoreboard position name mismatch for bettor '{}', expected '{}', got '{}'",
-            bettor_name,
-            bettor
-                .get("scoreboard_position_name")
-                .unwrap()
-                .as_str()
-                .unwrap(),
-            reference_bettor
-                .get("scoreboard_position_name")
-                .unwrap()
-                .as_str()
-                .unwrap()
-        );
-    }}}
+                // Check if the scoreboard position name matches
+                assert_eq!(
+                    bettor
+                        .get("scoreboard_position_name")
+                        .unwrap()
+                        .as_str()
+                        .unwrap(),
+                    reference_bettor
+                        .get("scoreboard_position_name")
+                        .unwrap()
+                        .as_str()
+                        .unwrap(),
+                    "Scoreboard position name mismatch for bettor '{}', expected '{}', got '{}'",
+                    bettor_name,
+                    bettor
+                        .get("scoreboard_position_name")
+                        .unwrap()
+                        .as_str()
+                        .unwrap(),
+                    reference_bettor
+                        .get("scoreboard_position_name")
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                );
+            }
+        }
+    }
 }

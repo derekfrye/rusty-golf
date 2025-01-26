@@ -9,14 +9,18 @@ use tokio::sync::RwLock;
 // use rusty_golf::controller::score;
 use rusty_golf::{controller::score::get_data_for_scores_page, model::CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, Db};
+use sqlx_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 
 #[tokio::test]
 async fn test_get_data_for_scores_page() {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
+
+    let x = "file::memory:?cache=shared".to_string();
+    let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
     let mut cfg = deadpool_postgres::Config::new();
-    cfg.dbname = Some(":memory:".to_string());
+    cfg.dbname = Some(x);
 
     let sqlite_configandpool =
         ConfigAndPool::new(cfg, sqlx_middleware::db::DatabaseType::Sqlite).await;
@@ -75,7 +79,7 @@ async fn test_get_data_for_scores_page() {
         .unwrap();
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
-    let x = get_data_for_scores_page(401580351, 2024, &cache_map, false, &sql_db)
+    let x = get_data_for_scores_page(401580351, 2024, &cache_map, false,&config_and_pool, &sql_db)
         .await
         .unwrap();
 
