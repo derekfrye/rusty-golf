@@ -23,7 +23,7 @@ use sqlx_middleware::{
 };
 
 #[tokio::test]
-async fn test_scores_endpoint() {
+async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
@@ -33,6 +33,44 @@ async fn test_scores_endpoint() {
 
     let config_and_pool = ConfigAndPool::new_sqlite(x).await.unwrap();
     // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
+
+    let setup_queries = include_str!("../src/admin/model/sql/schema/sqlite/00_table_drop.sql");
+    let query_and_params = QueryAndParams {
+        query: setup_queries.to_string(),
+        params: vec![],
+        is_read_only: false,
+    };
+
+    let pool = config_and_pool.pool.get().await.unwrap();
+    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+
+    let res = match &conn {
+        MiddlewarePoolConnection::Sqlite(sconn) => {
+            // let conn = conn.lock().unwrap();
+            sconn
+                .interact(move |xxx| {
+                    // let converted_params =
+                    //     sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    let tx = xxx.transaction()?;
+
+                    let result_set = {
+                        // let mut stmt = tx.prepare(&query_and_params.query)?;
+                        let rs =
+                            tx.execute_batch(&query_and_params.query)?;//.map_err(SqlMiddlewareDbError::from)?;
+                        rs
+                    };
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
+                // .map_err(|e| format!("Error executing query: {:?}", e))
+        }
+        _ => {
+            panic!("Only sqlite is supported ");
+        } // Result::<(), String>::Ok(())
+    }?;
+
+    assert!(res.is_ok(), "Error executing query: {:?}", res);   
 
     let tables = vec![
         "event",
@@ -86,31 +124,33 @@ async fn test_scores_endpoint() {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
-    let _res = match &conn {
+    let res = match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
             // let conn = conn.lock().unwrap();
             sconn
                 .interact(move |xxx| {
-                    let converted_params =
-                        sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    // let converted_params =
+                    //     sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
                     let tx = xxx.transaction()?;
 
                     let result_set = {
-                        let mut stmt = tx.prepare(&query_and_params.query)?;
+                        // let mut stmt = tx.prepare(&query_and_params.query)?;
                         let rs =
-                            sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                            tx.execute_batch(&query_and_params.query)?;//.map_err(SqlMiddlewareDbError::from)?;
                         rs
                     };
+                    tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
                 .await
-                .map_err(|e| format!("Error executing query: {:?}", e))
+                // .map_err(|e| format!("Error executing query: {:?}", e))
         }
         _ => {
             panic!("Only sqlite is supported ");
         } // Result::<(), String>::Ok(())
-    }
-    .unwrap();
+    }?;
+
+    assert!(res.is_ok(), "Error executing query: {:?}", res);   
 
     // let res = sql_db
     //     .exec_general_query(vec![query_and_params], false)
@@ -155,7 +195,7 @@ async fn test_scores_endpoint() {
         actix_web::http::StatusCode::OK => {
             println!("Success!");
         }
-        _status => {
+        status => {
             // Step 9: Assert the response status
             //     let resp_body = test::read_body(resp).await;
             // assert!(
@@ -164,11 +204,19 @@ async fn test_scores_endpoint() {
             //     String::from_utf8_lossy(&resp_body)
             // );
 
+            if status != actix_web::http::StatusCode::OK {
+                println!("Failed with status: {}", status);
+            }
+
             // Step 10: Parse the response body as JSON
             let body: Value = test::read_body_json(resp).await;
             // println!("Failed with status: {}, body: {}", status, String::from_utf8_lossy(&body));
 
             // println!("{}", serde_json::to_string_pretty(&body).unwrap());
+            let z = serde_json::to_string_pretty(&body).unwrap();
+            if cfg!(debug_assertions) {
+                println!("{}", z);
+            }
 
             // Step 11: Assert the JSON structure
             assert!(body.is_object(), "Response is not a JSON object");
@@ -289,4 +337,6 @@ async fn test_scores_endpoint() {
             }
         }
     }
+
+    Ok(())
 }

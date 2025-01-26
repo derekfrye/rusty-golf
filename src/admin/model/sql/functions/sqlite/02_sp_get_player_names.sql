@@ -1,6 +1,6 @@
 SELECT grp,
     golfername,
-    bettorrname,
+    bettorname,
     eup_id,
     espn_id
 FROM (
@@ -10,9 +10,9 @@ FROM (
         b.name AS bettorname,
         g.name AS golfername,
         eup.eup_id,
-        p.espn_id
+        g.espn_id
     FROM golfer AS g
-    JOIN event_user_player AS eup ON g.golfer_id = eup.player_id
+    JOIN event_user_player AS eup ON g.golfer_id = eup.golfer_id
     JOIN event AS e ON eup.event_id = e.event_id
     JOIN bettor AS b ON b.user_id = eup.user_id
     WHERE e.espn_id = ?1

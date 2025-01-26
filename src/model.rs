@@ -8,8 +8,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use sqlx_middleware::db::{Db, QueryState};
-use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 use sqlx_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
+use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Bettors {
@@ -225,8 +225,7 @@ pub type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
 pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
-) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
-
+) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     let query = match &conn {
@@ -259,150 +258,62 @@ pub async fn get_golfers_from_db(
                             sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
                         rs
                     };
+                    tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
                 .await
-                .map_err(|e| format!("Error executing query: {:?}", e))
         }
-        _ => {
-            panic!("Only sqlite is supported ");
-        } // Result::<(), String>::Ok(())
-    }
-    .unwrap();
+        _ => panic!("Only sqlite is supported "),
+    }?;
 
-    match res {
-        Ok(r) => {
-            let rows = r.results.clone();
-            let players = rows
-                .iter()
-                .map(|row| Scores {
-                    // parse column 0 as an int32
-                    group: row
-                        .get("grp")
-                        .and_then(|v| v.as_int())
-                        .copied()
-                        .unwrap_or_default(),
-                    golfer_name: row
-                        .get("golfername")
-                        .and_then(|v| v.as_text())
-                        .unwrap_or_default()
-                        .to_string(),
-                    bettor_name: row
-                        .get("bettorname")
-                        .and_then(|v| v.as_text())
-                        .unwrap_or_default()
-                        .to_string(),
-                    eup_id: row
-                        .get("eup_id")
-                        .and_then(|v| v.as_int())
-                        .copied()
-                        .unwrap_or_default(),
-                    espn_id: row
-                        .get("espn_id")
-                        .and_then(|v| v.as_int())
-                        .copied()
-                        .unwrap_or_default(),
-                    detailed_statistics: Statistic {
-                        eup_id: row
-                            .get("eup_id")
-                            .and_then(|v| v.as_int())
-                            .copied()
-                            .unwrap_or_default(),
-                        rounds: vec![],
-                        round_scores: vec![],
-                        tee_times: vec![],
-                        holes_completed_by_round: vec![],
-                        line_scores: vec![],
-                        success_fail: ResultStatus::NoData,
-                        total_score: 0,
-                    },
-                })
-                .collect();
-            return Ok(DatabaseResult {
-                db_last_exec_state: QueryState::QueryReturnedSuccessfully,
-                return_result: players,
-                error_message: None,
-                db_object_name: "sp_get_player_names".to_string(),
-            })
-        }
-        Err(e) => {
-            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-            return Ok(DatabaseResult {
-                db_last_exec_state: QueryState::QueryError,
-                return_result: vec![],
-                error_message: Some(emessage),
-                db_object_name: "sp_get_player_names".to_string(),
-            })
-        }
-    }
+    let z = res?
+        .results
+        .iter()
+        .map(|row| Scores {
+            // parse column 0 as an int32
+            group: row
+                .get("grp")
+                .and_then(|v| v.as_int())
+                .copied()
+                .unwrap_or_default(),
+            golfer_name: row
+                .get("golfername")
+                .and_then(|v| v.as_text())
+                .unwrap_or_default()
+                .to_string(),
+            bettor_name: row
+                .get("bettorname")
+                .and_then(|v| v.as_text())
+                .unwrap_or_default()
+                .to_string(),
+            eup_id: row
+                .get("eup_id")
+                .and_then(|v| v.as_int())
+                .copied()
+                .unwrap_or_default(),
+            espn_id: row
+                .get("espn_id")
+                .and_then(|v| v.as_int())
+                .copied()
+                .unwrap_or_default(),
+            detailed_statistics: Statistic {
+                eup_id: row
+                    .get("eup_id")
+                    .and_then(|v| v.as_int())
+                    .copied()
+                    .unwrap_or_default(),
+                rounds: vec![],
+                round_scores: vec![],
+                tee_times: vec![],
+                holes_completed_by_round: vec![],
+                line_scores: vec![],
+                success_fail: ResultStatus::NoData,
+                total_score: 0,
+            },
+        })
+        .collect();
 
-    // let result = db.exec_general_query(vec![query_and_params], true).await;
-    // let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult {
-    //     db_last_exec_state: QueryState::QueryReturnedSuccessfully,
-    //     return_result: vec![],
-    //     error_message: None,
-    //     db_object_name: "sp_get_player_names".to_string(),
-    // };
-
-    // match result {
-    //     Ok(r) => {
-    //         if r.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
-    //             let rows = r.return_result[0].results.clone();
-    //             let players = rows
-    //                 .iter()
-    //                 .map(|row| Scores {
-    //                     // parse column 0 as an int32
-    //                     group: row
-    //                         .get("grp")
-    //                         .and_then(|v| v.as_int())
-    //                         .copied()
-    //                         .unwrap_or_default(),
-    //                     golfer_name: row
-    //                         .get("golfername")
-    //                         .and_then(|v| v.as_text())
-    //                         .unwrap_or_default()
-    //                         .to_string(),
-    //                     bettor_name: row
-    //                         .get("bettorname")
-    //                         .and_then(|v| v.as_text())
-    //                         .unwrap_or_default()
-    //                         .to_string(),
-    //                     eup_id: row
-    //                         .get("eup_id")
-    //                         .and_then(|v| v.as_int())
-    //                         .copied()
-    //                         .unwrap_or_default(),
-    //                     espn_id: row
-    //                         .get("espn_id")
-    //                         .and_then(|v| v.as_int())
-    //                         .copied()
-    //                         .unwrap_or_default(),
-    //                     detailed_statistics: Statistic {
-    //                         eup_id: row
-    //                             .get("eup_id")
-    //                             .and_then(|v| v.as_int())
-    //                             .copied()
-    //                             .unwrap_or_default(),
-    //                         rounds: vec![],
-    //                         round_scores: vec![],
-    //                         tee_times: vec![],
-    //                         holes_completed_by_round: vec![],
-    //                         line_scores: vec![],
-    //                         success_fail: ResultStatus::NoData,
-    //                         total_score: 0,
-    //                     },
-    //                 })
-    //                 .collect();
-    //             dbresult.return_result = players;
-    //         }
-    //     }
-    //     Err(e) => {
-    //         let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-    //         dbresult.error_message = Some(emessage);
-    //     }
-    // }
-
-    // Ok(dbresult)
+    Ok(z)
 }
 
 pub async fn get_title_from_db(
@@ -501,7 +412,7 @@ pub async fn get_scores_from_db(
                             .and_then(|v| v.as_int())
                             .copied()
                             .unwrap_or_default(),
-                        
+
                         bettor_name: row
                             .get("bettor")
                             .and_then(|v| v.as_text())

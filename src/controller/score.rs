@@ -120,13 +120,13 @@ pub async fn get_data_for_scores_page(
         }
     }
 
-    let aactive_golfers = model::get_golfers_from_db(config_and_pool, event_id).await;
-    let active_golfers = match aactive_golfers {
-        Ok(active_golfers) => active_golfers.return_result,
-        Err(e) => {
-            return Err(e);
-        }
-    };
+    let active_golfers = model::get_golfers_from_db(config_and_pool, event_id).await?;
+    // let active_golfers = match aactive_golfers {
+    //     Ok(active_golfers) => active_golfers.return_result,
+    //     Err(e) => {
+    //         return Err(e);
+    //     }
+    // };
 
     let start_time = Instant::now();
     let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, &old_db)
