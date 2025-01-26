@@ -1,30 +1,26 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::TimesRun,
+    admin::model::admin_model::{test_is_db_setup, TimesRun},
     model::{TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL},
     HTMX_PATH,
 };
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
-use sqlx_middleware::{
-    convenience_items::{test_is_db_setup, MissingDbObjects},
-    db::{self, Db, QueryState},
-    model::{CheckType, DatabaseItem, DatabaseTable},
-};
+use sqlx_middleware::middleware::{CheckType, ConfigAndPool, DatabaseItem, DatabaseTable};
 
 #[derive(Debug, Clone)]
 pub struct CreateTableReturn {
     pub html: Markup,
     pub times_run: Value,
     pub times_run_int: i32,
-    pub db: Db,
+    pub config_and_pool: ConfigAndPool,
     tables: Vec<DatabaseItem>,
     table_exist_query: &'static str,
 }
 impl CreateTableReturn {
-    pub fn new(db: Db) -> Self {
+    pub async fn new(config_and_pool: ConfigAndPool) -> Self {
         let mut z = Vec::new();
         for x in TABLES_AND_DDL {
             let dbitem = DatabaseItem::Table(DatabaseTable {
@@ -38,7 +34,7 @@ impl CreateTableReturn {
             html: html!(p { "No data" }),
             times_run: json!({ "times_run": 0 }),
             times_run_int: 0,
-            db,
+            config_and_pool,
             tables: z,
             table_exist_query: include_str!("../model/sql/schema/postgres/0x_tables_exist.sql"),
         }
@@ -83,11 +79,10 @@ impl CreateTableReturn {
         &mut self,
         detailed_output: bool,
         check_type: CheckType, // query: &str,
-    ) -> Markup {
+    ) -> Result<Markup, Box<dyn std::error::Error>> {
         let db_obj_setup_state =
-            test_is_db_setup(&self.db, &check_type, self.table_exist_query, &self.tables)
-                .await
-                .unwrap();
+            test_is_db_setup(&self.config_and_pool, &check_type, self.table_exist_query, &self.tables)
+                .await?;
 
         let all_objs_setup_successfully = db_obj_setup_state
             .iter()
@@ -162,7 +157,7 @@ impl CreateTableReturn {
 
         let times_run = json!({ "times_run": 0 });
 
-        html! {
+    Ok(    html! {
             @if detailed_output {
                 @for dbresult in db_obj_setup_state.iter().filter(|x| x.db_last_exec_state != db::QueryState::QueryReturnedSuccessfully) {
                     @let message = format!("db result: {:?}, table name: {}, db err msg: {}"
@@ -196,7 +191,7 @@ impl CreateTableReturn {
             @else {
                 p { (all_items_not_setup_p) }
             }
-        }
+        })
     }
 
     /// Return bit of html indicating if tables created, plus some headers to trigger htmx

@@ -2,6 +2,7 @@ use crate::admin::model::admin_model::{AdminPage, AlphaNum14};
 
 use actix_web::{web, HttpResponse};
 use maud::PreEscaped;
+use sqlx_middleware::middleware::ConfigAndPool;
 use std::{collections::HashMap, env};
 
 use super::view::admin01_tables::CreateTableReturn;
@@ -53,7 +54,7 @@ impl AdminRouter {
     pub async fn router(
         &mut self,
         query: web::Query<HashMap<String, String>>,
-        db: sqlx_middleware::db::Db,
+        config_and_pool: ConfigAndPool,
     ) -> HttpResponse {
         let token_str = query
             .get("token")
@@ -88,7 +89,7 @@ impl AdminRouter {
             }
         }
 
-        let mut cr = CreateTableReturn::new(db);
+        let mut cr = CreateTableReturn::new(config_and_pool).await;
 
         // default page if p is empty in query string
         if admin_page == AdminPage::Landing {
