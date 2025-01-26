@@ -1,10 +1,8 @@
 use serde_json::Value;
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 use sqlx_middleware::{
-    db_model::{
-        ConfigAndPool, MiddlewarePool,
-        MiddlewarePoolConnection,
-        QueryAndParams, RowValues,
+    middleware::{
+        ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams, RowValues,
     },
     SqlMiddlewareDbError,
 };
@@ -25,7 +23,7 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
         let pool = config_and_pool.pool.get().await.map_err(|e| e.to_string())?;
         let conn = MiddlewarePool::get_connection(pool).await.map_err(|e| e.to_string())?;
 
-        let _res = (match &conn {
+        let _res = match &conn {
             MiddlewarePoolConnection::Sqlite(sconn) => {
                 // let conn = conn.lock().unwrap();
                 sconn
@@ -176,9 +174,8 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                 }
                             }
                         } else {
-                            println!(
-                                "Event and year already exist in the db. Skipping db prefill."
-                            );
+                            let x = format!("Event {} and year {} already exist in the db. Skipping db prefill.", json["event"].as_i64().unwrap(), json["year"].as_i64().unwrap());
+                            println!("{}", x.to_string());
                         }
                         tx.commit()?;
                         Ok::<_, SqlMiddlewareDbError>(result_set)
@@ -188,9 +185,10 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
             _ => {
                 return Err("Only sqlite is supported for db prefill".to_string());
             }
-        })?;
+        }?;
 
         Result::<(), String>::Ok(())
     })?;
+
     Ok(())
 }

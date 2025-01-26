@@ -5,7 +5,7 @@ use rusty_golf::controller::{score::scores, db_prefill};
 
 use rusty_golf::model::{get_title_from_db, CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
-use sqlx_middleware::db_model::ConfigAndPool as ConfigAndPool2;
+use sqlx_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};

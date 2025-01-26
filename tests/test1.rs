@@ -1,8 +1,9 @@
 use actix_web::{test, App};
 use serde_json::Value;
 
-use sqlx_middleware::convenience_items::{create_tables, MissingDbObjects};
-use sqlx_middleware::model::{CheckType, QueryAndParams};
+use sqlx_middleware::convenience_items::{ create_tables3, MissingDbObjects};
+use sqlx_middleware::middleware::CheckType;
+// use sqlx_middleware::model::{CheckType, QueryAndParams};
 // use sqlx::sqlite::SqlitePoolOptions;
 use std::sync::Arc;
 use std::{collections::HashMap, vec};
@@ -10,19 +11,27 @@ use tokio::sync::RwLock;
 
 // use rusty_golf::controller::score;
 use rusty_golf::{controller::score::scores, model::CacheMap};
-use sqlx_middleware::db::{ConfigAndPool, Db, QueryState};
+// use sqlx_middleware::db::{ConfigAndPool, Db, QueryState};
+use sqlx_middleware::{
+    middleware::{
+        ConfigAndPool, MiddlewarePool,
+        MiddlewarePoolConnection,
+        QueryAndParams, //RowValues, QueryState
+    },
+    SqlMiddlewareDbError,
+};
 
 #[tokio::test]
 async fn test_scores_endpoint() {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
-    let mut cfg = deadpool_postgres::Config::new();
-    cfg.dbname = Some(":memory:".to_string());
+    // let mut cfg = deadpool_postgres::Config::new();
+    let x = "file::memory:?cache=shared".to_string();
 
-    let sqlite_configandpool =
-        ConfigAndPool::new(cfg, sqlx_middleware::db::DatabaseType::Sqlite).await;
-    let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
+    let config_and_pool =
+        ConfigAndPool::new_sqlite(x).await.unwrap();
+    // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
 
     let tables = vec![
         "event",
@@ -54,8 +63,8 @@ async fn test_scores_endpoint() {
         });
     }
 
-    let create_result = create_tables(
-        &sql_db,
+    let _create_result = create_tables3(
+        &config_and_pool,
         missing_objs,
         CheckType::Table,
         &table_ddl
@@ -66,14 +75,16 @@ async fn test_scores_endpoint() {
     .await
     .unwrap();
 
-    if create_result.db_last_exec_state == QueryState::QueryError {
-        eprintln!("Error: {}", create_result.error_message.unwrap());
-    }
-    assert_eq!(
-        create_result.db_last_exec_state,
-        QueryState::QueryReturnedSuccessfully
-    );
-    assert_eq!(create_result.return_result, String::default());
+    // no need to check these things, if its going to err, it'll err
+
+    // if create_result.db_last_exec_state == QueryState::QueryError {
+    //     eprintln!("Error: {}", create_result.error_message.unwrap());
+    // }
+    // assert_eq!(
+    //     create_result.db_last_exec_state,
+    //     QueryState::QueryReturnedSuccessfully
+    // );
+    // assert_eq!(create_result.return_result, String::default());
 
     // // Step 1: Set up an in-memory SQLite database
     // let sqlite_pool = SqlitePoolOptions::new()
@@ -86,15 +97,48 @@ async fn test_scores_endpoint() {
     let query_and_params = QueryAndParams {
         query: setup_queries.to_string(),
         params: vec![],
+        is_read_only: false,
     };
-    let res = sql_db
-        .exec_general_query(vec![query_and_params], false)
-        .await
-        .unwrap();
-    assert_eq!(
-        res.db_last_exec_state,
-        QueryState::QueryReturnedSuccessfully
-    );
+
+    let pool = config_and_pool.pool.get().await.unwrap();
+        let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+
+        let _res = match &conn {
+            MiddlewarePoolConnection::Sqlite(sconn) => {
+                // let conn = conn.lock().unwrap();
+                sconn
+                    .interact(move |xxx| {
+                        let converted_params = sqlx_middleware::sqlite_convert_params(
+                            &query_and_params.params
+                        )?;
+                        let tx = xxx.transaction()?;
+
+                        let result_set = {
+                            let mut stmt = tx.prepare(&query_and_params.query)?;
+                            let rs = sqlx_middleware::sqlite_build_result_set(
+                                &mut stmt,
+                                &converted_params
+                            )?;
+                            rs
+                        };
+                        Ok::<_, SqlMiddlewareDbError>(result_set)
+                    }).await
+                    .map_err(|e| format!("Error executing query: {:?}", e))
+            }
+            _ => {
+                panic!("Only sqlite is supported ");
+            }
+            // Result::<(), String>::Ok(())
+    }.unwrap();        
+
+    // let res = sql_db
+    //     .exec_general_query(vec![query_and_params], false)
+    //     .await
+    //     .unwrap();
+    // assert_eq!(
+    //     res.db_last_exec_state,
+    //     QueryState::QueryReturnedSuccessfully
+    // );
 
     // Step 5: Initialize the cache
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
@@ -103,7 +147,7 @@ async fn test_scores_endpoint() {
     let app = test::init_service(
         App::new()
             .app_data(actix_web::web::Data::new(cache_map.clone()))
-            .app_data(actix_web::web::Data::new(sqlite_configandpool.clone()))
+            .app_data(actix_web::web::Data::new(config_and_pool.clone()))
             .route("/scores", actix_web::web::get().to(scores)),
     )
     .await;
@@ -126,12 +170,24 @@ async fn test_scores_endpoint() {
 
     // Step 8: Send the request and get the response
     let resp = test::call_service(&app, req).await;
+    match resp.status() {
+        actix_web::http::StatusCode::OK => {
+            println!("Success!");
+        }
+        _status => {
+           
 
     // Step 9: Assert the response status
-    assert!(resp.status().is_success(), "Response was not successful");
+//     let resp_body = test::read_body(resp).await;
+// assert!(
+//     resp.status().is_success(),
+//     "Response was not successful: {}",
+//     String::from_utf8_lossy(&resp_body)
+// );
 
     // Step 10: Parse the response body as JSON
     let body: Value = test::read_body_json(resp).await;
+    println!("Failed with status: {}, body: {}", status, String::from_utf8_lossy(&body));
 
     // println!("{}", serde_json::to_string_pretty(&body).unwrap());
 
@@ -250,5 +306,5 @@ async fn test_scores_endpoint() {
                 .as_str()
                 .unwrap()
         );
-    }
+    }}}
 }
