@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS golfer (
     -- drop table player cascade
     golfer_id INTEGER NOT NULL PRIMARY KEY,
-    espn_id integer NOT NULL,
+    espn_id integer NOT NULL UNIQUE,
     name TEXT NOT NULL,
     ins_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );

@@ -169,7 +169,7 @@ fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
 
 /// Validate the json file format
 /// format we expect is this:
-/// [{ "event": <int>, "year": <int>, "data_to_fill_if_event_and_year_missing": [
+/// [{ "event": <int>, "year": <int>, "name":"value", "data_to_fill_if_event_and_year_missing": [
 /// { "bettors": [{"PlayerName", "PlayerName2", "PlayerName3"...}]
 /// , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
 /// , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
@@ -180,17 +180,29 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
     }
 
     // format we expect is this:
-    // [{ "event": <int>, "year": <int>, "data_to_fill_if_event_and_year_missing": [
+    // [{ "event": <int>, "year": <int>, "name": "", "data_to_fill_if_event_and_year_missing": [
     //{ "bettors": [{"PlayerName", "PlayerName2", "PlayerName3"...}]
     // , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
     // , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
     // }]}]
 
     // check the json against this format
-    let expected_keys = vec!["event", "year", "data_to_fill_if_event_and_year_missing"];
+    let expected_keys = vec!["event", "year", "name", "data_to_fill_if_event_and_year_missing"];
     for (key, _) in json.as_object().unwrap() {
         if !expected_keys.contains(&key.as_str()) {
             return Err(format!("The json file is not in the correct format. Expected keys: {:?}", expected_keys));
+        }
+        let event = &json["event"];
+        if !event.is_number() {
+            return Err("The json key event is not in the correct format. Expected a number.".to_string());
+        }
+        let year = &json["year"];
+        if !year.is_number() {
+            return Err("The json key year is not in the correct format. Expected a number.".to_string());
+        }
+        let name = &json["name"];
+        if !name.is_string() {
+            return Err("The json key name is not in the correct format. Expected a string.".to_string());
         }
     }
 

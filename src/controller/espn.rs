@@ -48,17 +48,17 @@ pub async fn fetch_scores_from_espn(
     db  : &db::Db,
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
     let x = go_get_espn_data(scores, year, event_id).await.unwrap();
-let y = store_espn_results(&x, year, event_id, db).await.unwrap();
+let y = store_espn_results(&x, event_id, db).await.unwrap();
     Ok(y)
 }
 
 async fn store_espn_results(
     scores: &Vec<Scores>,
-    year: i32,
+    // year: i32,
     event_id: i32,
     db: &db::Db,
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
-    let x=store_scores_in_db(db, event_id, scores).await.unwrap();
+    let _x=store_scores_in_db(db, event_id, scores).await.unwrap();
     let y = get_scores_from_db(db, event_id).await.unwrap();
     if y.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
         Ok(y.return_result)
