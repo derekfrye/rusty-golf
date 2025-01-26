@@ -57,7 +57,7 @@ pub struct Args {
         value_name = "DATABASE_STARTUP_SCRIPT",
         value_parser = check_readable_file_and_json
     )]
-    pub db_populate_json: Option<String>,
+    pub db_populate_json: Option<Value>,
 }
 
 pub struct CleanArgs {

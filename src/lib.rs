@@ -14,7 +14,7 @@ pub mod controller {
     pub mod cache;
     pub mod espn;
     pub mod score;
-    mod db_prefill;
+   pub mod db_prefill;
 }
 pub mod view {
     pub mod index;

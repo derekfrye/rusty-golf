@@ -1,11 +1,11 @@
+extern crate rusty_golf; 
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
-use rusty_golf::controller::{score::scores, db_prefill::db_prefill};
+use rusty_golf::controller::{score::scores, db_prefill};
+
 use rusty_golf::model::{get_title_from_db, CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
-use sqlx_middleware::db_model::MiddlewarePoolConnection::{
-    self, Sqlite as SqliteMiddlewarePoolConnection,
-};
+use sqlx_middleware::db_model::ConfigAndPool as ConfigAndPool2;
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -24,6 +24,8 @@ async fn main() -> std::io::Result<()> {
 
     let mut cfg = deadpool_postgres::Config::new();
     let dbcn: ConfigAndPool;
+    let pth =  "file::memory:?cache=shared".to_string();
+    let cfg2 = ConfigAndPool2::new_sqlite(pth).await.unwrap();
     if args.db_type == DatabaseType::Postgres {
         cfg.dbname = Some(args.db_name);
         cfg.host = args.db_host;
@@ -37,7 +39,7 @@ async fn main() -> std::io::Result<()> {
     } else {
         cfg.dbname = Some(args.db_name);
         dbcn = ConfigAndPool::new(cfg, DatabaseType::Sqlite).await;
-        let sqlite_configandpool = ConfigAndPool2::new_sqlite(x).await.unwrap();
+        // let sqlite_configandpool = ConfigAndPool2::new_sqlite(x).await.unwrap();
     // let pool = sqlite_configandpool.pool.get().await.unwrap();
     // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     }
@@ -61,6 +63,11 @@ async fn main() -> std::io::Result<()> {
             eprintln!("Check your --db-startup-script, since you passed that var.");
             std::process::exit(1);
         }
+    }
+
+    if args.db_populate_json.is_some() {
+        let _res=db_prefill::db_prefill(&args.db_populate_json.unwrap(), &cfg2 );
+        // db_prefill(args.db_populate_json.unwrap());
     }
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));

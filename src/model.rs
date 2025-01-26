@@ -372,26 +372,10 @@ pub async fn get_scores_from_db(
             dbresult.db_last_exec_state = r.db_last_exec_state;
             dbresult.error_message = r.error_message;
             if r.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
-                let rows = r.return_result[0].results;
+                let rows = &r.return_result[0].results;
                 let scores = rows
                     .iter()
                     .map(|row| Scores {
-                        // parse column 0 as an int32
-                        group: row
-                            .get("grp")
-                            .and_then(|v| v.as_int())
-                            .copied()
-                            .unwrap_or_default(),
-                        golfer_name: row
-                            .get("golfername")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default()
-                            .to_string(),
-                        bettor_name: row
-                            .get("playername")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default()
-                            .to_string(),
                         eup_id: row
                             .get("eup_id")
                             .and_then(|v| v.as_int())
@@ -402,6 +386,22 @@ pub async fn get_scores_from_db(
                             .and_then(|v| v.as_int())
                             .copied()
                             .unwrap_or_default(),
+                        golfer_name: row
+                            .get("golfername")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default()
+                            .to_string(),
+                        group: row
+                            .get("grp")
+                            .and_then(|v| v.as_int())
+                            .copied()
+                            .unwrap_or_default(),
+                        
+                        bettor_name: row
+                            .get("bettor")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default()
+                            .to_string(),
                         detailed_statistics: Statistic {
                             eup_id: row
                                 .get("eup_id")
@@ -426,6 +426,8 @@ pub async fn get_scores_from_db(
             dbresult.error_message = Some(emessage);
         }
     }
+
+    Ok(dbresult)
 }
 
 pub async fn store_scores_in_db(
