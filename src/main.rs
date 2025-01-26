@@ -1,8 +1,11 @@
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
-use rusty_golf::controller::score::scores;
+use rusty_golf::controller::{score::scores, db_prefill::db_prefill};
 use rusty_golf::model::{get_title_from_db, CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
+use sqlx_middleware::db_model::MiddlewarePoolConnection::{
+    self, Sqlite as SqliteMiddlewarePoolConnection,
+};
 
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -34,6 +37,9 @@ async fn main() -> std::io::Result<()> {
     } else {
         cfg.dbname = Some(args.db_name);
         dbcn = ConfigAndPool::new(cfg, DatabaseType::Sqlite).await;
+        let sqlite_configandpool = ConfigAndPool2::new_sqlite(x).await.unwrap();
+    // let pool = sqlite_configandpool.pool.get().await.unwrap();
+    // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     }
 
     if args.db_startup_script.is_some() {

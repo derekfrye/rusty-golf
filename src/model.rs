@@ -6,7 +6,6 @@ use tokio::sync::RwLock;
 
 use sqlx_middleware::db::{Db, QueryState};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
-use sqlx_middleware::FromRow; // Re-exported trait
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Bettors {
@@ -26,7 +25,7 @@ pub struct Scores {
     pub group: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, FromRow)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Statistic {
     pub eup_id: i64,
     pub rounds: Vec<IntStat>,
