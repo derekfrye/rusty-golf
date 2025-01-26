@@ -496,18 +496,25 @@ pub async fn store_scores_in_db(
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     let queries = build_insert_stms(scores, event_id);
+    println!("got here");
 
     match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
             // let conn = conn.lock().unwrap();
+            println!("got here too");
             sconn
                 .interact(move |xxx| {
+                    println!("got here 3");
                     let tx = xxx.transaction()?;
                     {
+                        println!("got here 4");
+                        println!("Query: {:?}", queries[0].query);
                         let mut stmt = tx.prepare(&queries[0].query)?;
+                        println!("got here 5");
                         let x = stmt.expanded_sql();
+                        println!("got here 6");
                         if cfg!(debug_assertions) {
-                            println!("Query: {}", x);
+                            println!("Query from dbg: {:?}", x);
                         }
                         for query in queries {
                             let converted_params =

@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS event (
     name TEXT NOT NULL,
     ins_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE (espn_id, year)
+    UNIQUE (espn_id)
 );
