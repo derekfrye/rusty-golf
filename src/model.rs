@@ -447,50 +447,30 @@ pub async fn get_scores_from_db(
 }
 
 pub async fn store_scores_in_db(
-    db: &Db,
+    config_and_pool: &ConfigAndPool,
     event_id: i32,
     scores: &Vec<Scores>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> QueryAndParams {
-        let mut insert_stms = vec![];
-        let mut params = vec![];
+) -> Result<(), SqlMiddlewareDbError> {
+    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> Vec<QueryAndParams2> {
+        let mut queries = vec![];
         for score in scores {
-            let insert_stmt = "INSERT INTO eup_statistic (
-                    event_id
-                    , eup_id
-                    , group
-                    , rounds
-                    , round_scores
-                    , tee_times
-                    , holes_completed_by_round
-                    , line_scores
-                ) 
-                VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?
-                )
-                ON CONFLICT (event_id, eup_id) DO UPDATE SET
-                    group = EXCLUDED.group
-                    , rounds = EXCLUDED.rounds
-                    , round_scores = EXCLUDED.round_scores
-                    , tee_times = EXCLUDED.tee_times
-                    , holes_completed_by_round = EXCLUDED.holes_completed_by_round
-                    , line_scores = EXCLUDED.line_scores"
-                .to_string();
+            let insert_stmt =
+                include_str!("admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
             let param = vec![
-                RowValues::Int(event_id as i64),
-                RowValues::Int(score.eup_id),
-                RowValues::Int(score.group),
-                RowValues::Text(
+                RowValues2::Int(event_id as i64),
+                RowValues2::Int(score.eup_id),
+                RowValues2::Int(score.group),
+                RowValues2::Text(
                     serde_json::to_string(score.detailed_statistics.rounds.as_slice()).unwrap(),
                 ),
-                RowValues::Text(
+                RowValues2::Text(
                     serde_json::to_string(score.detailed_statistics.round_scores.as_slice())
                         .unwrap(),
                 ),
-                RowValues::Text(
+                RowValues2::Text(
                     serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).unwrap(),
                 ),
-                RowValues::Text(
+                RowValues2::Text(
                     serde_json::to_string(
                         score
                             .detailed_statistics
@@ -499,48 +479,47 @@ pub async fn store_scores_in_db(
                     )
                     .unwrap(),
                 ),
-                RowValues::Text(
+                RowValues2::Text(
                     serde_json::to_string(score.detailed_statistics.line_scores.as_slice())
                         .unwrap(),
                 ),
             ];
-            insert_stms.push(insert_stmt);
-            params.push(param);
+            queries.push(QueryAndParams2 {
+                query: insert_stmt.to_string(),
+                params: param,
+                is_read_only: false,
+            });
         }
-        QueryAndParams {
-            query: insert_stms.join("\n"),
-            params: params.into_iter().flatten().collect(),
-        }
+        queries
     }
 
-    let query_and_params =
-        if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Sqlite {
-            let x = build_insert_stms(scores, event_id);
-            QueryAndParams {
-                query: x.query,
-                params: x.params,
-            }
-        } else {
-            QueryAndParams {
-                query: "".to_string(),
-                params: vec![RowValues::Int(event_id as i64)],
-            }
-        };
-    let result = db.exec_general_query(vec![query_and_params], false).await;
+    let pool = config_and_pool.pool.get().await.unwrap();
+    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+    let queries = build_insert_stms(scores, event_id);
 
-    let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
+    match &conn {
+        MiddlewarePoolConnection::Sqlite(sconn) => {
+            // let conn = conn.lock().unwrap();
+            sconn
+                .interact(move |xxx| {
+                    let tx = xxx.transaction()?;
+                    {
+                        let mut stmt = tx.prepare(&queries[0].query)?;
+                        for query in queries {
+                            let converted_params =
+                                sqlx_middleware::sqlite_convert_params(&query.params)?;
 
-    let res = match result {
-        Ok(r) => {
-            dbresult.db_last_exec_state = r.db_last_exec_state;
-            dbresult.error_message = r.error_message;
+                            let _rs = stmt.execute(sqlx_middleware::sqlite_params_from_iter(
+                                converted_params.iter(),
+                            ))?;
+                        }
+                    }
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(())
+                })
+                .await??;
+            Ok(())
         }
-        Err(e) => {
-            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-            let mut dbresult: DatabaseResult<String> = DatabaseResult::<String>::default();
-            dbresult.error_message = Some(emessage);
-        }
-    };
-
-    Ok(res)
+        _ => panic!("Only sqlite is supported "),
+    }
 }

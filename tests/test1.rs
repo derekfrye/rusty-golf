@@ -74,7 +74,6 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
 
     let tables = vec![
         "event",
-        // "golfstatistic",
         "golfer",
         "bettor",
         "event_user_player",
@@ -82,7 +81,6 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     ];
     let ddl = vec![
         include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
-        // include_str!("../src/admin/model/sql/schema/sqlite/01_golfstatistic.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/03_bettor.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/04_event_user_player.sql"),
@@ -111,8 +109,9 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
             .map(|(a, b, c, d)| (**a, *b, *c, *d))
             .collect::<Vec<_>>(),
     )
-    .await
-    .unwrap();
+    .await?;
+
+    assert!(res.is_ok(), "Error executing query: {:?}", res);   
 
     let setup_queries = include_str!("test1.sql");
     let query_and_params = QueryAndParams {

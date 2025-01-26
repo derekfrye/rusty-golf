@@ -129,9 +129,7 @@ pub async fn get_data_for_scores_page(
     // };
 
     let start_time = Instant::now();
-    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, &old_db)
-        .await
-        .unwrap();
+    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, &old_db, config_and_pool).await?;
 
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &golfers_and_scores {

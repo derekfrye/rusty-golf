@@ -1,7 +1,6 @@
 CREATE TABLE IF NOT EXISTS eup_statistic (
-    -- drop table eup_statistic
     eup_stat_id INTEGER NOT NULL PRIMARY KEY,
-    event_id INT NOT NULL REFERENCES event(event_id),
+    event_espn_id INT NOT NULL REFERENCES event(espn_id),
     eup_id INT NOT NULL REFERENCES event_user_player(eup_id),
     grp INT NOT NULL,
     
@@ -19,5 +18,7 @@ CREATE TABLE IF NOT EXISTS eup_statistic (
     holes_completed_by_round JSON NOT NULL,
     line_scores JSON NOT NULL,
     upd_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    ins_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ins_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE (event_id, eup_id)
     );
