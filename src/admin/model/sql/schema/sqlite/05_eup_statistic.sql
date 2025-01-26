@@ -20,5 +20,5 @@ CREATE TABLE IF NOT EXISTS eup_statistic (
     upd_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ins_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE (event_id, eup_id)
+    UNIQUE (event_espn_id, eup_id)
     );

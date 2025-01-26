@@ -100,7 +100,7 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    let _create_result = create_tables3(
+    let create_result = create_tables3(
         &config_and_pool,
         missing_objs,
         CheckType::Table,
@@ -109,9 +109,9 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
             .map(|(a, b, c, d)| (**a, *b, *c, *d))
             .collect::<Vec<_>>(),
     )
-    .await?;
+    .await;
 
-    assert!(res.is_ok(), "Error executing query: {:?}", res);   
+    assert!(create_result.is_ok(), "Error executing query: {:?}", create_result);   
 
     let setup_queries = include_str!("test1.sql");
     let query_and_params = QueryAndParams {

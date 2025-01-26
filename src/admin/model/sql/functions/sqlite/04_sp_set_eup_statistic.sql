@@ -17,7 +17,7 @@ VALUES (
     ?6,
     ?7,
     ?8
-    ) ON CONFLICT(event_id, eup_id) DO
+    ) ON CONFLICT(event_espn_id, eup_id) DO
 
 UPDATE
 SET grp = EXCLUDED.grp,

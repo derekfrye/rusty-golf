@@ -505,6 +505,10 @@ pub async fn store_scores_in_db(
                     let tx = xxx.transaction()?;
                     {
                         let mut stmt = tx.prepare(&queries[0].query)?;
+                        let x = stmt.expanded_sql();
+                        if cfg!(debug_assertions) {
+                            println!("Query: {}", x);
+                        }
                         for query in queries {
                             let converted_params =
                                 sqlx_middleware::sqlite_convert_params(&query.params)?;
