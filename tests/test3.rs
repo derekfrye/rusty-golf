@@ -12,7 +12,7 @@ use sqlx_middleware::db::{ConfigAndPool, Db};
 use sqlx_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 
 #[tokio::test]
-async fn test_get_data_for_scores_page() {
+async fn test_get_data_for_scores_page() -> Result<(), Box<Box<dyn std::error::Error>>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
@@ -79,9 +79,10 @@ async fn test_get_data_for_scores_page() {
         .unwrap();
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
-    let x = get_data_for_scores_page(401580351, 2024, &cache_map, false,&config_and_pool, &sql_db)
-        .await
-        .unwrap();
+    let x = match get_data_for_scores_page(401580351, 2024, &cache_map, false, &config_and_pool).await {
+        Ok(data) => data,
+        Err(e) => return Err(Box::new(e)),
+    };
 
     // load reference json
     let reference_result_str = include_str!("test3_espn_json_responses.json");
@@ -152,6 +153,8 @@ async fn test_get_data_for_scores_page() {
 
     assert_eq!(left, right);
     assert_eq!(left, 3); // line 6824 in test3_espn_json_responses.json
+
+    Ok(())
 
     // let active_golfers = model::get_golfers_from_db(&sql_db, 401580351).await.unwrap().return_result;
 

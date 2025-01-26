@@ -1,53 +1,16 @@
-CREATE
-    OR REPLACE FUNCTION sp_get_scores (eup_id bigINT)
-RETURNS TABLE (
-        round int
-        , statistic_type text
-        , intval int
-        , timeval timestamp
-        , last_refresh_ts timestamp
-        ) AS $$
-
-BEGIN
-    RETURN QUERY
-
-    SELECT 
-        round
-        , statistic_type
-        , intval 
-        , NULL
-        last_refresh_ts
-    FROM eup_statistic AS es
-    -- eup_id is unique for an event, golfer, and better
-    -- eup_id comes to the interface via sp_get_player_names
-    WHERE es.eup_id = $1 and statistic_type = 'score'
-    UNION
-    SELECT 
-        round
-        , statistic_type
-        , NULL 
-        , timeval
-        last_refresh_ts
-    FROM eup_statistic AS es
-    WHERE es.eup_id = $1 and statistic_type = 'teetime'
-    UNION
-    SELECT 
-        round
-        , statistic_type
-        , intval 
-        , NULL
-        last_refresh_ts
-    FROM eup_statistic AS es
-    WHERE es.eup_id = $1 and statistic_type = 'holescompleted';
-END;$$
-
-LANGUAGE plpgsql;
-    /*
-
-SELECT 'DROP FUNCTION ' || oid::regprocedure || ';'
-FROM   pg_proc
-WHERE  proname = 'sp_get_scores'  -- name without schema-qualification
-AND    pg_function_is_visible(oid);  -- restrict to current search_path
-
-DROP FUNCTION sp_get_scores(bigint,bigint,integer);
-*/
+SELECT golfer_espn_id,
+    es.eup_id,
+    grp,
+    rounds,
+    round_scores,
+    tee_times,
+    holes_completed_by_round,
+    line_scores,
+    g.name AS golfername,
+    b.name as bettorname,
+    es.total_score
+FROM eup_statistic AS es
+JOIN golfer AS g ON es.golfer_espn_id = g.espn_id
+join event_user_player as eup on es.eup_id = eup.eup_id
+join bettor as b on b.user_id = eup.user_id
+WHERE es.event_espn_id = ?1;

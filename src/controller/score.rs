@@ -2,7 +2,7 @@ use actix_web::web::{self, Data};
 use actix_web::{HttpResponse, Responder};
 use serde_json::json;
 use sqlx_middleware::middleware::ConfigAndPool;
-use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType, Db};
+// use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
 
 use crate::controller::cache::{check_cache_expired, get_or_create_cache};
 use crate::controller::espn::fetch_scores_from_espn;
@@ -82,13 +82,13 @@ pub async fn scores(
     };
 
     let mut cfg = deadpool_postgres::Config::new();
-    let dbcn: ConfigAndPoolOld;
+    // let dbcn: ConfigAndPoolOld;
     cfg.dbname = Some("xxx".to_string());
-    dbcn = ConfigAndPoolOld::new(cfg, DatabaseType::Sqlite).await;
-    let db = Db::new(dbcn.clone()).unwrap();
+    // dbcn = ConfigAndPoolOld::new(cfg, DatabaseType::Sqlite).await;
+    // let db = Db::new(dbcn.clone()).unwrap();
     
     let total_cache =
-        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &config_and_pool,&db).await;
+        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &config_and_pool).await;
 
     match total_cache {
         Ok(cache) => {
@@ -111,7 +111,7 @@ pub async fn get_data_for_scores_page(
     cache_map: &CacheMap,
     use_cache: bool,
     config_and_pool: &ConfigAndPool,
-    old_db: &Db,
+    // old_db: &Db,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
@@ -129,7 +129,7 @@ pub async fn get_data_for_scores_page(
     // };
 
     let start_time = Instant::now();
-    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, &old_db, config_and_pool).await?;
+    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, config_and_pool).await?;
 
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &golfers_and_scores {

@@ -1,3 +1,4 @@
+// use deadpool_postgres::tokio_postgres::Row;
 // use actix_web::cookie::time::format_description::well_known::iso8601::Config;
 // use deadpool_postgres::tokio_postgres::Row;
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use sqlx_middleware::db::{Db, QueryState};
+use sqlx_middleware::db::Db;
 use sqlx_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
 use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
@@ -367,83 +368,115 @@ pub async fn get_title_from_db(
 }
 
 pub async fn get_scores_from_db(
-    db: &Db,
+    config_and_pool: &ConfigAndPool,
     event_id: i32,
-) -> Result<DatabaseResult<Vec<Scores>>, Box<dyn std::error::Error>> {
-    let query: &str = if db.config_and_pool.db_type == sqlx_middleware::db::DatabaseType::Postgres {
-        "SELECT * FROM sp_get_scores($1)"
-    } else {
-        include_str!("admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
+) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
+    let pool = config_and_pool.pool.get().await.unwrap();
+    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+    let query = match &conn {
+        MiddlewarePoolConnection::Postgres(_) => {
+            "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
+        }
+        MiddlewarePoolConnection::Sqlite(_) => {
+            include_str!("admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
+        }
     };
-    let query_and_params = QueryAndParams {
+    let query_and_params = QueryAndParams2 {
         query: query.to_string(),
-        params: vec![RowValues::Int(event_id as i64)],
+        params: vec![RowValues2::Int(event_id as i64)],
+        is_read_only: true,
     };
-    let result = db.exec_general_query(vec![query_and_params], true).await;
 
-    let mut dbresult: DatabaseResult<Vec<Scores>> = DatabaseResult::<Vec<Scores>>::default();
+    let res = match &conn {
+        MiddlewarePoolConnection::Sqlite(sconn) => {
+            // let conn = conn.lock().unwrap();
+            sconn
+                .interact(move |xxx| {
+                    let converted_params =
+                        sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    let tx = xxx.transaction()?;
 
-    match result {
-        Ok(r) => {
-            dbresult.db_last_exec_state = r.db_last_exec_state;
-            dbresult.error_message = r.error_message;
-            if r.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
-                let rows = &r.return_result[0].results;
-                let scores = rows
-                    .iter()
-                    .map(|row| Scores {
-                        eup_id: row
-                            .get("eup_id")
-                            .and_then(|v| v.as_int())
-                            .copied()
-                            .unwrap_or_default(),
-                        espn_id: row
-                            .get("espn_id")
-                            .and_then(|v| v.as_int())
-                            .copied()
-                            .unwrap_or_default(),
-                        golfer_name: row
-                            .get("golfername")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default()
-                            .to_string(),
-                        group: row
-                            .get("grp")
-                            .and_then(|v| v.as_int())
-                            .copied()
-                            .unwrap_or_default(),
-
-                        bettor_name: row
-                            .get("bettor")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default()
-                            .to_string(),
-                        detailed_statistics: Statistic {
-                            eup_id: row
-                                .get("eup_id")
-                                .and_then(|v| v.as_int())
-                                .copied()
-                                .unwrap_or_default(),
-                            rounds: vec![],
-                            round_scores: vec![],
-                            tee_times: vec![],
-                            holes_completed_by_round: vec![],
-                            line_scores: vec![],
-                            success_fail: ResultStatus::NoData,
-                            total_score: 0,
-                        },
-                    })
-                    .collect();
-                dbresult.return_result = scores;
-            }
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params.query)?;
+                        let rs =
+                            sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                        rs
+                    };
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
         }
-        Err(e) => {
-            let emessage = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-            dbresult.error_message = Some(emessage);
-        }
-    }
+        _ => panic!("Only sqlite is supported "),
+    }?;
 
-    Ok(dbresult)
+    let z: Result<Vec<Scores>, SqlMiddlewareDbError> = res?
+        .results
+        .iter()
+        .map(|row| Ok(Scores {
+            // parse column 0 as an int32
+            group: row
+                .get("grp")
+                .and_then(|v| v.as_int())
+                .copied()
+                .unwrap_or_default(),
+            golfer_name: row
+                .get("golfername")
+                .and_then(|v| v.as_text())
+                .unwrap_or_default()
+                .to_string(),
+            bettor_name: row
+                .get("bettorname")
+                .and_then(|v| v.as_text())
+                .unwrap_or_default()
+                .to_string(),
+            eup_id: row
+                .get("eup_id")
+                .and_then(|v| v.as_int())
+                .copied()
+                .unwrap_or_default(),
+            espn_id: row
+                .get("golfer_espn_id")
+                .and_then(|v| v.as_int())
+                .copied()
+                .unwrap_or_default(),
+            detailed_statistics: Statistic {
+                eup_id: row
+                    .get("eup_id")
+                    .and_then(|v| v.as_int())
+                    .copied()
+                    .unwrap_or_default(),
+                rounds: match serde_json::from_str(row.get("rounds").and_then(|v| v.as_text()).unwrap_or_default()) {
+                    Ok(rounds) => rounds,
+                    Err(e) => return Err(SqlMiddlewareDbError::Other(e.to_string())),
+                },
+                round_scores: match serde_json::from_str(row.get("round_scores").and_then(|v| v.as_text()).unwrap_or_default()) {
+                    Ok(round_scores) => round_scores,
+                    Err(e) => return Err(SqlMiddlewareDbError::Other(e.to_string())),
+                },
+                tee_times: match serde_json::from_str(row.get("tee_times").and_then(|v| v.as_text()).unwrap_or_default()) {
+                    Ok(tee_times) => tee_times,
+                    Err(e) => return Err(SqlMiddlewareDbError::Other(e.to_string())),
+                },
+                holes_completed_by_round: match serde_json::from_str(row.get("holes_completed_by_round").and_then(|v| v.as_text()).unwrap_or_default()) {
+                    Ok(holes_completed_by_round) => holes_completed_by_round,
+                    Err(e) => return Err(SqlMiddlewareDbError::Other(e.to_string())),
+                },
+                line_scores: match serde_json::from_str(row.get("line_scores").and_then(|v| v.as_text()).unwrap_or_default()) {
+                    Ok(line_scores) => line_scores,
+                    Err(e) => return Err(SqlMiddlewareDbError::Other(e.to_string())),
+                },
+                success_fail: ResultStatus::Success,
+                total_score: row
+                    .get("total_score")
+                    .and_then(|v| v.as_int())
+                    .map(|v| *v as i32)
+                    .unwrap_or_default(),
+            },
+        }))
+        .collect::<Result<Vec<Scores>, SqlMiddlewareDbError>>();
+
+    Ok(z?)
 }
 
 pub async fn store_scores_in_db(
@@ -458,6 +491,7 @@ pub async fn store_scores_in_db(
                 include_str!("admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
             let param = vec![
                 RowValues2::Int(event_id as i64),
+                RowValues2::Int(score.espn_id),
                 RowValues2::Int(score.eup_id),
                 RowValues2::Int(score.group),
                 RowValues2::Text(
@@ -483,6 +517,9 @@ pub async fn store_scores_in_db(
                     serde_json::to_string(score.detailed_statistics.line_scores.as_slice())
                         .unwrap(),
                 ),
+                RowValues2::Int(
+                    score.detailed_statistics.total_score as i64,
+                ),
             ];
             queries.push(QueryAndParams2 {
                 query: insert_stmt.to_string(),
@@ -496,23 +533,17 @@ pub async fn store_scores_in_db(
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     let queries = build_insert_stms(scores, event_id);
-    println!("got here");
 
     match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
-            // let conn = conn.lock().unwrap();
-            println!("got here too");
             sconn
                 .interact(move |xxx| {
-                    println!("got here 3");
                     let tx = xxx.transaction()?;
                     {
-                        println!("got here 4");
                         println!("Query: {:?}", queries[0].query);
                         let mut stmt = tx.prepare(&queries[0].query)?;
-                        println!("got here 5");
                         let x = stmt.expanded_sql();
-                        println!("got here 6");
+                        
                         if cfg!(debug_assertions) {
                             println!("Query from dbg: {:?}", x);
                         }

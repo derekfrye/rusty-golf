@@ -1,12 +1,14 @@
 INSERT INTO eup_statistic (
     event_espn_id,
+    golfer_espn_id,
     eup_id,
     grp,
     rounds,
     round_scores,
     tee_times,
     holes_completed_by_round,
-    line_scores
+    line_scores,
+    total_score
     )
 VALUES (
     ?1,
@@ -16,8 +18,10 @@ VALUES (
     ?5,
     ?6,
     ?7,
-    ?8
-    ) ON CONFLICT(event_espn_id, eup_id) DO
+    ?8,
+    ?9,
+    ?10
+    ) ON CONFLICT(golfer_espn_id, eup_id) DO
 
 UPDATE
 SET grp = EXCLUDED.grp,
