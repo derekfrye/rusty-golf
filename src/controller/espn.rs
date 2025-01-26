@@ -1,8 +1,8 @@
 use std::{collections::HashMap, vec};
 
 use crate::model::{
-    get_scores_from_db, store_scores_in_db, IntStat, LineScore, PlayerJsonResponse, ResultStatus,
-    ScoreDisplay, Scores, Statistic, StringStat,
+    event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, IntStat, LineScore,
+    PlayerJsonResponse, ResultStatus, ScoreDisplay, Scores, Statistic, StringStat,
 };
 use chrono::DateTime;
 use reqwest::Client;
@@ -49,9 +49,29 @@ pub async fn fetch_scores_from_espn(
     event_id: i32,
     // db: &db::Db,
     config_and_pool: &ConfigAndPool2,
+    use_cache: bool,
+    cache_max_age: i64,
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
-    let x = go_get_espn_data(scores, year, event_id).await?;
-    Ok(store_espn_results(&x, event_id, config_and_pool).await?)
+    let are_we_using_cache: Result<bool, Box<dyn std::error::Error>> = {
+        let xx = if use_cache {
+            event_and_scores_already_in_db(config_and_pool, event_id, cache_max_age).await
+        } else {
+            Ok(false)
+        };
+        if xx.is_ok() {
+            Ok(xx?)
+        } else {
+            Ok(false)
+        }
+    };
+    // get the data from espn and persist it to the database
+    if are_we_using_cache.is_ok() && are_we_using_cache? {
+        let x = go_get_espn_data(scores, year, event_id).await?;
+        Ok(store_espn_results(&x, event_id, config_and_pool).await?)
+    } else {
+        // we're just retrieving the data from db
+        Ok(get_scores_from_db(config_and_pool, event_id).await?)
+    }
 }
 
 async fn store_espn_results(

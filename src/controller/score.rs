@@ -81,6 +81,16 @@ pub async fn scores(
         _ => expanded_str.parse().unwrap_or_default(),
     };
 
+    let cache_max_age_str = query
+        .get("cache_max_age")
+        .unwrap_or(&String::new())
+        .trim()
+        .to_string();
+    let cache_max_age: i64 = match cache_max_age_str.parse() {
+        Ok(c) => c,
+        Err(_) => 10, // 10 days
+    };
+
     let mut cfg = deadpool_postgres::Config::new();
     // let dbcn: ConfigAndPoolOld;
     cfg.dbname = Some("xxx".to_string());
@@ -88,7 +98,7 @@ pub async fn scores(
     // let db = Db::new(dbcn.clone()).unwrap();
     
     let total_cache =
-        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &config_and_pool).await;
+        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &config_and_pool, cache_max_age).await;
 
     match total_cache {
         Ok(cache) => {
@@ -111,7 +121,7 @@ pub async fn get_data_for_scores_page(
     cache_map: &CacheMap,
     use_cache: bool,
     config_and_pool: &ConfigAndPool,
-    // old_db: &Db,
+    cache_max_age: i64,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
@@ -129,7 +139,7 @@ pub async fn get_data_for_scores_page(
     // };
 
     let start_time = Instant::now();
-    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, config_and_pool).await?;
+    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, config_and_pool, use_cache, cache_max_age).await?;
 
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &golfers_and_scores {

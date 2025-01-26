@@ -1,15 +1,15 @@
-extern crate rusty_golf; 
+extern crate rusty_golf;
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
-use rusty_golf::controller::{score::scores, db_prefill};
+use rusty_golf::controller::{db_prefill, score::scores};
 
 use rusty_golf::model::{get_title_from_db, CacheMap};
 use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 use sqlx_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 
+use actix_files::Files;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use actix_files::Files;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -19,12 +19,11 @@ mod args;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
     let args = args::args_checks();
 
     let mut cfg = deadpool_postgres::Config::new();
     let dbcn: ConfigAndPool;
-    let pth =  "file::memory:?cache=shared".to_string();
+    let pth = "file::memory:?cache=shared".to_string();
     let cfg2 = ConfigAndPool2::new_sqlite(pth).await.unwrap();
     if args.db_type == DatabaseType::Postgres {
         cfg.dbname = Some(args.db_name);
@@ -40,8 +39,8 @@ async fn main() -> std::io::Result<()> {
         cfg.dbname = Some(args.db_name);
         dbcn = ConfigAndPool::new(cfg, DatabaseType::Sqlite).await;
         // let sqlite_configandpool = ConfigAndPool2::new_sqlite(x).await.unwrap();
-    // let pool = sqlite_configandpool.pool.get().await.unwrap();
-    // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+        // let pool = sqlite_configandpool.pool.get().await.unwrap();
+        // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     }
 
     if args.db_startup_script.is_some() {
@@ -53,7 +52,9 @@ async fn main() -> std::io::Result<()> {
             params: vec![],
         };
         let result = db.exec_general_query(vec![query_and_params], false).await;
-        if result.is_err() || result.as_ref().unwrap().db_last_exec_state != QueryState::QueryReturnedSuccessfully {
+        if result.is_err()
+            || result.as_ref().unwrap().db_last_exec_state != QueryState::QueryReturnedSuccessfully
+        {
             let res_err = if result.is_err() {
                 result.err().unwrap().to_string()
             } else {
@@ -66,7 +67,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     if args.db_populate_json.is_some() {
-        let _res=db_prefill::db_prefill(&args.db_populate_json.unwrap(), &cfg2 );
+        let _res = db_prefill::db_prefill(&args.db_populate_json.unwrap(), &cfg2);
         // db_prefill(args.db_populate_json.unwrap());
     }
 
@@ -89,23 +90,22 @@ async fn main() -> std::io::Result<()> {
 
 async fn index(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
+    abc: Data<ConfigAndPool2>,
 ) -> impl Responder {
-    let db = Db::new(abc.get_ref().clone()).unwrap();
+    // let db = Db::new(abc.get_ref().clone()).unwrap();
+    let config_and_pool = abc.get_ref().clone();
     let event_str = query.get("event").unwrap_or(&String::new()).to_string();
 
     let mut title = "Scoreboard".to_string();
     let _: i32 = match event_str.parse() {
         Ok(id) => {
-            let title_test = get_title_from_db(&db, id).await;
+            let title_test = get_title_from_db(&config_and_pool, id).await;
             match title_test {
                 Ok(t) => {
-                    if t.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
-                        title = t.return_result.clone();
-                    }
+                    title = t;
                 }
-                Err(ref x) => {
-                    eprintln!("Error: {}", x);
+                Err(_) => {
+                    // eprintln!("Error: {}", x);
                 }
             }
             id

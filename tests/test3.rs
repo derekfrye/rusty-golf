@@ -79,7 +79,7 @@ async fn test_get_data_for_scores_page() -> Result<(), Box<Box<dyn std::error::E
         .unwrap();
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
-    let x = match get_data_for_scores_page(401580351, 2024, &cache_map, false, &config_and_pool).await {
+    let x = match get_data_for_scores_page(401580351, 2024, &cache_map, false, &config_and_pool, 0).await {
         Ok(data) => data,
         Err(e) => return Err(Box::new(e)),
     };
