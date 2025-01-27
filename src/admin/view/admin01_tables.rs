@@ -41,10 +41,10 @@ impl CreateTableReturn {
     }
 
     // Render the main page
-    pub async fn render_default_page(&mut self) -> Markup {
-        let do_tables_exist = self.do_tables_exist(true, CheckType::Table).await;
+    pub async fn render_default_page(&mut self) -> Result<Markup, Box<dyn std::error::Error>> {
+        let do_tables_exist = self.do_tables_exist(true, CheckType::Table).await?;
 
-        html! {
+        Ok(html! {
             (maud::DOCTYPE)
             html {
                 head {
@@ -62,7 +62,7 @@ impl CreateTableReturn {
                     }
                 }
             }
-        }
+        })
     }
 
     pub async fn check_if_tables_exist(&mut self) -> Markup {
@@ -81,7 +81,7 @@ impl CreateTableReturn {
         check_type: CheckType, // query: &str,
     ) -> Result<Markup, Box<dyn std::error::Error>> {
         let db_obj_setup_state =
-            test_is_db_setup(&self.config_and_pool, &check_type, self.table_exist_query, &self.tables)
+            test_is_db_setup(&self.config_and_pool, &check_type, self.table_exist_query, self.tables)
                 .await?;
 
         let all_objs_setup_successfully = db_obj_setup_state
