@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::{test_is_db_setup, TimesRun},
+    admin::model::admin_model::{create_tables, test_is_db_setup, MissingDbObjects, TimesRun},
     model::{TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL},
     HTMX_PATH,
 };
@@ -191,7 +191,7 @@ impl CreateTableReturn {
     pub async fn http_response_for_create_tables(
         &mut self,
         query: web::Query<HashMap<String, String>>,
-    ) -> HttpResponse {
+    ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
         let missing_tables = query
             .get("admin01_missing_tables")
             .unwrap_or(&String::new())
@@ -203,7 +203,7 @@ impl CreateTableReturn {
             .trim()
             .to_string();
 
-        let create_tables_html = self.create_tables(missing_tables, times_run).await;
+        let create_tables_html = self.create_tables(missing_tables, times_run).await?;
 
         // dbg!("markup_from_admin", &markup_from_admin.times_run_int);
 
@@ -211,20 +211,20 @@ impl CreateTableReturn {
                "times_run": create_tables_html.times_run_int
         });
 
-        HttpResponse::Ok()
+        Ok(HttpResponse::Ok()
             .content_type("text/html")
             // Add the HX-Trigger header, this tells the create table button to reenable (based on a fn in js)
             .insert_header(("HX-Trigger", header.to_string()))
-            .body(create_tables_html.html.into_string())
+            .body(create_tables_html.html.into_string()))
     }
 
     /// try creating the tables and return small bit of html for outcome
-    async fn create_tables(&mut self, data: String, times_run: String) -> CreateTableReturn {
+    async fn create_tables(&mut self, data: String, times_run: String) -> Result<CreateTableReturn, Box<dyn std::error::Error>> {
         let mut result = CreateTableReturn {
             html: html!(p { "No data" }),
             times_run: json!({ "times_run": 0 }),
             times_run_int: 0,
-            db: self.db.clone(),
+            config_and_pool: self.config_and_pool.clone(),
             tables: self.tables.clone(),
             table_exist_query: self.table_exist_query,
         };
@@ -235,7 +235,7 @@ impl CreateTableReturn {
                 result.html = html! {
                 p { "Invalid table data: " (message) }};
 
-                return result;
+                return Ok( result);
             }
         };
 
@@ -245,7 +245,7 @@ impl CreateTableReturn {
                 let str = format!("Invalid times_run data: {}", times_run);
                 result.html = html! {
                 p { (str) }};
-                return result;
+                return Ok(result);
             }
         };
 
@@ -266,7 +266,7 @@ impl CreateTableReturn {
         result.times_run = json!({ "times_run": times_run_int });
         result.times_run_int = times_run_int;
 
-        let actual_table_creation = sqlx_middleware::convenience_items::create_tables(
+        let actual_table_creation = create_tables(
             &self.db,
             data.clone(),
             CheckType::Table,
@@ -323,7 +323,7 @@ impl CreateTableReturn {
             p { "Creating tables output: " (message) }
             p { "Creating table constraints output: " (message2) }
         };
-        result
+        Ok(result)
     }
 
     fn parse_into_times_run(input: &str) -> Option<TimesRun> {

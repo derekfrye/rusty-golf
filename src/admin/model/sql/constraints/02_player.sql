@@ -1,1 +1,0 @@
-ALTER TABLE player ADD CONSTRAINT unq_espn_id UNIQUE (espn_id);

@@ -77,6 +77,11 @@ pub struct RowData {
     pub round: i32,
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct MissingDbObjects {
+    pub missing_object: String,
+}
+
 fn deserialize_int_or_string<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
     D: Deserializer<'de>,
@@ -210,4 +215,75 @@ pub async fn test_is_db_setup(
     }?;
 
     Ok(res.results)
+}
+
+pub async fn create_tables(
+    config_and_pool: &ConfigAndPool,
+    missing_objects: Vec<MissingDbObjects>,
+    check_type: &CheckType,
+    ddl: &[(&str, &str, &str, &str)],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let pool = config_and_pool.pool.get().await?;
+    let sconn = MiddlewarePool::get_connection(pool).await?;
+
+    let query =  match check_type {
+        &CheckType::Table=>{
+         match &sconn {
+        MiddlewarePoolConnection::Postgres(_xx) => match check_type {
+            CheckType::Table => {
+                vec![include_str!("sql/schema/postgres/00_event.sql"),
+                include_str!("sql/schema/postgres/02_golfer.sql"),
+                include_str!("sql/schema/postgres/03_bettor.sql"),
+                include_str!("sql/schema/postgres/04_event_user_player.sql"),
+                include_str!("sql/schema/postgres/05_eup_statistic.sql"),].join("\n")
+            }
+            _ => {
+                return Ok(());
+            }
+        },
+        MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
+            CheckType::Table => {
+                vec![include_str!("sql/schema/sqlite/00_event.sql"),
+                include_str!("sql/schema/sqlite/02_golfer.sql"),
+                include_str!("sql/schema/sqlite/03_bettor.sql"),
+                include_str!("sql/schema/sqlite/04_event_user_player.sql"),
+                include_str!("sql/schema/sqlite/05_eup_statistic.sql"),].join("\n")
+            }
+            _ => {
+                return Ok(());
+            }
+        },
+    }}
+, 
+       & CheckType::Constraint=>{
+     return   Ok(());}
+};
+
+    let query_and_params = QueryAndParams {
+        query: query.to_string(),
+        params: vec![],
+        is_read_only: false,
+    };
+
+    match sconn {
+        MiddlewarePoolConnection::Postgres(mut xx) => {
+            let tx = xx.transaction().await?;
+
+                  tx.batch_execute(&query_and_params.query).await?;
+            tx.commit().await?;
+            Ok::<_, SqlMiddlewareDbError>(())
+        }
+        MiddlewarePoolConnection::Sqlite(xx) => {
+            xx.interact(move |xxx| {
+                let tx = xxx.transaction()?;
+                 tx.execute_batch(&query_and_params.query)?;
+                
+                tx.commit()?;
+                Ok::<_, SqlMiddlewareDbError>(())
+            })
+            .await?
+        }
+    }?;
+
+    Ok(())
 }
