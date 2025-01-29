@@ -3,8 +3,7 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use sqlx_middleware::{
     middleware::{
-        CheckType, ConfigAndPool, DatabaseItem, MiddlewarePool, MiddlewarePoolConnection,
-        QueryAndParams,
+        CheckType, ConfigAndPool, CustomDbRow, DatabaseItem, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams
     },
     postgres_build_result_set, sqlite_build_result_set, SqlMiddlewareDbError,
 };
@@ -154,27 +153,25 @@ impl AdminPage {
 pub async fn test_is_db_setup(
     config_and_pool: &ConfigAndPool,
     check_type: &CheckType,
-    exist_query: &str,
-    items: Vec<DatabaseItem>,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<Vec<CustomDbRow>, Box<dyn std::error::Error>> {
     let pool = config_and_pool.pool.get().await?;
     let sconn = MiddlewarePool::get_connection(pool).await?;
 
     let query = match &sconn {
-        MiddlewarePoolConnection::Postgres(xx) => match check_type {
+        MiddlewarePoolConnection::Postgres(_xx) => match check_type {
             CheckType::Table => {
                 include_str!("sql/schema/postgres/0x_tables_exist.sql")
             }
             _ => {
-                return Ok(false);
+                return Ok(vec![]);
             }
         },
-        MiddlewarePoolConnection::Sqlite(xx) => match check_type {
+        MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
             CheckType::Table => {
                 include_str!("sql/schema/sqlite/0x_tables_exist.sql")
             }
             _ => {
-                return Ok(false);
+                return Ok(vec![]);
             }
         },
     };
@@ -212,16 +209,5 @@ pub async fn test_is_db_setup(
         }
     }?;
 
-    for row in res.results {
-        let exists = row
-            .get("ex")
-            .ok_or("Missing 'ex' field")?
-            .as_bool()
-            .ok_or("Invalid boolean value")?;
-        if !*exists {
-            return Ok(false);
-        }
-    }
-
-    Ok(true)
+    Ok(res.results)
 }

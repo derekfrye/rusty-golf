@@ -55,7 +55,7 @@ impl AdminRouter {
         &mut self,
         query: web::Query<HashMap<String, String>>,
         config_and_pool: ConfigAndPool,
-    ) -> HttpResponse {
+    ) -> Result<HttpResponse, actix_web::Error> {
         let token_str = query
             .get("token")
             .unwrap_or(&String::new())
@@ -83,9 +83,9 @@ impl AdminRouter {
             // unauthorized
             if env_token != token.value() {
                 returned_html_content = PreEscaped(Self::UNAUTHORIZED_BODY.to_string());
-                return HttpResponse::Ok()
+                return Ok(HttpResponse::Ok()
                     .content_type("text/html")
-                    .body(returned_html_content.into_string());
+                    .body(returned_html_content.into_string()));
             }
         }
 
@@ -104,24 +104,24 @@ impl AdminRouter {
         } else if admin_page == AdminPage::TablesAndConstraints {
             if query.contains_key("admin01_missing_tables") {
                 // we have special headers in this response
-                return cr.http_response_for_create_tables(query).await;
+                return Ok(cr.http_response_for_create_tables(query).await);
             } else if query.contains_key("from_landing_page_tables") {
                 // we're on the main landing page, and checking if the db tables exist
-                returned_html_content = cr.check_if_tables_exist().await;
+                returned_html_content = cr.check_if_tables_exist().await?;
             } else if query.contains_key("from_landing_page_constraints") {
                 // we're on the main landing page, and checking if the db constraints exist
-                returned_html_content = cr.check_if_constraints_exist().await;
+                returned_html_content = cr.check_if_constraints_exist().await?;
             } else {
                 // admin01_missing_tables is populated by js when user already on this page
                 // so if empty it means we need to render default page
-                returned_html_content = cr.render_default_page().await;
+                returned_html_content = cr.render_default_page().await?;
             }
         } else {
             returned_html_content = PreEscaped(Self::INVALID_ADMIN_BODY.to_string());
         }
 
-        HttpResponse::Ok()
+        Ok(HttpResponse::Ok()
             .content_type("text/html")
-            .body(returned_html_content.into_string())
+            .body(returned_html_content.into_string()))
     }
 }
