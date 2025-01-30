@@ -192,11 +192,11 @@ impl CreateTableReturn {
         &mut self,
         query: web::Query<HashMap<String, String>>,
     ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
-        let missing_tables = query
-            .get("admin01_missing_tables")
-            .unwrap_or(&String::new())
-            .trim()
-            .to_string();
+        // let missing_tables = query
+        //     .get("admin01_missing_tables")
+        //     .unwrap_or(&String::new())
+        //     .trim()
+        //     .to_string();
         let times_run = query
             .get("times_run")
             .unwrap_or(&String::new())
