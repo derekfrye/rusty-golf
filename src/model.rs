@@ -162,66 +162,6 @@ pub struct SummaryDetailedScores {
     pub detailed_scores: Vec<DetailedScore>,
 }
 
-pub const TABLES_AND_DDL: &[(&str, &str, &str, &str)] = &[
-    (
-        "event",
-        include_str!("admin/model/sql/schema/postgres/00_event.sql"),
-        "",
-        "",
-    ),
-    (
-        "golfstatistic",
-        include_str!("admin/model/sql/schema/postgres/01_golfstatistic.sql"),
-        "",
-        "",
-    ),
-    (
-        "player",
-        include_str!("admin/model/sql/schema/postgres/02_player.sql"),
-        "",
-        "",
-    ),
-    (
-        "golfuser",
-        include_str!("admin/model/sql/schema/postgres/03_golfuser.sql"),
-        "",
-        "",
-    ),
-    (
-        "event_user_player",
-        include_str!("admin/model/sql/schema/postgres/04_event_user_player.sql"),
-        "",
-        "",
-    ),
-    (
-        "eup_statistic",
-        include_str!("admin/model/sql/schema/postgres/05_eup_statistic.sql"),
-        "",
-        "",
-    ),
-];
-
-pub const TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL: &[(&str, &str, &str, &str)] = &[
-    (
-        "player",
-        "UNIQUE",
-        "unq_name",
-        include_str!("admin/model/sql/constraints/01_player.sql"),
-    ),
-    (
-        "player",
-        "UNIQUE",
-        "unq_espn_id",
-        include_str!("admin/model/sql/constraints/02_player.sql"),
-    ),
-    (
-        "event_user_player",
-        "UNIQUE",
-        "unq_event_id_user_id_player_id",
-        include_str!("admin/model/sql/constraints/03_event_user_player.sql"),
-    ),
-];
-
 pub type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
 
 pub async fn get_golfers_from_db(

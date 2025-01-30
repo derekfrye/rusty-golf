@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     admin::model::admin_model::{create_tables, test_is_db_setup, MissingDbObjects, TimesRun},
-    model::{TABLES_AND_DDL, TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL},
+    
     HTMX_PATH,
 };
 use actix_web::{web, HttpResponse};
@@ -16,26 +16,26 @@ pub struct CreateTableReturn {
     pub times_run: Value,
     pub times_run_int: i32,
     pub config_and_pool: ConfigAndPool,
-    tables: Vec<DatabaseItem>,
+    // tables: Vec<DatabaseItem>,
     table_exist_query: &'static str,
 }
 impl CreateTableReturn {
     pub async fn new(config_and_pool: ConfigAndPool) -> Self {
-        let mut z = Vec::new();
-        for x in TABLES_AND_DDL {
-            let dbitem = DatabaseItem::Table(DatabaseTable {
-                table_name: x.0.to_string(),
-                ddl: x.1.to_string(),
-            });
-            z.push(dbitem);
-        }
+        // let mut z = Vec::new();
+        // for x in TABLES_AND_DDL {
+        //     let dbitem = DatabaseItem::Table(DatabaseTable {
+        //         table_name: x.0.to_string(),
+        //         ddl: x.1.to_string(),
+        //     });
+        //     z.push(dbitem);
+        // }
 
         Self {
             html: html!(p { "No data" }),
             times_run: json!({ "times_run": 0 }),
             times_run_int: 0,
             config_and_pool,
-            tables: z,
+            // tables: z,
             table_exist_query: include_str!("../model/sql/schema/postgres/0x_tables_exist.sql"),
         }
     }
@@ -218,14 +218,14 @@ impl CreateTableReturn {
             .body(create_tables_html.html.into_string()))
     }
 
-    /// try creating the tables and return small bit of html for outcome
+    /// try creating the tables and return small bit of html via htmx for outcome
     async fn create_tables(&mut self, data: String, times_run: String) -> Result<CreateTableReturn, Box<dyn std::error::Error>> {
         let mut result = CreateTableReturn {
             html: html!(p { "No data" }),
             times_run: json!({ "times_run": 0 }),
             times_run_int: 0,
             config_and_pool: self.config_and_pool.clone(),
-            tables: self.tables.clone(),
+            // tables: self.tables.clone(),
             table_exist_query: self.table_exist_query,
         };
         let data: Vec<MissingDbObjects> = match serde_json::from_str(&data) {
@@ -249,69 +249,44 @@ impl CreateTableReturn {
             }
         };
 
-        // data validation: we only want to create tables where we match on table names
-        // otherwise who knows wth we're creating in our db
-        let data: Vec<MissingDbObjects> = data
-            .into_iter()
-            .filter(|x| {
-                TABLES_AND_DDL
-                    .iter()
-                    .map(|x| x.0)
-                    .collect::<Vec<_>>()
-                    .contains(&x.missing_object.as_str())
-            })
-            .collect();
-
         let times_run_int = times_run_from_json.times_run + 1;
         result.times_run = json!({ "times_run": times_run_int });
         result.times_run_int = times_run_int;
 
         let actual_table_creation = create_tables(
-            &self.db,
-            data.clone(),
-            CheckType::Table,
-            TABLES_AND_DDL,
+            &self.config_and_pool,
+            
+           & CheckType::Table,
+            
         )
         .await;
         // .create_tables(data.clone(), CheckType::Table, TABLES_AND_DDL)
 
         let message: String;
         match actual_table_creation {
-            Ok(x) => {
-                if x.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
+            Ok(_x) => {
+                
                     message = "Tables created successfully".to_string();
-                } else {
-                    message = format!(
-                        "Tables created, but with errors. {}, {}",
-                        x.error_message.unwrap_or("".to_string()),
-                        x.db_object_name
-                    );
-                }
+                
             }
             Err(e) => {
                 message = format!("Error creating tables: {:?}", e);
             }
         }
 
-        let actual_constraint_creation = sqlx_middleware::convenience_items::create_tables(
-            &self.db,
-            data.clone(),
-            CheckType::Constraint,
-            TABLES_CONSTRAINT_TYPE_CONSTRAINT_NAME_AND_DDL,
+        let actual_constraint_creation = create_tables(
+            &self.config_and_pool,
+            
+            &CheckType::Constraint,
+            
         )
         .await;
         let message2: String;
         match actual_constraint_creation {
-            Ok(x) => {
-                if x.db_last_exec_state == QueryState::QueryReturnedSuccessfully {
+            Ok(_x) => {
+                
                     message2 = "Table constraints created successfully".to_string();
-                } else {
-                    message2 = format!(
-                        "Table constraints created, but with errors. {}, {}",
-                        x.error_message.unwrap_or("".to_string()),
-                        x.db_object_name
-                    );
-                }
+                
             }
             Err(e) => {
                 message2 = format!("Error creating tables: {:?}", e);

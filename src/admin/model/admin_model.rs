@@ -219,9 +219,7 @@ pub async fn test_is_db_setup(
 
 pub async fn create_tables(
     config_and_pool: &ConfigAndPool,
-    missing_objects: Vec<MissingDbObjects>,
     check_type: &CheckType,
-    ddl: &[(&str, &str, &str, &str)],
 ) -> Result<(), Box<dyn std::error::Error>> {
     let pool = config_and_pool.pool.get().await?;
     let sconn = MiddlewarePool::get_connection(pool).await?;
