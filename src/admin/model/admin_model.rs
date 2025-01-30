@@ -3,7 +3,7 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use sqlx_middleware::{
     middleware::{
-        CheckType, ConfigAndPool, CustomDbRow, DatabaseItem, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams
+        CheckType, ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams
     },
     postgres_build_result_set, sqlite_build_result_set, SqlMiddlewareDbError,
 };

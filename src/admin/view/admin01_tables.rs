@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::{create_tables, test_is_db_setup, MissingDbObjects, TimesRun},
+    admin::model::admin_model::{create_tables, test_is_db_setup, TimesRun},
     
     HTMX_PATH,
 };
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
-use sqlx_middleware::middleware::{CheckType, ConfigAndPool, DatabaseItem, DatabaseTable};
+use sqlx_middleware::middleware::{CheckType, ConfigAndPool};
 
 #[derive(Debug, Clone)]
 pub struct CreateTableReturn {
@@ -93,7 +93,7 @@ impl CreateTableReturn {
                 };
 
         let mut json_data = json!([]);
-        let  last_message = String::new();
+    
         // for the objs not setup, we need to share that back to the web page via json
         if all_objs_not_setup.len()>0 {
 
@@ -203,7 +203,7 @@ impl CreateTableReturn {
             .trim()
             .to_string();
 
-        let create_tables_html = self.create_tables(missing_tables, times_run).await?;
+        let create_tables_html = self.create_tables( times_run).await?;
 
         // dbg!("markup_from_admin", &markup_from_admin.times_run_int);
 
@@ -219,7 +219,7 @@ impl CreateTableReturn {
     }
 
     /// try creating the tables and return small bit of html via htmx for outcome
-    async fn create_tables(&mut self, data: String, times_run: String) -> Result<CreateTableReturn, Box<dyn std::error::Error>> {
+    async fn create_tables(&mut self, times_run: String) -> Result<CreateTableReturn, Box<dyn std::error::Error>> {
         let mut result = CreateTableReturn {
             html: html!(p { "No data" }),
             times_run: json!({ "times_run": 0 }),
@@ -228,16 +228,16 @@ impl CreateTableReturn {
             // tables: self.tables.clone(),
             table_exist_query: self.table_exist_query,
         };
-        let data: Vec<MissingDbObjects> = match serde_json::from_str(&data) {
-            Ok(d) => d,
-            Err(e) => {
-                let message = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
-                result.html = html! {
-                p { "Invalid table data: " (message) }};
+        // let data: Vec<MissingDbObjects> = match serde_json::from_str(&data) {
+        //     Ok(d) => d,
+        //     Err(e) => {
+        //         let message = format!("Failed in {}, {}: {}", std::file!(), std::line!(), e);
+        //         result.html = html! {
+        //         p { "Invalid table data: " (message) }};
 
-                return Ok( result);
-            }
-        };
+        //         return Ok( result);
+        //     }
+        // };
 
         let times_run_from_json = match Self::parse_into_times_run(&times_run) {
             Some(d) => d,
@@ -271,8 +271,8 @@ impl CreateTableReturn {
             }
             Err(e) => {
                 message = format!("Error creating tables: {:?}", e);
-            }
-        }
+            }}
+        
 
         let actual_constraint_creation = create_tables(
             &self.config_and_pool,

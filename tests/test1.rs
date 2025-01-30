@@ -1,8 +1,7 @@
 use actix_web::{test, App};
 use serde_json::Value;
 
-use sqlx_middleware::convenience_items::{create_tables3, MissingDbObjects};
-use sqlx_middleware::middleware::CheckType;
+// use sqlx_middleware::convenience_items::{create_tables3, MissingDbObjects};
 // use sqlx_middleware::model::{CheckType, QueryAndParams};
 // use sqlx::sqlite::SqlitePoolOptions;
 use std::sync::Arc;
@@ -72,13 +71,6 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
 
     assert!(res.is_ok(), "Error executing query: {:?}", res);   
 
-    let tables = vec![
-        "event",
-        "golfer",
-        "bettor",
-        "event_user_player",
-        "eup_statistic",
-    ];
     let ddl = vec![
         include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
@@ -87,31 +79,31 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql"),
     ];
 
-    // fixme, the conv item function shouldnt require a 4-len str array, that's silly
-    let mut table_ddl = vec![];
-    for (i, table) in tables.iter().enumerate() {
-        table_ddl.push((table, ddl[i], "", ""));
-    }
+    let query_and_params = QueryAndParams {
+        query: ddl.join("\n"),
+        params: vec![],
+        is_read_only: false,
+    };
 
-    let mut missing_objs: Vec<MissingDbObjects> = vec![];
-    for table in table_ddl.iter() {
-        missing_objs.push(MissingDbObjects {
-            missing_object: table.0.to_string(),
-        });
-    }
+    match conn {
+        MiddlewarePoolConnection::Postgres(mut xx) => {
+            let tx = xx.transaction().await?;
 
-    let create_result = create_tables3(
-        &config_and_pool,
-        missing_objs,
-        CheckType::Table,
-        &table_ddl
-            .iter()
-            .map(|(a, b, c, d)| (**a, *b, *c, *d))
-            .collect::<Vec<_>>(),
-    )
-    .await;
-
-    assert!(create_result.is_ok(), "Error executing query: {:?}", create_result);   
+                  tx.batch_execute(&query_and_params.query).await?;
+            tx.commit().await?;
+            Ok::<_, SqlMiddlewareDbError>(())
+        }
+        MiddlewarePoolConnection::Sqlite(xx) => {
+            xx.interact(move |xxx| {
+                let tx = xxx.transaction()?;
+                 tx.execute_batch(&query_and_params.query)?;
+                
+                tx.commit()?;
+                Ok::<_, SqlMiddlewareDbError>(())
+            })
+            .await?
+        }
+    }?;
 
     let setup_queries = include_str!("test1.sql");
     let query_and_params = QueryAndParams {

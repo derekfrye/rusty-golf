@@ -1,6 +1,5 @@
+use rusty_golf::admin::model::admin_model::MissingDbObjects;
 use serde_json::Value;
-use sqlx_middleware::convenience_items::{create_tables, MissingDbObjects};
-use sqlx_middleware::model::{CheckType, QueryAndParams};
 // use sqlx::sqlite::SqlitePoolOptions;
 use std::sync::Arc;
 use std::{collections::HashMap, vec};
@@ -8,7 +7,7 @@ use tokio::sync::RwLock;
 
 // use rusty_golf::controller::score;
 use rusty_golf::{controller::score::get_data_for_scores_page, model::CacheMap};
-use sqlx_middleware::db::{ConfigAndPool, Db};
+
 use sqlx_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 
 #[tokio::test]
@@ -23,8 +22,8 @@ async fn test_get_data_for_scores_page() -> Result<(), Box<Box<dyn std::error::E
     cfg.dbname = Some(x);
 
     let sqlite_configandpool =
-        ConfigAndPool::new(cfg, sqlx_middleware::db::DatabaseType::Sqlite).await;
-    let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
+        ConfigAndPool2::new_sqlite(x).await;
+    // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
 
     let tables = vec![
         "event",

@@ -4,12 +4,13 @@ use rusty_golf::admin::router;
 use rusty_golf::controller::{db_prefill, score::scores};
 
 use rusty_golf::model::{get_title_from_db, CacheMap};
-use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
-use sqlx_middleware::middleware::ConfigAndPool as ConfigAndPool2;
+// use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
+use sqlx_middleware::middleware::{ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams};
 
 use actix_files::Files;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use sqlx_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -18,13 +19,13 @@ use tokio::sync::RwLock;
 mod args;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = args::args_checks();
 
     let mut cfg = deadpool_postgres::Config::new();
-    let dbcn: ConfigAndPool;
-    let pth = "file::memory:?cache=shared".to_string();
-    let cfg2 = ConfigAndPool2::new_sqlite(pth).await.unwrap();
+    let dbcn: ConfigAndPool2;
+    // let pth = "file::memory:?cache=shared".to_string();
+    // let cfg2 = ConfigAndPool2::new_sqlite(pth).await.unwrap();
     if args.db_type == DatabaseType::Postgres {
         cfg.dbname = Some(args.db_name);
         cfg.host = args.db_host;
@@ -33,47 +34,58 @@ async fn main() -> std::io::Result<()> {
         cfg.password = args.db_password;
         cfg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
-        });
-        dbcn = ConfigAndPool::new(cfg, DatabaseType::Postgres).await;
+        }
+    );
+        dbcn = ConfigAndPool2::new_postgres(cfg).await?;
     } else {
-        cfg.dbname = Some(args.db_name);
-        dbcn = ConfigAndPool::new(cfg, DatabaseType::Sqlite).await;
+        
+        dbcn = ConfigAndPool2::new_sqlite(args.db_name).await?;
         // let sqlite_configandpool = ConfigAndPool2::new_sqlite(x).await.unwrap();
         // let pool = sqlite_configandpool.pool.get().await.unwrap();
         // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     }
 
     if args.db_startup_script.is_some() {
-        let db = Db::new(dbcn.clone()).unwrap();
+        // let db = Db::new(dbcn.clone()).unwrap();
         let script = args.combined_sql_script;
         // db.execute(&script).await.unwrap();
-        let query_and_params = sqlx_middleware::model::QueryAndParams {
+        let query_and_params = QueryAndParams {
             query: script,
             params: vec![],
+            is_read_only: false,
         };
-        let result = db.exec_general_query(vec![query_and_params], false).await;
-        if result.is_err()
-            || result.as_ref().unwrap().db_last_exec_state != QueryState::QueryReturnedSuccessfully
-        {
-            let res_err = if result.is_err() {
-                result.err().unwrap().to_string()
-            } else {
-                "".to_string()
-            };
-            eprintln!("Fatal Error on db startup. {}", res_err);
-            eprintln!("Check your --db-startup-script, since you passed that var.");
-            std::process::exit(1);
+        
+        let pool = dbcn.pool.get().await?;
+    let sconn = MiddlewarePool::get_connection(pool).await?;
+    match sconn {
+        MiddlewarePoolConnection::Postgres(mut xx) => {
+            let tx = xx.transaction().await?;
+
+                  tx.batch_execute(&query_and_params.query).await?;
+            tx.commit().await?;
+            Ok::<_, SqlMiddlewareDbError>(())
         }
+        MiddlewarePoolConnection::Sqlite(xx) => {
+            xx.interact(move |xxx| {
+                let tx = xxx.transaction()?;
+                 tx.execute_batch(&query_and_params.query)?;
+                
+                tx.commit()?;
+                Ok::<_, SqlMiddlewareDbError>(())
+            })
+            .await?
+        }
+    }?;
     }
 
     if args.db_populate_json.is_some() {
-        let _res = db_prefill::db_prefill(&args.db_populate_json.unwrap(), &cfg2);
+        let _res = db_prefill::db_prefill(&args.db_populate_json.unwrap(), &dbcn);
         // db_prefill(args.db_populate_json.unwrap());
     }
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
 
-    HttpServer::new(move || {
+HttpServer::new(move || {
         App::new()
             .app_data(Data::new(cache_map.clone()))
             .app_data(Data::new(dbcn.clone()))
@@ -85,7 +97,8 @@ async fn main() -> std::io::Result<()> {
     })
     .bind("0.0.0.0:8081")?
     .run()
-    .await
+    .await?;
+    Ok(())
 }
 
 async fn index(
@@ -123,10 +136,11 @@ async fn index(
 
 async fn admin(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
-) -> HttpResponse {
-    let db = Db::new(abc.get_ref().clone()).unwrap();
+    abc: Data<ConfigAndPool2>,
+) -> Result<HttpResponse, actix_web::Error> {
+    // let db = Db::new(abc.get_ref().clone()).unwrap();
+    let config_and_pool = abc.get_ref().clone();
     let mut router = router::AdminRouter::new();
     // let mut db = Db::new(abc.get_ref().clone()).unwrap();
-    router.router(query, db).await
+    router.router(query, config_and_pool).await
 }
