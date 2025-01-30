@@ -1,6 +1,6 @@
 use clap::Parser;
 use serde_json::Value;
-use sqlx_middleware::middleware::DatabaseType;
+use sql_middleware::middleware::DatabaseType;
 // use sqlx_middleware::db::DatabaseType;
 use std::{fs, path::PathBuf, vec};
 

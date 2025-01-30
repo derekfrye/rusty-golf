@@ -9,7 +9,7 @@ use reqwest::Client;
 // use serde::{Deserialize, Serialize};
 use serde_json::Value;
 // use sqlx_middleware::db;
-use sqlx_middleware::middleware::ConfigAndPool as ConfigAndPool2;
+use sql_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 // use tokio::{fs::File, io::AsyncWriteExt};
 use tokio::sync::mpsc;
 

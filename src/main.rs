@@ -5,7 +5,7 @@ use rusty_golf::controller::{db_prefill, score::scores};
 
 use rusty_golf::model::{get_title_from_db, CacheMap};
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
-use sqlx_middleware::middleware::{
+use sql_middleware::middleware::{
     ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool, MiddlewarePoolConnection,
     QueryAndParams,
 };
@@ -13,7 +13,7 @@ use sqlx_middleware::middleware::{
 use actix_files::Files;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
-use sqlx_middleware::SqlMiddlewareDbError;
+use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 use std::sync::Arc;
 

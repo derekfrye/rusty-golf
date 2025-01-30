@@ -7,7 +7,7 @@ use crate::{
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
-use sqlx_middleware::middleware::{CheckType, ConfigAndPool};
+use sql_middleware::middleware::{CheckType, ConfigAndPool};
 
 #[derive(Debug, Clone)]
 pub struct CreateTableReturn {

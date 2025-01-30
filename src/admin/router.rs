@@ -2,7 +2,7 @@ use crate::admin::model::admin_model::{AdminPage, AlphaNum14};
 
 use actix_web::{web, HttpResponse};
 use maud::PreEscaped;
-use sqlx_middleware::middleware::ConfigAndPool;
+use sql_middleware::middleware::ConfigAndPool;
 use std::{collections::HashMap, env};
 
 use super::view::admin01_tables::CreateTableReturn;

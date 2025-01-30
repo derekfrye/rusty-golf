@@ -1,7 +1,7 @@
 use actix_web::web::{self, Data};
 use actix_web::{HttpResponse, Responder};
 use serde_json::json;
-use sqlx_middleware::middleware::ConfigAndPool;
+use sql_middleware::middleware::ConfigAndPool;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
 
 use crate::controller::cache::{check_cache_expired, get_or_create_cache};

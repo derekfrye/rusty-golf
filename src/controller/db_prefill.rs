@@ -1,10 +1,9 @@
 use serde_json::Value;
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
-use sqlx_middleware::{
+use sql_middleware::{
     middleware::{
         ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams, RowValues,
-    },
-    SqlMiddlewareDbError,
+    }, sqlite_convert_params, SqlMiddlewareDbError
 };
 use tokio::runtime::Runtime;
 
@@ -38,12 +37,12 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                         };
                         let tx = xxx.transaction()?;
 
-                        let converted_params = sqlx_middleware::sqlite_convert_params(
+                        let converted_params = sqlite_convert_params(
                             &query_and_params_vec.params
                         )?;
                         let result_set = {
                             let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                            let rs = sqlx_middleware::sqlite_build_result_set(
+                            let rs = sql_middleware::sqlite_build_result_set(
                                 &mut stmt,
                                 &converted_params
                             )?;
@@ -58,12 +57,12 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                 ],
                                 is_read_only: false,
                             };
-                            let converted_params = sqlx_middleware::sqlite_convert_params(
+                            let converted_params = sql_middleware::sqlite_convert_params(
                                 &query_and_params_vec.params
                             )?;
                             let _result_set = {
                                 let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                let rs = sqlx_middleware::sqlite_build_result_set(
+                                let rs = sql_middleware::sqlite_build_result_set(
                                     &mut stmt,
                                     &converted_params
                                 )?;
@@ -79,12 +78,12 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                 ],
                                 is_read_only: false,
                             };
-                            let converted_params = sqlx_middleware::sqlite_convert_params(
+                            let converted_params = sql_middleware::sqlite_convert_params(
                                 &query_and_params_vec.params
                             )?;
                             let _result_set = {
                                 let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                let rs = sqlx_middleware::sqlite_build_result_set(
+                                let rs = sql_middleware::sqlite_build_result_set(
                                     &mut stmt,
                                     &converted_params
                                 )?;
@@ -102,12 +101,12 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                         params: vec![RowValues::Text(bettor.to_string())],
                                         is_read_only: false,
                                     };
-                                    let converted_params = sqlx_middleware::sqlite_convert_params(
+                                    let converted_params = sql_middleware::sqlite_convert_params(
                                         &query_and_params_vec.params
                                     )?;
                                     let _result_set = {
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                        let rs = sqlx_middleware::sqlite_build_result_set(
+                                        let rs = sql_middleware::sqlite_build_result_set(
                                             &mut stmt,
                                             &converted_params
                                         )?;
@@ -124,12 +123,12 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                         ],
                                         is_read_only: false,
                                     };
-                                    let converted_params = sqlx_middleware::sqlite_convert_params(
+                                    let converted_params = sql_middleware::sqlite_convert_params(
                                         &query_and_params_vec.params
                                     )?;
                                     let _result_set = {
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                        let rs = sqlx_middleware::sqlite_build_result_set(
+                                        let rs = sql_middleware::sqlite_build_result_set(
                                             &mut stmt,
                                             &converted_params
                                         )?;
@@ -160,12 +159,12 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                         ],
                                         is_read_only: false,
                                     };
-                                    let converted_params = sqlx_middleware::sqlite_convert_params(
+                                    let converted_params = sql_middleware::sqlite_convert_params(
                                         &query_and_params_vec.params
                                     )?;
                                     let _result_set = {
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                        let rs = sqlx_middleware::sqlite_build_result_set(
+                                        let rs = sql_middleware::sqlite_build_result_set(
                                             &mut stmt,
                                             &converted_params
                                         )?;

@@ -7,7 +7,7 @@ use tokio::sync::RwLock;
 // use rusty_golf::controller::score;
 use rusty_golf::{controller::score::get_data_for_scores_page, model::CacheMap};
 
-use sqlx_middleware::middleware::{
+use sql_middleware::middleware::{
     ConfigAndPool as ConfigAndPool2, DatabaseExecutor, MiddlewarePool, QueryAndParams,
 };
 

@@ -3,14 +3,14 @@ use chrono::NaiveDateTime;
 // use actix_web::cookie::time::format_description::well_known::iso8601::Config;
 // use deadpool_postgres::tokio_postgres::Row;
 use serde::{Deserialize, Serialize};
-use sqlx_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
-use sqlx_middleware::SqlMiddlewareDbError;
+use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
+use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 // use sqlx_middleware::db::Db;
-use sqlx_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
+use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
 // use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -191,13 +191,13 @@ pub async fn get_golfers_from_db(
             sconn
                 .interact(move |xxx| {
                     let converted_params =
-                        sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
                     let tx = xxx.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
                         let rs =
-                            sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
                         rs
                     };
                     tx.commit()?;
@@ -285,13 +285,13 @@ pub async fn get_title_from_db(
             sconn
                 .interact(move |xxx| {
                     let converted_params =
-                        sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
                     let tx = xxx.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
                         let rs =
-                            sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
                         rs
                     };
                     tx.commit()?;
@@ -343,13 +343,13 @@ pub async fn get_scores_from_db(
             sconn
                 .interact(move |xxx| {
                     let converted_params =
-                        sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
                     let tx = xxx.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
                         let rs =
-                            sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
                         rs
                     };
                     tx.commit()?;
@@ -519,9 +519,9 @@ pub async fn store_scores_in_db(
                         }
                         for query in queries {
                             let converted_params =
-                                sqlx_middleware::sqlite_convert_params(&query.params)?;
+                                sql_middleware::sqlite_convert_params(&query.params)?;
 
-                            let _rs = stmt.execute(sqlx_middleware::sqlite_params_from_iter(
+                            let _rs = stmt.execute(sql_middleware::sqlite_params_from_iter(
                                 converted_params.iter(),
                             ))?;
                         }
@@ -574,13 +574,13 @@ pub async fn event_and_scores_already_in_db(
             sconn
                 .interact(move |xxx| {
                     let converted_params =
-                        sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
                     let tx = xxx.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
                         let rs =
-                            sqlx_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
                         rs
                     };
                     tx.commit()?;

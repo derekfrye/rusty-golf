@@ -1,7 +1,7 @@
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use sqlx_middleware::{
+use sql_middleware::{
     middleware::{
         CheckType, ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection,
         QueryAndParams,
