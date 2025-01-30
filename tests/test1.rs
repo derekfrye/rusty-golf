@@ -54,22 +54,21 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
 
                     let result_set = {
                         // let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs =
-                            tx.execute_batch(&query_and_params.query)?;//.map_err(SqlMiddlewareDbError::from)?;
+                        let rs = tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
                         rs
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
                 .await
-                // .map_err(|e| format!("Error executing query: {:?}", e))
+            // .map_err(|e| format!("Error executing query: {:?}", e))
         }
         _ => {
             panic!("Only sqlite is supported ");
         } // Result::<(), String>::Ok(())
     }?;
 
-    assert!(res.is_ok(), "Error executing query: {:?}", res);   
+    assert!(res.is_ok(), "Error executing query: {:?}", res);
 
     let ddl = vec![
         include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
@@ -89,15 +88,15 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         MiddlewarePoolConnection::Postgres(mut xx) => {
             let tx = xx.transaction().await?;
 
-                  tx.batch_execute(&query_and_params.query).await?;
+            tx.batch_execute(&query_and_params.query).await?;
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
         MiddlewarePoolConnection::Sqlite(xx) => {
             xx.interact(move |xxx| {
                 let tx = xxx.transaction()?;
-                 tx.execute_batch(&query_and_params.query)?;
-                
+                tx.execute_batch(&query_and_params.query)?;
+
                 tx.commit()?;
                 Ok::<_, SqlMiddlewareDbError>(())
             })
@@ -126,22 +125,21 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
 
                     let result_set = {
                         // let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs =
-                            tx.execute_batch(&query_and_params.query)?;//.map_err(SqlMiddlewareDbError::from)?;
+                        let rs = tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
                         rs
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
                 .await
-                // .map_err(|e| format!("Error executing query: {:?}", e))
+            // .map_err(|e| format!("Error executing query: {:?}", e))
         }
         _ => {
             panic!("Only sqlite is supported ");
         } // Result::<(), String>::Ok(())
     }?;
 
-    assert!(res.is_ok(), "Error executing query: {:?}", res);   
+    assert!(res.is_ok(), "Error executing query: {:?}", res);
 
     // let res = sql_db
     //     .exec_general_query(vec![query_and_params], false)

@@ -12,9 +12,9 @@ pub mod admin {
 }
 pub mod controller {
     pub mod cache;
+    pub mod db_prefill;
     pub mod espn;
     pub mod score;
-   pub mod db_prefill;
 }
 pub mod view {
     pub mod index;

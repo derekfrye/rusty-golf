@@ -157,10 +157,7 @@ fn check_readable_file(file: &str) -> Result<String, String> {
 fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
     let path = PathBuf::from(file);
     if !path.is_file() || !fs::metadata(&path).is_ok() {
-        return Err(format!(
-            "The json file '{}' is not readable.",
-            file
-        ));
+        return Err(format!("The json file '{}' is not readable.", file));
     }
     let contents = fs::read_to_string(&path).unwrap();
     let json: Value = serde_json::from_str(&contents).unwrap();
@@ -188,27 +185,43 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
     // }]}]
 
     // check the json against this format
-    let expected_keys = vec!["event", "year", "name", "data_to_fill_if_event_and_year_missing"];
+    let expected_keys = vec![
+        "event",
+        "year",
+        "name",
+        "data_to_fill_if_event_and_year_missing",
+    ];
     for (key, _) in json.as_object().unwrap() {
         if !expected_keys.contains(&key.as_str()) {
-            return Err(format!("The json file is not in the correct format. Expected keys: {:?}", expected_keys));
+            return Err(format!(
+                "The json file is not in the correct format. Expected keys: {:?}",
+                expected_keys
+            ));
         }
         let event = &json["event"];
         if !event.is_number() {
-            return Err("The json key event is not in the correct format. Expected a number.".to_string());
+            return Err(
+                "The json key event is not in the correct format. Expected a number.".to_string(),
+            );
         }
         let year = &json["year"];
         if !year.is_number() {
-            return Err("The json key year is not in the correct format. Expected a number.".to_string());
+            return Err(
+                "The json key year is not in the correct format. Expected a number.".to_string(),
+            );
         }
         let name = &json["name"];
         if !name.is_string() {
-            return Err("The json key name is not in the correct format. Expected a string.".to_string());
+            return Err(
+                "The json key name is not in the correct format. Expected a string.".to_string(),
+            );
         }
     }
 
     // now check the data_to_fill_if_event_and_year_missing
-    let data_to_fill = json["data_to_fill_if_event_and_year_missing"].as_array().unwrap();
+    let data_to_fill = json["data_to_fill_if_event_and_year_missing"]
+        .as_array()
+        .unwrap();
     for data in data_to_fill {
         let expected_keys = vec!["bettors", "golfers", "event_user_player"];
         for (key, _) in data.as_object().unwrap() {
@@ -218,36 +231,55 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
         }
     }
 
-    let bettors_check = data_to_fill.iter().map(|x| x["bettors"].as_array().unwrap()).flatten().collect::<Vec<_>>();
+    let bettors_check = data_to_fill
+        .iter()
+        .map(|x| x["bettors"].as_array().unwrap())
+        .flatten()
+        .collect::<Vec<_>>();
     // check bettors are just strings
     for bettor in bettors_check {
         if !bettor.is_string() {
-            return Err("The json key bettors is not in the correct format. Expected strings.".to_string());
+            return Err(
+                "The json key bettors is not in the correct format. Expected strings.".to_string(),
+            );
         }
     }
 
-    let golfers_check = data_to_fill.iter().map(|x| x["golfers"].as_array().unwrap()).flatten().collect::<Vec<_>>();
+    let golfers_check = data_to_fill
+        .iter()
+        .map(|x| x["golfers"].as_array().unwrap())
+        .flatten()
+        .collect::<Vec<_>>();
     // check golfer contains name and espn_id
     for golfer in golfers_check {
         if !golfer.is_object() {
-            return Err("The json key golfers is not in the correct format. Expected objects.".to_string());
+            return Err(
+                "The json key golfers is not in the correct format. Expected objects.".to_string(),
+            );
         }
         if !golfer["name"].is_string() || !golfer["espn_id"].is_number() {
             return Err("The json key golfers is not in the correct format. Expected objects with keys name and espn_id.".to_string());
         }
     }
-    let event_user_player_check = data_to_fill.iter().map(|x| x["event_user_player"].as_array().unwrap()).flatten().collect::<Vec<_>>();
+    let event_user_player_check = data_to_fill
+        .iter()
+        .map(|x| x["event_user_player"].as_array().unwrap())
+        .flatten()
+        .collect::<Vec<_>>();
     // check event_user_player contains bettor and golfer_espn_id
     for event_user_player in event_user_player_check {
         if !event_user_player.is_object() {
-            return Err("The json key event_user_player is not in the correct format. Expected objects.".to_string());
+            return Err(
+                "The json key event_user_player is not in the correct format. Expected objects."
+                    .to_string(),
+            );
         }
-        if !event_user_player["bettor"].is_string() || !event_user_player["golfer_espn_id"].is_number() {
+        if !event_user_player["bettor"].is_string()
+            || !event_user_player["golfer_espn_id"].is_number()
+        {
             return Err("The json key event_user_player is not in the correct format. Expected objects with keys bettor and golfer_espn_id.".to_string());
         }
     }
-
-
 
     Ok(())
 }

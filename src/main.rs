@@ -5,7 +5,10 @@ use rusty_golf::controller::{db_prefill, score::scores};
 
 use rusty_golf::model::{get_title_from_db, CacheMap};
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
-use sqlx_middleware::middleware::{ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams};
+use sqlx_middleware::middleware::{
+    ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool, MiddlewarePoolConnection,
+    QueryAndParams,
+};
 
 use actix_files::Files;
 use actix_web::web::Data;
@@ -34,11 +37,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         cfg.password = args.db_password;
         cfg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
-        }
-    );
+        });
         dbcn = ConfigAndPool2::new_postgres(cfg).await?;
     } else {
-        
         dbcn = ConfigAndPool2::new_sqlite(args.db_name).await?;
         // let sqlite_configandpool = ConfigAndPool2::new_sqlite(x).await.unwrap();
         // let pool = sqlite_configandpool.pool.get().await.unwrap();
@@ -54,28 +55,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             params: vec![],
             is_read_only: false,
         };
-        
-        let pool = dbcn.pool.get().await?;
-    let sconn = MiddlewarePool::get_connection(pool).await?;
-    match sconn {
-        MiddlewarePoolConnection::Postgres(mut xx) => {
-            let tx = xx.transaction().await?;
 
-                  tx.batch_execute(&query_and_params.query).await?;
-            tx.commit().await?;
-            Ok::<_, SqlMiddlewareDbError>(())
-        }
-        MiddlewarePoolConnection::Sqlite(xx) => {
-            xx.interact(move |xxx| {
-                let tx = xxx.transaction()?;
-                 tx.execute_batch(&query_and_params.query)?;
-                
-                tx.commit()?;
+        let pool = dbcn.pool.get().await?;
+        let sconn = MiddlewarePool::get_connection(pool).await?;
+        match sconn {
+            MiddlewarePoolConnection::Postgres(mut xx) => {
+                let tx = xx.transaction().await?;
+
+                tx.batch_execute(&query_and_params.query).await?;
+                tx.commit().await?;
                 Ok::<_, SqlMiddlewareDbError>(())
-            })
-            .await?
-        }
-    }?;
+            }
+            MiddlewarePoolConnection::Sqlite(xx) => {
+                xx.interact(move |xxx| {
+                    let tx = xxx.transaction()?;
+                    tx.execute_batch(&query_and_params.query)?;
+
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(())
+                })
+                .await?
+            }
+        }?;
     }
 
     if args.db_populate_json.is_some() {
@@ -85,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
 
-HttpServer::new(move || {
+    HttpServer::new(move || {
         App::new()
             .app_data(Data::new(cache_map.clone()))
             .app_data(Data::new(dbcn.clone()))

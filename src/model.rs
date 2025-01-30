@@ -598,8 +598,7 @@ pub async fn event_and_scores_already_in_db(
             Ok(row
                 .get("ins_ts")
                 .and_then(|v| v.as_timestamp())
-                .unwrap_or_default()
-            )
+                .unwrap_or_default())
         })
         .last()
         .ok_or(SqlMiddlewareDbError::Other("No results found".to_string()))?;

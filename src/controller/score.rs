@@ -96,9 +96,16 @@ pub async fn scores(
     cfg.dbname = Some("xxx".to_string());
     // dbcn = ConfigAndPoolOld::new(cfg, DatabaseType::Sqlite).await;
     // let db = Db::new(dbcn.clone()).unwrap();
-    
-    let total_cache =
-        get_data_for_scores_page(event_id, year, cache_map.get_ref(), cache, &config_and_pool, cache_max_age).await;
+
+    let total_cache = get_data_for_scores_page(
+        event_id,
+        year,
+        cache_map.get_ref(),
+        cache,
+        &config_and_pool,
+        cache_max_age,
+    )
+    .await;
 
     match total_cache {
         Ok(cache) => {
@@ -139,7 +146,15 @@ pub async fn get_data_for_scores_page(
     // };
 
     let start_time = Instant::now();
-    let golfers_and_scores = fetch_scores_from_espn(active_golfers.clone(), year, event_id, config_and_pool, use_cache, cache_max_age).await?;
+    let golfers_and_scores = fetch_scores_from_espn(
+        active_golfers.clone(),
+        year,
+        event_id,
+        config_and_pool,
+        use_cache,
+        cache_max_age,
+    )
+    .await?;
 
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &golfers_and_scores {

@@ -3,7 +3,8 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use sqlx_middleware::{
     middleware::{
-        CheckType, ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams
+        CheckType, ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection,
+        QueryAndParams,
     },
     postgres_build_result_set, sqlite_build_result_set, SqlMiddlewareDbError,
 };
@@ -224,38 +225,39 @@ pub async fn create_tables(
     let pool = config_and_pool.pool.get().await?;
     let sconn = MiddlewarePool::get_connection(pool).await?;
 
-    let query =  match check_type {
-        &CheckType::Table=>{
-         match &sconn {
-        MiddlewarePoolConnection::Postgres(_xx) => match check_type {
-            CheckType::Table => {
-                vec![include_str!("sql/schema/postgres/00_event.sql"),
-                include_str!("sql/schema/postgres/02_golfer.sql"),
-                include_str!("sql/schema/postgres/03_bettor.sql"),
-                include_str!("sql/schema/postgres/04_event_user_player.sql"),
-                include_str!("sql/schema/postgres/05_eup_statistic.sql"),].join("\n")
-            }
-            _ => {
-                return Ok(());
-            }
+    let query = match check_type {
+        &CheckType::Table => match &sconn {
+            MiddlewarePoolConnection::Postgres(_xx) => match check_type {
+                CheckType::Table => vec![
+                    include_str!("sql/schema/postgres/00_event.sql"),
+                    include_str!("sql/schema/postgres/02_golfer.sql"),
+                    include_str!("sql/schema/postgres/03_bettor.sql"),
+                    include_str!("sql/schema/postgres/04_event_user_player.sql"),
+                    include_str!("sql/schema/postgres/05_eup_statistic.sql"),
+                ]
+                .join("\n"),
+                _ => {
+                    return Ok(());
+                }
+            },
+            MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
+                CheckType::Table => vec![
+                    include_str!("sql/schema/sqlite/00_event.sql"),
+                    include_str!("sql/schema/sqlite/02_golfer.sql"),
+                    include_str!("sql/schema/sqlite/03_bettor.sql"),
+                    include_str!("sql/schema/sqlite/04_event_user_player.sql"),
+                    include_str!("sql/schema/sqlite/05_eup_statistic.sql"),
+                ]
+                .join("\n"),
+                _ => {
+                    return Ok(());
+                }
+            },
         },
-        MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
-            CheckType::Table => {
-                vec![include_str!("sql/schema/sqlite/00_event.sql"),
-                include_str!("sql/schema/sqlite/02_golfer.sql"),
-                include_str!("sql/schema/sqlite/03_bettor.sql"),
-                include_str!("sql/schema/sqlite/04_event_user_player.sql"),
-                include_str!("sql/schema/sqlite/05_eup_statistic.sql"),].join("\n")
-            }
-            _ => {
-                return Ok(());
-            }
-        },
-    }}
-, 
-       & CheckType::Constraint=>{
-     return   Ok(());}
-};
+        &CheckType::Constraint => {
+            return Ok(());
+        }
+    };
 
     let query_and_params = QueryAndParams {
         query: query.to_string(),
@@ -267,15 +269,15 @@ pub async fn create_tables(
         MiddlewarePoolConnection::Postgres(mut xx) => {
             let tx = xx.transaction().await?;
 
-                  tx.batch_execute(&query_and_params.query).await?;
+            tx.batch_execute(&query_and_params.query).await?;
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
         MiddlewarePoolConnection::Sqlite(xx) => {
             xx.interact(move |xxx| {
                 let tx = xxx.transaction()?;
-                 tx.execute_batch(&query_and_params.query)?;
-                
+                tx.execute_batch(&query_and_params.query)?;
+
                 tx.commit()?;
                 Ok::<_, SqlMiddlewareDbError>(())
             })
