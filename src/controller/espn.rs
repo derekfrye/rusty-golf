@@ -62,20 +62,20 @@ pub async fn fetch_scores_from_espn(
     use_cache: bool,
     cache_max_age: i64
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
-    let are_we_using_cache: Result<bool, Box<dyn std::error::Error>> = {
-        let xx = if use_cache {
-            event_and_scores_already_in_db(config_and_pool, event_id, cache_max_age).await
-        } else {
-            Ok(false)
-        };
-        if xx.is_ok() {
-            Ok(xx?)
-        } else {
-            Ok(false)
+    let are_we_using_cache: bool = match use_cache {
+        true => {
+            let t = event_and_scores_already_in_db(config_and_pool, event_id, cache_max_age).await;
+            match t {
+                Ok(true) => true,
+                Ok(false) => false,
+                Err(_) => false,
+            }
         }
+        false => false,
     };
+
     // get the data from espn and persist it to the database
-    if are_we_using_cache.is_ok() && !are_we_using_cache? {
+    if !are_we_using_cache {
         let x = go_get_espn_data(scores, year, event_id).await?;
         Ok(store_espn_results(&x, event_id, config_and_pool).await?)
     } else {

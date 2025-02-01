@@ -291,7 +291,7 @@ pub async fn get_title_from_db(
     let z = res?.results
         .iter()
         .map(|row| {
-            row.get("name")
+            row.get("eventname")
                 .and_then(|v| v.as_text())
                 .map(|v| v.to_string())
                 .ok_or(SqlMiddlewareDbError::Other("Name not found".to_string()))
@@ -588,10 +588,10 @@ pub async fn event_and_scores_already_in_db(
         _ => panic!("Only sqlite is supported "),
     })?;
 
-    let z: Result<NaiveDateTime, SqlMiddlewareDbError> = res?.results
+    let z:NaiveDateTime = res?.results
         .iter()
         .map(|row| {
-            Ok(
+            Ok::<NaiveDateTime, SqlMiddlewareDbError>(
                 row
                     .get("ins_ts")
                     .and_then(|v| v.as_timestamp())
@@ -599,9 +599,27 @@ pub async fn event_and_scores_already_in_db(
             )
         })
         .last()
-        .ok_or(SqlMiddlewareDbError::Other("No results found".to_string()))?;
+        .ok_or(SqlMiddlewareDbError::Other("No results found".to_string()))??;
 
     let now = chrono::Utc::now().naive_utc();
-    let diff = now - z?;
-    Ok(diff.num_days() < cache_max_age)
+    
+    if cfg!(debug_assertions) {
+        #[allow(unused_variables)]
+        let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
+        let z_clone = z.clone();
+        #[allow(unused_variables)]
+        let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
+        let diff = now - z_clone;
+        #[allow(unused_variables)]
+        let diff_human_readable_fmt = diff.num_days();
+        #[allow(unused_variables)]
+        let pass = diff.num_days() > cache_max_age;
+        println!(
+            "Now: {}, Last Refresh: {}, Diff: {}, Pass: {}",
+            now_human_readable_fmt, z_human_readable_fmt, diff_human_readable_fmt, pass
+        );
+    }
+    
+    let diff = now - z;
+    Ok(diff.num_days() > cache_max_age)
 }

@@ -27,8 +27,8 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     // let _ = env_logger::builder().is_test(true).try_init();
 
     // let mut cfg = deadpool_postgres::Config::new();
-    let _x = "file::memory:?cache=shared".to_string();
-    let x = "xxx".to_string();
+    let x = "file::memory:?cache=shared".to_string();
+    // let x = "xxx".to_string();
 
     let config_and_pool = ConfigAndPool::new_sqlite(x).await.unwrap();
     // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
