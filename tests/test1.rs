@@ -21,7 +21,7 @@ use sql_middleware::{
     SqlMiddlewareDbError,
 };
 
-#[tokio::test]
+#[test]
 async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();

@@ -1,8 +1,16 @@
-use std::{collections::HashMap, vec};
+use std::{ collections::HashMap, vec };
 
 use crate::model::{
-    event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, IntStat, LineScore,
-    PlayerJsonResponse, ScoreDisplay, Scores, Statistic, StringStat,
+    event_and_scores_already_in_db,
+    get_scores_from_db,
+    store_scores_in_db,
+    IntStat,
+    LineScore,
+    PlayerJsonResponse,
+    ScoreDisplay,
+    Scores,
+    Statistic,
+    StringStat,
 };
 use chrono::DateTime;
 use reqwest::Client;
@@ -16,7 +24,7 @@ use tokio::sync::mpsc;
 pub async fn get_json_from_espn(
     scores: &Vec<Scores>,
     year: i32,
-    event_id: i32,
+    event_id: i32
 ) -> Result<PlayerJsonResponse, reqwest::Error> {
     let client = Client::new();
     let mut player_response = PlayerJsonResponse {
@@ -27,7 +35,9 @@ pub async fn get_json_from_espn(
     for score in scores {
         let url = format!(
             "https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/{}/playersummary?season={}&player={}",
-            event_id, year, score.espn_id
+            event_id,
+            year,
+            score.espn_id
         );
 
         let resp = client.get(&url).send().await?;
@@ -50,7 +60,7 @@ pub async fn fetch_scores_from_espn(
     // db: &db::Db,
     config_and_pool: &ConfigAndPool2,
     use_cache: bool,
-    cache_max_age: i64,
+    cache_max_age: i64
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
     let are_we_using_cache: Result<bool, Box<dyn std::error::Error>> = {
         let xx = if use_cache {
@@ -65,7 +75,7 @@ pub async fn fetch_scores_from_espn(
         }
     };
     // get the data from espn and persist it to the database
-    if are_we_using_cache.is_ok() && are_we_using_cache? {
+    if are_we_using_cache.is_ok() && !are_we_using_cache? {
         let x = go_get_espn_data(scores, year, event_id).await?;
         Ok(store_espn_results(&x, event_id, config_and_pool).await?)
     } else {
@@ -79,7 +89,7 @@ async fn store_espn_results(
     // year: i32,
     event_id: i32,
     // db: &db::Db,
-    config_and_pool: &ConfigAndPool2,
+    config_and_pool: &ConfigAndPool2
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
     store_scores_in_db(config_and_pool, event_id, scores).await?;
     Ok(get_scores_from_db(config_and_pool, event_id).await?)
@@ -88,7 +98,7 @@ async fn store_espn_results(
 async fn go_get_espn_data(
     scores: Vec<Scores>,
     year: i32,
-    event_id: i32,
+    event_id: i32
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
     let num_scores = scores.len();
     let group_size = (num_scores + 3) / 4;
@@ -178,11 +188,7 @@ async fn go_get_espn_data(
                 let score = ln_score.get("displayValue").and_then(Value::as_str);
 
                 let par = par.unwrap_or(0);
-                let score = score
-                    .unwrap_or("")
-                    .trim_start_matches('+')
-                    .parse::<i64>()
-                    .unwrap_or(0);
+                let score = score.unwrap_or("").trim_start_matches('+').parse::<i64>().unwrap_or(0);
                 let score_display = ScoreDisplay::from_i32((par - score).try_into().unwrap());
 
                 let line_score_tmp = LineScore {
@@ -205,10 +211,7 @@ async fn go_get_espn_data(
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
-            let score = display_value
-                .trim_start_matches('+')
-                .parse::<i32>()
-                .unwrap_or(0);
+            let score = display_value.trim_start_matches('+').parse::<i32>().unwrap_or(0);
             golfer_score.round_scores.push(IntStat {
                 val: score,
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
@@ -230,11 +233,14 @@ async fn go_get_espn_data(
                 // tee_time = (tee_time.to_owned() + "+0000").as_str();
             }
 
-            let parsed_time =
-                DateTime::parse_from_str(&mut_tee_time, "%Y-%m-%dT%H:%MZ%z").unwrap_or_default();
+            let parsed_time = DateTime::parse_from_str(
+                &mut_tee_time,
+                "%Y-%m-%dT%H:%MZ%z"
+            ).unwrap_or_default();
 
-            let parsed_time_in_central = parsed_time
-                .with_timezone(&chrono::offset::FixedOffset::east_opt(-5 * 3600).unwrap());
+            let parsed_time_in_central = parsed_time.with_timezone(
+                &chrono::offset::FixedOffset::east_opt(-5 * 3600).unwrap()
+            );
 
             let special_format_time = parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string();
 
@@ -254,7 +260,10 @@ async fn go_get_espn_data(
             });
         }
 
-        golfer_score.total_score = golfer_score.round_scores.iter().map(|s| s.val).sum();
+        golfer_score.total_score = golfer_score.round_scores
+            .iter()
+            .map(|s| s.val)
+            .sum();
         golfer_scores.push(golfer_score);
     }
 
@@ -285,11 +294,7 @@ async fn go_get_espn_data(
         .collect();
 
     golfers_and_scores.sort_by(|a, b| {
-        if a.group == b.group {
-            a.eup_id.cmp(&b.eup_id)
-        } else {
-            a.group.cmp(&b.group)
-        }
+        if a.group == b.group { a.eup_id.cmp(&b.eup_id) } else { a.group.cmp(&b.group) }
     });
 
     Ok(golfers_and_scores)
