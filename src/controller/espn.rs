@@ -2,7 +2,7 @@ use std::{collections::HashMap, vec};
 
 use crate::model::{
     event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, IntStat, LineScore,
-    PlayerJsonResponse, ResultStatus, ScoreDisplay, Scores, Statistic, StringStat,
+    PlayerJsonResponse, ScoreDisplay, Scores, Statistic, StringStat,
 };
 use chrono::DateTime;
 use reqwest::Client;
@@ -159,7 +159,6 @@ async fn go_get_espn_data(
             tee_times: Vec::new(),
             holes_completed_by_round: Vec::new(),
             line_scores: Vec::new(),
-            success_fail: ResultStatus::NoData,
             total_score: 0,
         };
 
@@ -178,12 +177,6 @@ async fn go_get_espn_data(
                 let par = ln_score.get("par").and_then(Value::as_i64);
                 let score = ln_score.get("displayValue").and_then(Value::as_str);
 
-                let success = if par.is_none() || score.is_none() {
-                    ResultStatus::NoData
-                } else {
-                    ResultStatus::Success
-                };
-
                 let par = par.unwrap_or(0);
                 let score = score
                     .unwrap_or("")
@@ -196,7 +189,6 @@ async fn go_get_espn_data(
                     hole: (idx as i32) + 1,
                     score: score as i32,
                     par: par as i32,
-                    success,
                     // last_refresh_date: chrono::Utc::now().to_rfc3339(),
                     score_display,
                     round: i as i32,
@@ -206,16 +198,10 @@ async fn go_get_espn_data(
 
             let display_value = round.get("displayValue").and_then(Value::as_str);
 
-            let success = if display_value.is_none() || !display_value.unwrap_or("").is_empty() {
-                ResultStatus::Success
-            } else {
-                ResultStatus::NoData
-            };
             let display_value = display_value.unwrap_or("");
 
             golfer_score.rounds.push(IntStat {
                 val: i as i32,
-                success,
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
@@ -225,7 +211,6 @@ async fn go_get_espn_data(
                 .unwrap_or(0);
             golfer_score.round_scores.push(IntStat {
                 val: score,
-                success: ResultStatus::Success,
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
@@ -259,14 +244,12 @@ async fn go_get_espn_data(
 
             golfer_score.tee_times.push(StringStat {
                 val: special_format_time,
-                success: ResultStatus::Success,
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
             let holes_completed = golfer_score.line_scores.len();
             golfer_score.holes_completed_by_round.push(IntStat {
                 val: holes_completed as i32,
-                success: ResultStatus::Success,
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
         }

@@ -39,15 +39,7 @@ pub struct Statistic {
     pub tee_times: Vec<StringStat>,
     pub holes_completed_by_round: Vec<IntStat>,
     pub line_scores: Vec<LineScore>,
-    pub success_fail: ResultStatus,
     pub total_score: i32,
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
-pub enum ResultStatus {
-    NoData,
-    NoDisplayValue,
-    Success,
 }
 
 pub enum CheckType{
@@ -58,14 +50,12 @@ pub enum CheckType{
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StringStat {
     pub val: String,
-    pub success: ResultStatus,
     // pub last_refresh_date: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IntStat {
     pub val: i32,
-    pub success: ResultStatus,
     // pub last_refresh_date: String,
 }
 
@@ -76,7 +66,6 @@ pub struct LineScore {
     pub score: i32,
     pub par: i32,
     pub score_display: ScoreDisplay,
-    pub success: ResultStatus,
     // pub last_refresh_date: String,
 }
 
@@ -254,7 +243,6 @@ pub async fn get_golfers_from_db(
                 tee_times: vec![],
                 holes_completed_by_round: vec![],
                 line_scores: vec![],
-                success_fail: ResultStatus::NoData,
                 total_score: 0,
             },
         })
@@ -442,7 +430,6 @@ pub async fn get_scores_from_db(
                         Ok(line_scores) => line_scores,
                         Err(e) => return Err(SqlMiddlewareDbError::Other(e.to_string())),
                     },
-                    success_fail: ResultStatus::Success,
                     total_score: row
                         .get("total_score")
                         .and_then(|v| v.as_int())
