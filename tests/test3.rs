@@ -8,7 +8,7 @@ use tokio::sync::RwLock;
 use rusty_golf::{controller::score::get_data_for_scores_page, model::CacheMap};
 
 use sql_middleware::middleware::{
-    ConfigAndPool as ConfigAndPool2, DatabaseExecutor, MiddlewarePool, QueryAndParams,
+    AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, MiddlewarePool, QueryAndParams
 };
 
 #[tokio::test]
@@ -31,7 +31,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     let query_and_params = QueryAndParams {
         query: ddl.join("\n"),
         params: vec![],
-        is_read_only: false,
+        
     };
 
     let pool = config_and_pool.pool.get().await?;
@@ -43,7 +43,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     let query_and_params = QueryAndParams {
         query: setup_queries.to_string(),
         params: vec![],
-        is_read_only: false,
+        
     };
 
     conn.execute_batch(&query_and_params.query).await?;

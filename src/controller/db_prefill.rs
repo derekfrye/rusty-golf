@@ -33,7 +33,7 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                 RowValues::Int(json["event"].as_i64().unwrap()),
                                 RowValues::Int(json["year"].as_i64().unwrap())
                             ],
-                            is_read_only: true,
+                          
                         };
                         let tx = xxx.transaction()?;
 
@@ -55,7 +55,7 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                     RowValues::Int(json["event"].as_i64().unwrap()),
                                     RowValues::Int(json["year"].as_i64().unwrap())
                                 ],
-                                is_read_only: false,
+                                
                             };
                             let converted_params = sql_middleware::sqlite_convert_params(
                                 &query_and_params_vec.params
@@ -76,7 +76,7 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                     RowValues::Int(json["event"].as_i64().unwrap()),
                                     RowValues::Int(json["year"].as_i64().unwrap())
                                 ],
-                                is_read_only: false,
+                                
                             };
                             let converted_params = sql_middleware::sqlite_convert_params(
                                 &query_and_params_vec.params
@@ -99,7 +99,7 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                     let query_and_params_vec = QueryAndParams {
                                         query: "INSERT INTO bettor (name) SELECT ?1 WHERE NOT EXISTS (SELECT 1 from bettor where name = ?1);".to_string(),
                                         params: vec![RowValues::Text(bettor.to_string())],
-                                        is_read_only: false,
+                                        
                                     };
                                     let converted_params = sql_middleware::sqlite_convert_params(
                                         &query_and_params_vec.params
@@ -121,7 +121,7 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                             RowValues::Text(golfer["name"].to_string()),
                                             RowValues::Int(golfer["espn_id"].as_i64().unwrap())
                                         ],
-                                        is_read_only: false,
+                                        
                                     };
                                     let converted_params = sql_middleware::sqlite_convert_params(
                                         &query_and_params_vec.params
@@ -157,7 +157,7 @@ pub fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), 
                                                     .unwrap()
                                             )
                                         ],
-                                        is_read_only: false,
+                                        
                                     };
                                     let converted_params = sql_middleware::sqlite_convert_params(
                                         &query_and_params_vec.params

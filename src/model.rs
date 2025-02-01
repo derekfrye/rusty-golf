@@ -50,6 +50,11 @@ pub enum ResultStatus {
     Success,
 }
 
+pub enum CheckType{
+    Table,
+    Constraint
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StringStat {
     pub val: String,
@@ -182,7 +187,7 @@ pub async fn get_golfers_from_db(
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
         params: vec![RowValues2::Int(event_id as i64)],
-        is_read_only: true,
+        
     };
 
     let res = match &conn {
@@ -276,7 +281,7 @@ pub async fn get_title_from_db(
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
         params: vec![RowValues2::Int(event_id as i64)],
-        is_read_only: true,
+        
     };
 
     let res = match &conn {
@@ -334,7 +339,7 @@ pub async fn get_scores_from_db(
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
         params: vec![RowValues2::Int(event_id as i64)],
-        is_read_only: true,
+        
     };
 
     let res = match &conn {
@@ -494,7 +499,7 @@ pub async fn store_scores_in_db(
             queries.push(QueryAndParams2 {
                 query: insert_stmt.to_string(),
                 params: param,
-                is_read_only: false,
+                
             });
         }
         queries
@@ -565,7 +570,7 @@ pub async fn event_and_scores_already_in_db(
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
         params: vec![RowValues2::Int(event_id as i64)],
-        is_read_only: true,
+        
     };
 
     let res = match &conn {

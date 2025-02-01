@@ -3,12 +3,14 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use sql_middleware::{
     middleware::{
-        CheckType, ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection,
+         ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection,
         QueryAndParams,
     },
     postgres_build_result_set, sqlite_build_result_set, SqlMiddlewareDbError,
 };
 use std::str::FromStr;
+
+use crate::model::CheckType;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -185,7 +187,6 @@ pub async fn test_is_db_setup(
     let query_and_params = QueryAndParams {
         query: query.to_string(),
         params: vec![],
-        is_read_only: true,
     };
 
     let res = match sconn {
@@ -262,7 +263,7 @@ pub async fn create_tables(
     let query_and_params = QueryAndParams {
         query: query.to_string(),
         params: vec![],
-        is_read_only: false,
+        
     };
 
     match sconn {

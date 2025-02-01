@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let query_and_params = QueryAndParams {
             query: script,
             params: vec![],
-            is_read_only: false,
+            
         };
 
         let pool = dbcn.pool.get().await?;

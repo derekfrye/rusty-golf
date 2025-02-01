@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
 use crate::{
-    admin::model::admin_model::{create_tables, test_is_db_setup, TimesRun},
-    HTMX_PATH,
+    admin::model::admin_model::{create_tables, test_is_db_setup, TimesRun}, model::CheckType, HTMX_PATH
 };
 use actix_web::{web, HttpResponse};
 use maud::{html, Markup};
 use serde_json::{json, Value};
-use sql_middleware::middleware::{CheckType, ConfigAndPool};
+use sql_middleware::middleware:: ConfigAndPool;
 
 #[derive(Debug, Clone)]
 pub struct CreateTableReturn {
