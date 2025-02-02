@@ -481,8 +481,13 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                                     (golfer.golfer_name)
                                 }
                                 th colspan="3" class="topheader" {
+                                    
                                     @for rd in &unique_rounds {
-                                        button class="linescore-round-button" data-round=(rd) {
+
+                                        @let is_round_one = *rd == 1;
+                                        @let row_class = if is_round_one { "linescore-round-button selected" } else { "linescore-round-button" };
+
+                                        button class=(row_class) data-round=(rd) {
                                             "R" (rd)
                                         }
                                         " "  // small space
@@ -546,10 +551,10 @@ fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
         ScoreDisplay::Bogey => "score-shape-bogey",
         ScoreDisplay::DoubleBogey => "score-shape-doublebogey",
         // For anything else, we won't wrap it in a shape.
-        ScoreDisplay::Par => "",
+        ScoreDisplay::Par => "score-shape-par",
         // ... match other variants if you want special styles ...
         
-        _ => "",
+        _ => "score-shape-par",
     };
 
     if class_name.is_empty() {

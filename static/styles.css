@@ -116,7 +116,7 @@ th.sort-desc.sortable {
   background-color: #d4eaf7; /* Highlight sorted column */
 }
 
-{{/* view/scores.rs/render_scoreboard */}}
+/* view/scores.rs/render_scoreboard */
 
 .styled-table tbody tr:nth-child(1) {
   background-color: #d9ead3;
@@ -189,9 +189,6 @@ p.refresh {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.05); /* Subtle shadow */
 }
 
-.grid-container > div#landing_grid_1 {
-  /* Additional styles for the first cell if needed */
-}
 
 /* Styles for cell headers */
 .cell-header {
@@ -243,7 +240,7 @@ p.refresh {
     display: block; /* Show the selected chart */
 }
 
-{{/* view/scores.rs/render_score_detail */}}
+/* view/scores.rs/render_score_detail */
 
 .playerdetailsbtn {
   font-size: 0.6rem;
@@ -271,11 +268,11 @@ h4.playerdetails {
   font-style: italic;
 }
 
-{{/* h3.playerbars {
+/* h3.playerbars {
   margin-top: 1.8rem;
-} */}}
+} */
 
-{{/* view/scores.rs/render_drop_down_bar */}}
+/* view/scores.rs/render_drop_down_bar */
 
 .chart-container {
     position: relative;
@@ -292,14 +289,14 @@ h4.playerdetails {
 }
 
 .label-container {
-    {{/* flex: 0 0 10%; /* Occupies 10% of the chart-row's width */ */}}
-    {{/* display: flex; */}}
-    {{/* justify-content: flex-end; /* Align labels to the right */ */}}
+    /* flex: 0 0 10%; /* Occupies 10% of the chart-row's width */
+    /* display: flex; */
+    /* justify-content: flex-end; /* Align labels to the right */
     align-items: center; /* Vertically center text */
     padding-right: 0.5rem; /* Space between label and bars */
     box-sizing: border-box; /* Include padding in width */
     text-align: right; /* Align text to the right */
-    {{/* font-family: monospace; /* Use fixed-width font */ */}}
+    /* font-family: monospace; /* Use fixed-width font */
     width: 14ch; /* Fixed width to ensure all labels pretend to have 10 characters */
     white-space: nowrap; /* Prevent wrapping */
 }
@@ -421,23 +418,24 @@ h4.playerdetails {
 .linescore-table {
   border-collapse: collapse;
   width: auto; /* Allow table to shrink to fit contents */
-  margin: 20px 0;
+  margin: 1rem 0;
   background-color: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.1);
 }
 
 .linescore-table th,
 .linescore-table td {
-  padding: 0.5rem 0.5rem;
+  padding: 0.3rem 0.3rem;
   text-align: right; /* Default alignment for all columns */
   border: 1px solid #ddd;
   white-space: nowrap; /* Prevent wrapping to ensure column width fits content */
-  font-size: 9pt; /* Set font size for table headers and entries */
+  font-size: 0.7rem; /* Set font size for table headers and entries */
+  /* height: 1.5rem; /* Ensure a minimum height for cells */
 }
 
 .linescore-table th {
   text-align: center; /* Center alignment for headers */
-  min-width: 5rem;
+  min-width: 2rem;
 }
 
 .linescore-table th.topheader {
@@ -446,14 +444,14 @@ h4.playerdetails {
 
 .linescore-table td:first-child,
 .linescore-table td:nth-child(2) {
-  text-align: left;
+  text-align: right;
 }
 
 /* Additional scoped styles */
 .linescore-table.table.summary th,
 .linescore-table.table.summary td {
-  padding: 0.5rem 0.5rem; /* Adjusted padding for summary table */
-  min-width: 2.5rem; /* Adjusted width for summary table */
+  padding: 0.1rem 0.1rem; /* Adjusted padding for summary table */
+  min-width: 2rem; /* Adjusted width for summary table */
 }
 
 .linescore-table.table.summary td:first-child {
@@ -468,7 +466,6 @@ h4.playerdetails {
   width: auto; /* Allow table to shrink to fit contents */
 }
 
-/* The Strokes cell can be used for any additional styling */
 .score-cell {
   text-align: center; /* so our shape is nicely centered */
   vertical-align: middle;
@@ -480,7 +477,8 @@ h4.playerdetails {
 .score-shape-birdie, 
 .score-shape-eagle,
 .score-shape-bogey,
-.score-shape-doublebogey {
+.score-shape-doublebogey,
+.score-shape-par {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -491,6 +489,7 @@ h4.playerdetails {
   font-size: 0.8rem;
   aspect-ratio: 1 / 1;
 }
+
 
 /* Light circle for Birdie */
 .score-shape-birdie {

@@ -117,6 +117,10 @@ document.addEventListener('click', (event) => {
         document.querySelectorAll('.linescore-round-button').forEach(btn => btn.classList.remove('selected'));
         button.classList.add('selected');
 
+        document.querySelectorAll(`.linescore-round-button[data-round="${selectedRound}"]`).forEach(btn => {
+            btn.classList.add('selected');
+        });
+
         // Show/hide corresponding table rows
         filterRound(selectedRound);
     }
