@@ -1,16 +1,7 @@
 use std::{ collections::HashMap, vec };
 
 use crate::model::{
-    event_and_scores_already_in_db,
-    get_scores_from_db,
-    store_scores_in_db,
-    IntStat,
-    LineScore,
-    PlayerJsonResponse,
-    ScoreDisplay,
-    Scores,
-    Statistic,
-    StringStat,
+    event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, IntStat, LineScore, PlayerJsonResponse, RefreshSource, ScoreDisplay, Scores, ScoresAndLastRefresh, Statistic, StringStat
 };
 use chrono::DateTime;
 use reqwest::Client;
@@ -53,6 +44,7 @@ pub async fn get_json_from_espn(
     Ok(player_response)
 }
 
+/// Will fetch from db if you want the cache, otherwise from ESPN.
 pub async fn fetch_scores_from_espn(
     scores: Vec<Scores>,
     year: i32,
@@ -61,7 +53,7 @@ pub async fn fetch_scores_from_espn(
     config_and_pool: &ConfigAndPool2,
     use_cache: bool,
     cache_max_age: i64
-) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
+) -> Result<ScoresAndLastRefresh, Box<dyn std::error::Error>> {
     let are_we_using_cache: bool = match use_cache {
         true => {
             let t = event_and_scores_already_in_db(config_and_pool, event_id, cache_max_age).await;
@@ -77,10 +69,12 @@ pub async fn fetch_scores_from_espn(
     // get the data from espn and persist it to the database
     if !are_we_using_cache {
         let x = go_get_espn_data(scores, year, event_id).await?;
-        Ok(store_espn_results(&x, event_id, config_and_pool).await?)
+        let z= store_espn_results(&x, event_id, config_and_pool).await?;
+        Ok(z)
+            
     } else {
         // we're just retrieving the data from db
-        Ok(get_scores_from_db(config_and_pool, event_id).await?)
+        Ok(get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?)
     }
 }
 
@@ -90,9 +84,9 @@ async fn store_espn_results(
     event_id: i32,
     // db: &db::Db,
     config_and_pool: &ConfigAndPool2
-) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
+) -> Result<ScoresAndLastRefresh, Box<dyn std::error::Error>> {
     store_scores_in_db(config_and_pool, event_id, scores).await?;
-    Ok(get_scores_from_db(config_and_pool, event_id).await?)
+    Ok(get_scores_from_db(config_and_pool, event_id, RefreshSource::Espn).await?)
 }
 
 async fn go_get_espn_data(

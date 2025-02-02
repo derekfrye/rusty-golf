@@ -21,9 +21,11 @@
             },
             "args": [
                 "--db-type=sqlite",
-                "--db-name=file::memory:?cache=shared",
+                // "--db-name=file::memory:?cache=shared",
+                "--db-name=xxx",
                 "--db-startup-script=src/admin/model/sql/schema/sqlite/00_event.sql;src/admin/model/sql/schema/sqlite/02_golfer.sql;src/admin/model/sql/schema/sqlite/03_bettor.sql;src/admin/model/sql/schema/sqlite/04_event_user_player.sql;src/admin/model/sql/schema/sqlite/05_eup_statistic.sql",
-                "--db-populate-json=tests/test5_dbprefill.json"
+                "--db-populate-json=tests/test5_dbprefill.json",
+                "--dont-poll-espn-after-num-days=0", // always read from the db
             ],
             "cwd": "${workspaceFolder}",
         },

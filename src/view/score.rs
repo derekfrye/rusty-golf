@@ -29,7 +29,7 @@ fn render_scoreboard(data: &ScoreData) -> Markup {
         @if !data.score_struct.is_empty(){
 
             p class="refresh" {
-                "Last refreshed from ESPN " (data.last_refresh) " ago."
+                "Last refreshed from " (data.last_refresh_source) " " (data.last_refresh) " ago."
             }
 
             @let grouped_bettors = &data.bettor_struct;

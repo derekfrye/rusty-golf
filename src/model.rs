@@ -11,6 +11,7 @@ use tokio::sync::RwLock;
 
 // use sqlx_middleware::db::Db;
 use sql_middleware::middleware::{ QueryAndParams as QueryAndParams2, RowValues as RowValues2 };
+use std::fmt;
 // use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -29,6 +30,13 @@ pub struct Scores {
     pub bettor_name: String,
     pub detailed_statistics: Statistic,
     pub group: i64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ScoresAndLastRefresh {
+    pub score_struct: Vec<Scores>,
+    pub last_refresh: NaiveDateTime,
+    pub last_refresh_source: RefreshSource,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -130,6 +138,23 @@ pub struct ScoreData {
     pub bettor_struct: Vec<Bettors>,
     pub score_struct: Vec<Scores>,
     pub last_refresh: String,
+    pub last_refresh_source: RefreshSource,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum RefreshSource {
+    Db,
+    Espn,
+}
+
+impl fmt::Display for RefreshSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            RefreshSource::Db => "database",
+            RefreshSource::Espn => "ESPN",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 pub struct BettorScoreByRound {
@@ -304,8 +329,9 @@ pub async fn get_title_from_db(
 
 pub async fn get_scores_from_db(
     config_and_pool: &ConfigAndPool,
-    event_id: i32
-) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
+    event_id: i32,
+    refresh_source: RefreshSource
+) -> Result<ScoresAndLastRefresh, SqlMiddlewareDbError> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     let query = match &conn {
@@ -340,9 +366,25 @@ pub async fn get_scores_from_db(
             }).await
         }
         _ => panic!("Only sqlite is supported "),
-    })?;
+    })??;
 
-    let z: Result<Vec<Scores>, SqlMiddlewareDbError> = res?.results
+    let last_time_updated = res
+        .clone()
+        .results.iter()
+        .map(|row| {
+            row.get("ins_ts")
+                .and_then(|v| v.as_timestamp())
+                .unwrap_or_default()
+        })
+        .last()
+        .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+
+    if cfg!(debug_assertions) {
+        let x = last_time_updated.format("%Y-%m-%d %H:%M:%S").to_string();
+        println!("model.rs ln 363 Last Time Updated: {:?}", x);
+    }
+
+    let z: Result<Vec<Scores>, SqlMiddlewareDbError> = res.results
         .iter()
         .map(|row| {
             Ok(Scores {
@@ -453,7 +495,11 @@ pub async fn get_scores_from_db(
         })
         .collect::<Result<Vec<Scores>, SqlMiddlewareDbError>>();
 
-    Ok(z?)
+    Ok(ScoresAndLastRefresh {
+        score_struct: z?,
+        last_refresh: last_time_updated,
+        last_refresh_source: refresh_source,
+    })
 }
 
 pub async fn store_scores_in_db(
@@ -554,7 +600,7 @@ pub async fn event_and_scores_already_in_db(
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     let query = match &conn {
         MiddlewarePoolConnection::Postgres(_) => {
-            "SELECT EXISTS(SELECT 1 FROM event WHERE event_id = $1)"
+            "SELECT min(ins_ts) as ins_ts FROM eup_statistic WHERE event_espn_id = $1;"
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!(
@@ -588,38 +634,49 @@ pub async fn event_and_scores_already_in_db(
         _ => panic!("Only sqlite is supported "),
     })?;
 
-    let z:NaiveDateTime = res?.results
-        .iter()
-        .map(|row| {
-            Ok::<NaiveDateTime, SqlMiddlewareDbError>(
-                row
-                    .get("ins_ts")
-                    .and_then(|v| v.as_timestamp())
-                    .unwrap_or_default()
-            )
-        })
-        .last()
-        .ok_or(SqlMiddlewareDbError::Other("No results found".to_string()))??;
+    let results = res?.results;
+    let mut z = results.iter().map(|row| { row.get("ins_ts") });
 
-    let now = chrono::Utc::now().naive_utc();
-    
-    if cfg!(debug_assertions) {
-        #[allow(unused_variables)]
-        let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
-        let z_clone = z.clone();
-        #[allow(unused_variables)]
-        let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
-        let diff = now - z_clone;
-        #[allow(unused_variables)]
-        let diff_human_readable_fmt = diff.num_days();
-        #[allow(unused_variables)]
-        let pass = diff.num_days() > cache_max_age;
-        println!(
-            "Now: {}, Last Refresh: {}, Diff: {}, Pass: {}",
-            now_human_readable_fmt, z_human_readable_fmt, diff_human_readable_fmt, pass
-        );
+    if z.all(|f| f.is_none()) {
+        return Ok(false);
+    } else {
+        let t = z
+            .filter(|f| f.is_some())
+            .last()
+            .ok_or_else(|| SqlMiddlewareDbError::Other("No results found".to_string()))?;
+        if !t.is_some() {
+            return Ok(false);
+        } else {
+            let dt = t.unwrap().as_timestamp();
+            if dt.is_none() {
+                return Ok(false);
+            } else {
+                let now = chrono::Utc::now().naive_utc();
+                let final_val = dt.unwrap();
+
+                if cfg!(debug_assertions) {
+                    #[allow(unused_variables)]
+                    let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
+                    let z_clone = final_val.clone();
+                    #[allow(unused_variables)]
+                    let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
+                    let diff = now - z_clone;
+                    #[allow(unused_variables)]
+                    let diff_human_readable_fmt = diff.num_days();
+                    #[allow(unused_variables)]
+                    let pass = diff.num_days() >= cache_max_age;
+                    println!(
+                        "Now: {}, Last Refresh: {}, Diff: {}, Pass: {}",
+                        now_human_readable_fmt,
+                        z_human_readable_fmt,
+                        diff_human_readable_fmt,
+                        pass
+                    );
+                }
+
+                let diff = now - final_val;
+                Ok(diff.num_days() >= cache_max_age)
+            }
+        }
     }
-    
-    let diff = now - z;
-    Ok(diff.num_days() > cache_max_age)
 }

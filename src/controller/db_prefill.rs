@@ -42,7 +42,7 @@ pub async fn db_prefill(
                             let tx = sql_conn.transaction()?;
                             for datum in data {
                                 let query_and_params_vec = QueryAndParams {
-                                    query: "SELECT * FROM event WHERE event_id = ?1 AND year = ?2;".to_string(),
+                                    query: "SELECT * FROM event WHERE espn_id = ?1 AND year = ?2;".to_string(),
                                     params: vec![
                                         RowValues::Int(datum["event"].as_i64().unwrap()),
                                         RowValues::Int(datum["year"].as_i64().unwrap())

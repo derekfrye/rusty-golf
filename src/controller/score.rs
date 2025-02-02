@@ -1,41 +1,43 @@
-use actix_web::web::{self, Data};
-use actix_web::{HttpResponse, Responder};
+use actix_web::web::{ self, Data };
+use actix_web::{ HttpResponse, Responder };
 use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
+use crate::args::CleanArgs;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
-
-use crate::controller::cache::{check_cache_expired, get_or_create_cache};
+use crate::controller::cache::{ check_cache_expired, get_or_create_cache };
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model::{self, DetailedScore, SummaryDetailedScores};
-
+use crate::model::{ self, DetailedScore, RefreshSource, SummaryDetailedScores };
 use crate::model::{
-    AllBettorScoresByRound, BettorScoreByRound, Bettors, Cache, CacheMap, ScoreData, Scores,
+    AllBettorScoresByRound,
+    BettorScoreByRound,
+    Bettors,
+    Cache,
+    CacheMap,
+    ScoreData,
+    Scores,
 };
 use crate::view::score::render_scores_template;
-
-use std::collections::{BTreeMap, HashMap};
-use std::time::Instant;
+use std::collections::{ BTreeMap, HashMap };
 
 pub async fn scores(
     cache_map: Data<CacheMap>,
     query: web::Query<HashMap<String, String>>,
     abc: Data<ConfigAndPool>,
+    args: Data<CleanArgs>
 ) -> impl Responder {
     // let db = Db::new(abc.get_ref().clone()).unwrap();
     let config_and_pool = abc.get_ref().clone();
+    let clean_args = args.get_ref().clone();
     // let pool = abc.get_ref().clone().pool.get().await.unwrap();
     // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
-    let event_str = query
-        .get("event")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
+    let event_str = query.get("event").unwrap_or(&String::new()).trim().to_string();
     let event_id: i32 = match event_str.parse() {
         Ok(id) => id,
         Err(_) => {
-            return HttpResponse::BadRequest()
-                .json(json!({"error": "espn event parameter is required"}));
+            return HttpResponse::BadRequest().json(
+                json!({"error": "espn event parameter is required"})
+            );
         }
     };
 
@@ -43,52 +45,43 @@ pub async fn scores(
     let year: i32 = match year_str.parse() {
         Ok(y) => y,
         Err(_) => {
-            return HttpResponse::BadRequest()
-                .json(json!({"error": "yr (year) parameter is required"}));
+            return HttpResponse::BadRequest().json(
+                json!({"error": "yr (year) parameter is required"})
+            );
         }
     };
 
-    let cache_str = query
-        .get("cache")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
+    let cache_str = query.get("cache").unwrap_or(&String::new()).trim().to_string();
     let cache: bool = match cache_str.as_str() {
         "1" => true,
         "0" => false,
-        _ => cache_str.parse().unwrap_or_default(),
+        _ => true,
     };
 
-    let json_str = query
-        .get("json")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
+    let json_str = query.get("json").unwrap_or(&String::new()).trim().to_string();
     let json: bool = match json_str.as_str() {
         "1" => true,
         "0" => false,
         _ => json_str.parse().unwrap_or_default(),
     };
 
-    let expanded_str = query
-        .get("expanded")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
+    let expanded_str = query.get("expanded").unwrap_or(&String::new()).trim().to_string();
     let expanded: bool = match expanded_str.as_str() {
         "1" => true,
         "0" => false,
         _ => expanded_str.parse().unwrap_or_default(),
     };
 
-    let cache_max_age_str = query
-        .get("cache_max_age")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
+    let cache_max_age_str = query.get("cache_max_age").unwrap_or(&String::new()).trim().to_string();
     let cache_max_age: i64 = match cache_max_age_str.parse() {
         Ok(c) => c,
-        Err(_) => 10, // 10 days
+        Err(_) => { 
+            if clean_args.dont_poll_espn_after_num_days.is_some() {
+                clean_args.dont_poll_espn_after_num_days.unwrap()
+            } else {
+                0 
+            }
+        }
     };
 
     let mut cfg = deadpool_postgres::Config::new();
@@ -103,9 +96,8 @@ pub async fn scores(
         cache_map.get_ref(),
         cache,
         &config_and_pool,
-        cache_max_age,
-    )
-    .await;
+        cache_max_age
+    ).await;
 
     match total_cache {
         Ok(cache) => {
@@ -113,9 +105,7 @@ pub async fn scores(
                 HttpResponse::Ok().json(cache)
             } else {
                 let markup = render_scores_template(&cache, expanded);
-                HttpResponse::Ok()
-                    .content_type("text/html")
-                    .body(markup.into_string())
+                HttpResponse::Ok().content_type("text/html").body(markup.into_string())
             }
         }
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
@@ -128,30 +118,30 @@ pub async fn get_data_for_scores_page(
     cache_map: &CacheMap,
     use_cache: bool,
     config_and_pool: &ConfigAndPool,
-    cache_max_age: i64,
+    cache_max_age: i64
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
     if use_cache {
-        if let Ok(cache) = check_cache_expired(cache) {
+        if let Ok(mut cache) = check_cache_expired(cache) {
+            cache.last_refresh_source = RefreshSource::Db;
             return Ok(cache);
         }
     }
 
     let active_golfers = model::get_golfers_from_db(config_and_pool, event_id).await?;
 
-    let start_time = Instant::now();
+    // let start_time = Instant::now();
     let golfers_and_scores = fetch_scores_from_espn(
         active_golfers.clone(),
         year,
         event_id,
         config_and_pool,
         use_cache,
-        cache_max_age,
-    )
-    .await?;
+        cache_max_age
+    ).await?;
 
     let mut totals: HashMap<String, i32> = HashMap::new();
-    for golfer in &golfers_and_scores {
+    for golfer in &golfers_and_scores.score_struct {
         *totals.entry(golfer.bettor_name.clone()).or_insert(0) +=
             golfer.detailed_statistics.total_score;
     }
@@ -180,26 +170,26 @@ pub async fn get_data_for_scores_page(
         };
     }
 
-    let time_since = start_time.elapsed();
-    let minutes = time_since.as_secs() / 60;
-    let seconds = time_since.as_secs() % 60;
-    let time_string = format!("{}m, {}s", minutes, seconds);
+    // let time_since = start_time.elapsed();
+    // let minutes = time_since.as_secs() / 60;
+    // let seconds = time_since.as_secs() % 60;
+    // let time_string = format!("{}m, {}s", minutes, seconds);
+
+    let x = chrono::Utc::now().naive_utc() - golfers_and_scores.last_refresh;
 
     let total_cache = ScoreData {
         bettor_struct: bettors,
-        score_struct: golfers_and_scores,
-        last_refresh: time_string,
+        score_struct: golfers_and_scores.score_struct,
+        last_refresh: format!("{}m", x.num_minutes()),
+        last_refresh_source: golfers_and_scores.last_refresh_source,
     };
 
     let key = format!("{}{}", event_id, year);
     let mut cache = cache_map.write().await;
-    cache.insert(
-        key,
-        Cache {
-            data: Some(total_cache.clone()),
-            cached_time: chrono::Utc::now().to_rfc3339(),
-        },
-    );
+    cache.insert(key, Cache {
+        data: Some(total_cache.clone()),
+        cached_time: chrono::Utc::now().to_rfc3339(),
+    });
 
     Ok(total_cache)
 }
@@ -227,8 +217,10 @@ fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<S
 
 pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresByRound {
     // key = bettor, value = hashmap of rounds and the corresponding score
-    let mut rounds_by_bettor_storing_score_val: HashMap<String, Vec<(isize, isize)>> =
-        HashMap::new();
+    let mut rounds_by_bettor_storing_score_val: HashMap<
+        String,
+        Vec<(isize, isize)>
+    > = HashMap::new();
 
     // Accumulate scores by bettor and round
     for score in scores {
@@ -258,8 +250,9 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresBy
     // Preserves order of bettors
     for score in scores {
         let bettor_name = &score.bettor_name;
-        if rounds_by_bettor_storing_score_val.contains_key(bettor_name)
-            && !bettor_names.contains(bettor_name)
+        if
+            rounds_by_bettor_storing_score_val.contains_key(bettor_name) &&
+            !bettor_names.contains(bettor_name)
         {
             bettor_names.push(bettor_name.clone());
         }
@@ -269,10 +262,7 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresBy
     // this actually just needs to sum all the scores where the rounds are 0, store that val, sum all scores where rounds are 1, store that value, etc
     for bettor_name in &bettor_names {
         if rounds_by_bettor_storing_score_val.contains_key(bettor_name) {
-            let res1 = rounds_by_bettor_storing_score_val
-                .get(bettor_name)
-                .unwrap()
-                .iter();
+            let res1 = rounds_by_bettor_storing_score_val.get(bettor_name).unwrap().iter();
 
             let result = res1
                 .fold(BTreeMap::new(), |mut acc, &(k, v)| {
@@ -282,8 +272,10 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresBy
                 .into_iter()
                 .collect::<Vec<(isize, isize)>>();
 
-            let (computed_rounds, new_scores): (Vec<isize>, Vec<isize>) =
-                result.iter().cloned().unzip();
+            let (computed_rounds, new_scores): (Vec<isize>, Vec<isize>) = result
+                .iter()
+                .cloned()
+                .unzip();
 
             summary_scores.summary_scores.push(BettorScoreByRound {
                 bettor_name: bettor_name.clone(),
@@ -315,10 +307,7 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
         }
 
         // Track the order of golfers per bettor
-        golfer_order_map
-            .entry(bettor_name.clone())
-            .or_default()
-            .push(golfer_name.clone());
+        golfer_order_map.entry(bettor_name.clone()).or_default().push(golfer_name.clone());
 
         for (round_idx, score) in score.detailed_statistics.round_scores.iter().enumerate() {
             let round_val = (round_idx as i32) + 1; // Assuming rounds start at 1
@@ -330,7 +319,9 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
                 .entry(golfer_name.clone())
                 .or_default()
                 .entry(round_val)
-                .and_modify(|e| *e += round_score)
+                .and_modify(|e| {
+                    *e += round_score;
+                })
                 .or_insert(round_score);
         }
     }
@@ -351,8 +342,10 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
             if let Some(golfers_ordered) = golfer_order_map.get(&bettor_name) {
                 for golfer_name in golfers_ordered {
                     if let Some(rounds_map) = golfers_map.get(golfer_name) {
-                        let mut rounds: Vec<(i32, i32)> =
-                            rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
+                        let mut rounds: Vec<(i32, i32)> = rounds_map
+                            .iter()
+                            .map(|(&k, &v)| (k, v))
+                            .collect();
                         rounds.sort_by_key(|&(round, _)| round);
 
                         let (round_numbers, scores) = rounds.iter().cloned().unzip();

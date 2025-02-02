@@ -1,6 +1,7 @@
 extern crate rusty_golf;
 use deadpool_postgres::{ ManagerConfig, RecyclingMethod };
 use rusty_golf::admin::router;
+use rusty_golf::args;
 use rusty_golf::controller::{ db_prefill, score::scores };
 use rusty_golf::model::{ get_title_from_db, CacheMap };
 use sql_middleware::middleware::{
@@ -19,11 +20,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-mod args;
-
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = args::args_checks();
+    let args_for_web = args.clone();
 
     let mut cfg = deadpool_postgres::Config::new();
     let config_and_pool: ConfigAndPool;
@@ -95,6 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         App::new()
             .app_data(Data::new(cache_map.clone()))
             .app_data(Data::new(config_and_pool.clone()))
+            .app_data(Data::new(args_for_web.clone()))
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
             .route("/admin", web::get().to(admin))

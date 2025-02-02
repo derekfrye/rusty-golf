@@ -29,4 +29,5 @@ SET grp = EXCLUDED.grp,
     round_scores = EXCLUDED.round_scores,
     tee_times = EXCLUDED.tee_times,
     holes_completed_by_round = EXCLUDED.holes_completed_by_round,
-    line_scores = EXCLUDED.line_scores;
+    line_scores = EXCLUDED.line_scores,
+    ins_ts = CURRENT_TIMESTAMP;
