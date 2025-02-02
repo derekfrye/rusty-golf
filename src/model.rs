@@ -78,6 +78,7 @@ pub struct LineScore {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "PascalCase")] 
 pub enum ScoreDisplay {
     DoubleCondor,
     Condor,
@@ -669,3 +670,4 @@ pub async fn event_and_scores_already_in_db(
         Ok(false)
     }
 }
+

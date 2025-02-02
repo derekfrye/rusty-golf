@@ -84,9 +84,9 @@ pub async fn scores(
         }
     };
 
-    let mut cfg = deadpool_postgres::Config::new();
+    // let mut cfg = deadpool_postgres::Config::new();
     // let dbcn: ConfigAndPoolOld;
-    cfg.dbname = Some("xxx".to_string());
+    // cfg.dbname = Some("xxx".to_string());
     // dbcn = ConfigAndPoolOld::new(cfg, DatabaseType::Sqlite).await;
     // let db = Db::new(dbcn.clone()).unwrap();
 
@@ -104,8 +104,13 @@ pub async fn scores(
             if json {
                 HttpResponse::Ok().json(cache)
             } else {
-                let markup = render_scores_template(&cache, expanded);
-                HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+                let markup = render_scores_template(&cache, expanded, &config_and_pool, event_id).await;
+                match markup {
+                    Ok(markup) => {
+                        HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+                    }
+                    Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
+                }
             }
         }
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),

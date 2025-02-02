@@ -1,11 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::controller::score::group_by_scores;
-use crate::model::{ AllBettorScoresByRound, DetailedScore, ScoreData, SummaryDetailedScores };
+use crate::model::{ get_scores_from_db, AllBettorScoresByRound, DetailedScore, LineScore, RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, SummaryDetailedScores };
 
 use maud::{ html, Markup };
+use sql_middleware::middleware::ConfigAndPool;
 
-pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
+pub async fn render_scores_template(data: &ScoreData, expanded: bool, config_and_pool: &ConfigAndPool, event_id: i32) -> Result<Markup, Box<dyn std::error::Error>> {
     let summary_scores_x = crate::controller::score::group_by_bettor_name_and_round(
         &data.score_struct
     );
@@ -13,15 +14,20 @@ pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
         &data.score_struct
     );
 
-    html! {
+    let golfer_scores_for_line_score_render = get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?;
+    // map to BettorData
+    let bettor_struct = scores_and_last_refresh_to_line_score_tables(&golfer_scores_for_line_score_render);
+
+    Ok(html! {
         (render_scoreboard(data))
         @if expanded {
             (render_summary_scores(&summary_scores_x))
         }
         // (render_stacked_bar_chart(data))
         (render_drop_down_bar(&summary_scores_x, &detailed_scores))
-        (render_score_detail(data))
-    }
+        (render_line_score_tables(&bettor_struct))
+        (render_tee_time_detail(data))
+    })
 }
 
 fn render_scoreboard(data: &ScoreData) -> Markup {
@@ -173,9 +179,9 @@ fn render_thead(max_len_of_tee_times_in_rounds: usize, group: &usize) -> Markup 
     }
 }
 
-fn render_score_detail(data: &ScoreData) -> Markup {
+fn render_tee_time_detail(data: &ScoreData) -> Markup {
     html! {
-        h4 class="playerdetails" { "Filter Details" }
+        h4 class="playerdetails" { "Tee Time Details" }
 
         div class="playerdetails" {
             button class="playerdetailsbtn" onclick="toggleAllPlayersDetailDiv()" {
@@ -364,7 +370,7 @@ fn render_drop_down_bar(
     let preprocessed_data = preprocess_golfer_data(&grouped_data, &detailed_scores.detailed_scores);
 
     html! {
-        h3 class="playerbars" { "Filter" }
+        h3 class="playerbars" { "Score Detail" }
 
         div class="drop-down-bar-chart" {
             // Player selection dropdown
@@ -426,4 +432,171 @@ fn render_drop_down_bar(
             }
         }
     }
+}
+
+#[derive(Debug)]
+pub struct BettorData {
+    pub bettor_name: String,
+    pub golfers: Vec<GolferData>,
+}
+
+#[derive(Debug)]
+pub struct GolferData {
+    pub golfer_name: String,
+    pub linescores: Vec<LineScore>,
+}
+
+pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
+    html! {
+        @for (idx, bettor) in bettors.iter().enumerate() {
+
+            // We'll hide all but the first by default, or all hidden by default
+            // depending on your preference. 
+            @let visibility_class = if idx == 0 { "linescore-container visible" } 
+                                    else { "linescore-container hidden" };
+
+            // Container for all the golfer tables for this bettor
+            div class=(visibility_class) data-player=(bettor.bettor_name) {
+                @for golfer in &bettor.golfers {
+                    @let unique_rounds = {
+                        // Collect unique round numbers for the round buttons
+                        let mut rds: Vec<i32> = golfer.linescores
+                            .iter()
+                            .map(|ls| ls.round)
+                            .collect();
+                        rds.sort();
+                        rds.dedup();
+                        rds
+                    };
+
+                    // Build a table
+                    table class="linescore-table" {
+                        thead {
+                            // First header row:
+                            //  - First column: Golfer name, rowspan=2
+                            //  - Second column: colSpan=3, which holds the round buttons
+                            tr {
+                                th rowspan="2" class="topheader" {
+                                    (golfer.golfer_name)
+                                }
+                                th colspan="3" class="topheader" {
+                                    @for rd in &unique_rounds {
+                                        button {
+                                            "R" (rd)
+                                        }
+                                        " "  // small space
+                                    }
+                                }
+                            }
+                            // Second header row:
+                            tr {
+                                th { "Hole" }
+                                th { "Par" }
+                                th { "Strokes" }
+                            }
+                        }
+                        tbody {
+                            // Sort linescores by (round, hole) so they appear in a natural order
+                            @let  all_scores = {
+                                let mut scores = golfer.linescores.clone();
+                                scores.sort_by_key(|ls| (ls.round, ls.hole));
+                                scores
+                            };
+
+                            @for ls in all_scores {
+                                tr {
+                                    td {
+                                        (ls.hole)
+                                    }
+                                    td {
+                                        (ls.par)
+                                    }
+                                    // The "Strokes" cell with a shape if needed
+                                    td class="score-cell" {
+                                        (score_with_shape(&ls.score, &ls.score_display))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Helper that returns a sub‐Markup for the strokes cell, optionally wrapping
+/// the numeric score in a circle or square depending on `ScoreDisplay`.
+fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
+    
+    // For convenience, define CSS classes for each shape. 
+    // (See the CSS snippet below.)
+    let class_name = match disp {
+      ScoreDisplay::Birdie => "score-shape-birdie",
+        ScoreDisplay::Eagle => "score-shape-eagle",
+        ScoreDisplay::Bogey => "score-shape-bogey",
+        ScoreDisplay::DoubleBogey => "score-shape-doublebogey",
+        // For anything else, we won't wrap it in a shape.
+        ScoreDisplay::Par => "",
+        // ... match other variants if you want special styles ...
+        
+        _ => "",
+    };
+
+    if class_name.is_empty() {
+        // Just return the raw numeric score
+        html! { (score) }
+    } else {
+        // Wrap the numeric score in a styled <span>
+        html! {
+            span class=(class_name) {
+                (score)
+            }
+        }
+    }
+}
+
+fn scores_and_last_refresh_to_line_score_tables(
+    scores_and_refresh: &ScoresAndLastRefresh,
+) -> Vec<BettorData> {
+    // We'll group by bettor_name -> golfer_name -> Vec<LineScore>.
+    // Use BTreeMap for a predictable sort order (alphabetical).
+    let mut grouped: BTreeMap<String, BTreeMap<String, Vec<LineScore>>> = BTreeMap::new();
+
+    // Iterate over every `Scores` entry in the structure
+    for s in &scores_and_refresh.score_struct {
+        // Extract fields
+        let bettor_name = &s.bettor_name;
+        let golfer_name = &s.golfer_name;
+        let linescores = &s.detailed_statistics.line_scores;
+
+        // Insert into the map
+        grouped
+            .entry(bettor_name.clone())
+            .or_default()
+            .entry(golfer_name.clone())
+            .or_default()
+            .extend(linescores.iter().cloned());
+    }
+
+    // Now convert that grouped map into the final Vec<BettorData>.
+    let mut bettor_data_vec = Vec::new();
+
+    for (bettor_name, golfer_map) in grouped {
+        let mut golfer_data_vec = Vec::new();
+
+        for (golfer_name, lscores) in golfer_map {
+            golfer_data_vec.push(GolferData {
+                golfer_name,
+                linescores: lscores,
+            });
+        }
+
+        bettor_data_vec.push(BettorData {
+            bettor_name,
+            golfers: golfer_data_vec,
+        });
+    }
+
+    bettor_data_vec
 }

@@ -400,3 +400,78 @@ h4.playerdetails {
 .bar.round-7 { background-color: #a896b0; }
 .bar.round-8 { background-color: #d4f0aa; }
 */
+
+/* 
+   Container that holds all golfer tables for one bettor. 
+   We hide them by default and show them when that bettor is selected.
+*/
+.linescore-container {
+  display: none; /* hidden by default; or use .hidden in your JS toggling */
+  flex-wrap: nowrap;  /* or wrap if you expect more than 3 golfers */
+  gap: 1rem;          /* small space between tables */
+  margin-top: 1rem;
+  align-items: flex-start;
+}
+
+.linescore-container.visible {
+  display: flex; /* Show the container for the selected bettor */
+}
+
+/* Each table for a golfer is ~1/3 of the container's width */
+.linescore-table {
+  flex: 0 0 33%;
+  /* or 30% if you want more margin for 3 side by side; up to you */
+  margin-right: 1rem;
+}
+
+/* Make sure we don't blow up the table if there's few columns */
+.linescore-table table {
+  width: 100%;
+}
+
+/* The Strokes cell can be used for any additional styling */
+.score-cell {
+  text-align: center; /* so our shape is nicely centered */
+  vertical-align: middle;
+}
+
+/* Circles for Birdie/Eagle; squares for Bogey/DoubleBogey 
+   The idea is to place the numeric score inside a shape that
+   is about 75-85% of the cell dimension. */
+.score-shape-birdie, 
+.score-shape-eagle,
+.score-shape-bogey,
+.score-shape-doublebogey {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 80%;
+  height: 80%;
+  margin: auto; /* Let it center within the cell */
+  /* So text inside doesn't wrap or push shape out */
+  font-size: 0.8rem;
+}
+
+/* Light circle for Birdie */
+.score-shape-birdie {
+  border: 0.05rem solid #000;
+  border-radius: 50%;
+}
+
+/* Heavier circle for Eagle */
+.score-shape-eagle {
+  border: 0.1rem solid #000;
+  border-radius: 50%;
+}
+
+/* Light square for Bogey */
+.score-shape-bogey {
+  border: 0.05rem solid #000;
+  /* no border-radius -> it's a square */
+}
+
+/* Heavier square for DoubleBogey */
+.score-shape-doublebogey {
+  border: 0.1rem solid #000;
+  /* no border-radius -> it's a square */
+}

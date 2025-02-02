@@ -55,6 +55,16 @@ document.addEventListener('click', (event) => {
         });
 
 
+        document.querySelectorAll('.linescore-container').forEach(lsc => {
+            if (lsc.getAttribute('data-player') === selectedPlayer) {
+              lsc.classList.add('visible');
+              lsc.classList.remove('hidden');
+            } else {
+              lsc.classList.remove('visible');
+              lsc.classList.add('hidden');
+            }
+          });
+
         // Show/hide corresponding player row details
         document.querySelectorAll('.playerrow').forEach(chart => {
             if (chart.getAttribute('data-player') === selectedPlayer) {
