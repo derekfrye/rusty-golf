@@ -157,9 +157,9 @@ pub async fn db_prefill(
                                     let query_and_params_vec = QueryAndParams {
                                         query: "INSERT INTO event (name, espn_id, year) VALUES(?1, ?2, ?3);".to_string(),
                                         params: vec![
+                                            RowValues::Text(json["name"].to_string()),
                                             RowValues::Int(json["event"].as_i64().unwrap()),
-                                            RowValues::Int(json["year"].as_i64().unwrap()),
-                                            RowValues::Text(json["name"].to_string())
+                                            RowValues::Int(json["year"].as_i64().unwrap())
                                         ],
                                     };
                                     let converted_params =
@@ -171,7 +171,7 @@ pub async fn db_prefill(
                                     stmt.execute(converted_params)?;
 
                                     let query_and_params_vec = QueryAndParams {
-                                        query: "SELECT * FROM event WHERE event_id = ?1 AND year = ?2;".to_string(),
+                                        query: "SELECT * FROM event WHERE espn_id = ?1 AND year = ?2;".to_string(),
                                         params: vec![
                                             RowValues::Int(json["event"].as_i64().unwrap()),
                                             RowValues::Int(json["year"].as_i64().unwrap())
@@ -251,11 +251,24 @@ pub async fn db_prefill(
                                             };
                                             let converted_params =
                                                 sql_middleware::sqlite_convert_params_for_execute(
-                                                    query_and_params_vec.params
+                                                    query_and_params_vec.clone().params
                                                 )?;
 
                                             let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                            stmt.execute(converted_params)?;
+                                            let x = stmt.execute(converted_params);
+                                            match x {
+                                                Ok(_) => {}
+                                                Err(e) => {
+                                                    println!(
+                                                        "event_id {:?}, user_id {:?}, golfer_id {:?}, err {:?}",
+                                                        query_and_params_vec.clone().params[0],
+                                                        query_and_params_vec.clone().params[1],
+                                                        query_and_params_vec.clone().params[2],
+                                                        e
+                                                    );
+                                                    return Err(e.into());
+                                                }
+                                            }
                                         }
                                     }
                                 } else {
