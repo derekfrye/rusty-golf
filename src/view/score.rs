@@ -1,12 +1,27 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{ BTreeMap, HashMap };
 
 use crate::controller::score::group_by_scores;
-use crate::model::{ get_scores_from_db, AllBettorScoresByRound, DetailedScore, LineScore, RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, SummaryDetailedScores };
+use crate::model::{
+    get_scores_from_db,
+    AllBettorScoresByRound,
+    DetailedScore,
+    LineScore,
+    RefreshSource,
+    ScoreData,
+    ScoreDisplay,
+    ScoresAndLastRefresh,
+    SummaryDetailedScores,
+};
 
 use maud::{ html, Markup };
 use sql_middleware::middleware::ConfigAndPool;
 
-pub async fn render_scores_template(data: &ScoreData, expanded: bool, config_and_pool: &ConfigAndPool, event_id: i32) -> Result<Markup, Box<dyn std::error::Error>> {
+pub async fn render_scores_template(
+    data: &ScoreData,
+    expanded: bool,
+    config_and_pool: &ConfigAndPool,
+    event_id: i32
+) -> Result<Markup, Box<dyn std::error::Error>> {
     let summary_scores_x = crate::controller::score::group_by_bettor_name_and_round(
         &data.score_struct
     );
@@ -14,11 +29,18 @@ pub async fn render_scores_template(data: &ScoreData, expanded: bool, config_and
         &data.score_struct
     );
 
-    let golfer_scores_for_line_score_render = get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?;
+    let golfer_scores_for_line_score_render = get_scores_from_db(
+        config_and_pool,
+        event_id,
+        RefreshSource::Db
+    ).await?;
     // map to BettorData
-    let bettor_struct = scores_and_last_refresh_to_line_score_tables(&golfer_scores_for_line_score_render);
+    let bettor_struct = scores_and_last_refresh_to_line_score_tables(
+        &golfer_scores_for_line_score_render
+    );
 
-    Ok(html! {
+    Ok(
+        html! {
         (render_scoreboard(data))
         @if expanded {
             (render_summary_scores(&summary_scores_x))
@@ -27,7 +49,8 @@ pub async fn render_scores_template(data: &ScoreData, expanded: bool, config_and
         (render_drop_down_bar(&summary_scores_x, &detailed_scores))
         (render_line_score_tables(&bettor_struct))
         (render_tee_time_detail(data))
-    })
+    }
+    )
 }
 
 fn render_scoreboard(data: &ScoreData) -> Markup {
@@ -367,16 +390,31 @@ fn render_drop_down_bar(
     detailed_scores: &SummaryDetailedScores
 ) -> Markup {
     // Preprocess the data
-    let preprocessed_data = preprocess_golfer_data(&grouped_data, &detailed_scores.detailed_scores);
+    let preprocessed_data = {
+        let vec: HashMap<String, Vec<GolferBars>> = preprocess_golfer_data(
+            &grouped_data,
+            &detailed_scores.detailed_scores
+        );
+        let mut vec: Vec<_> = vec.into_iter().collect();
+        vec.sort_by_key(|(_, score)| score[0].short_name.clone());
+        vec.into_iter().collect::<HashMap<_, _>>()
+    };
 
     html! {
         h3 class="playerbars" { "Score Detail" }
 
+        @let sorted_x = {
+            let mut vec: Vec<_> = grouped_data.summary_scores.iter().enumerate().collect();
+                vec.sort_by_key(|(_, score)| &score.bettor_name);
+                vec
+        };
+
         div class="drop-down-bar-chart" {
             // Player selection dropdown
-            div class="player-selection" {
-                @for (idx, summary_score) in grouped_data.summary_scores.iter().enumerate() {
-                    @let button_select = if idx == 0 { " selected" } else { "" };
+            div class="player-selection" {                
+
+                @for (idx, summary_score) in &sorted_x {
+                    @let button_select = if *idx == 0 { " selected" } else { "" };
                     button class=(format!("player-button{}", button_select)) data-player=(summary_score.bettor_name) {
                         (summary_score.bettor_name)
                     }
@@ -387,7 +425,7 @@ fn render_drop_down_bar(
             div class="chart-container" {
 
                 // Iterate over each bettor
-                @for (bettor_idx, summary_score) in grouped_data.summary_scores.iter().enumerate() {
+                @for (bettor_idx, summary_score) in sorted_x {
 
                     @let chart_visibility = if bettor_idx == 0 { " visible" } else { " hidden" };
                     div class=(format!("chart {}", chart_visibility)) data-player=(summary_score.bettor_name)  {
@@ -542,24 +580,25 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
 /// Helper that returns a sub‐Markup for the strokes cell, optionally wrapping
 /// the numeric score in a circle or square depending on `ScoreDisplay`.
 fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
-    
-    // For convenience, define CSS classes for each shape. 
+    // For convenience, define CSS classes for each shape.
     // (See the CSS snippet below.)
     let class_name = match disp {
-      ScoreDisplay::Birdie => "score-shape-birdie",
+        ScoreDisplay::Birdie => "score-shape-birdie",
         ScoreDisplay::Eagle => "score-shape-eagle",
         ScoreDisplay::Bogey => "score-shape-bogey",
         ScoreDisplay::DoubleBogey => "score-shape-doublebogey",
         // For anything else, we won't wrap it in a shape.
         ScoreDisplay::Par => "score-shape-par",
         // ... match other variants if you want special styles ...
-        
+
         _ => "score-shape-par",
     };
 
     if class_name.is_empty() {
         // Just return the raw numeric score
-        html! { (score) }
+        html! {
+            (score)
+        }
     } else {
         // Wrap the numeric score in a styled <span>
         html! {
@@ -571,7 +610,7 @@ fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
 }
 
 fn scores_and_last_refresh_to_line_score_tables(
-    scores_and_refresh: &ScoresAndLastRefresh,
+    scores_and_refresh: &ScoresAndLastRefresh
 ) -> Vec<BettorData> {
     // We'll group by bettor_name -> golfer_name -> Vec<LineScore>.
     // Use BTreeMap for a predictable sort order (alphabetical).
