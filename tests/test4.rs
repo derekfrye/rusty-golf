@@ -54,13 +54,14 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     db_prefill(&json, &config_and_pool, DatabaseType::Sqlite).await?;
 
     // now verify that the tables have been populated
-    let query = "select * from event;";
+    let query = "select * from event ;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results.len(), 1);
+    assert_eq!(res.results.len(), 3);
 
     let query = "select * from golfer;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results.len(), 22);
+    // x unq entries
+    assert_eq!(res.results.len(), 23);
     let x = res.results.iter().find(|z| *z.get("espn_id").unwrap().as_int().unwrap() == 4375972);
     assert_eq!(x.is_some(), true);
     assert_eq!(x.unwrap().get("name").unwrap().as_text().unwrap(), "Ludvig Åberg");
@@ -77,16 +78,33 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     query.push_str("join golfer as g on g.golfer_id = eup.golfer_id ");
     query.push_str("join event as e on e.event_id = eup.event_id ");
     query.push_str("where e.espn_id = ?1;");
+    let res = conn.execute_select(&query, &vec![RowValues::Int(401580351)]).await?;
 
-    
-    let res = conn.execute_select(&query, &vec![RowValues::Int(401580355)]).await?;
+    assert_eq!(res.results.len(), 15);
+    let x = res.results
+        .iter()
+        .find(
+            |z|
+                z.get("bettor").unwrap().as_text().unwrap() == "Player2" &&
+                *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 9780
+        );
+    assert_eq!(x.is_some(), true);
+
+    let mut query = "select b.name as bettor, g.espn_id as golfer_espn_id ".to_string();
+    query.push_str("from event_user_player as eup ");
+    query.push_str("join bettor as b on b.user_id = eup.user_id ");
+    query.push_str("join golfer as g on g.golfer_id = eup.golfer_id ");
+    query.push_str("join event as e on e.event_id = eup.event_id ");
+    query.push_str("where e.espn_id = ?1;");
+    let res = conn.execute_select(&query, &vec![RowValues::Int(401580360)]).await?;
+
     assert_eq!(res.results.len(), 15);
     let x = res.results
         .iter()
         .find(
             |z|
                 z.get("bettor").unwrap().as_text().unwrap() == "Player3" &&
-                *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 9780
+                *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 4364873
         );
     assert_eq!(x.is_some(), true);
 

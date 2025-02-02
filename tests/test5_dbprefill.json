@@ -1,168 +1,422 @@
-{
-    "event": 401580355,
-    "year": 2024,
-    "name": "U.S. Open 2024",
-    "data_to_fill_if_event_and_year_missing": [
-        {
-            "bettors": [
-                "Player1",
-                "Player2",
-                "Player3",
-                "Player4",
-                "Player5"
-            ],
-            "golfers": [
-                {
-                    "name": "Davis Thompson",
-                    "espn_id": 4602218
-                },
-                {
-                    "name": "Peter Malnati",
-                    "espn_id": 5692
-                },
-                {
-                    "name": "Stephan Jaeger",
-                    "espn_id": 6937
-                },
-                {
-                    "name": "Rory McIlroy",
-                    "espn_id": 3470
-                },
-                {
-                    "name": "Viktor Hovland",
-                    "espn_id": 4364873
-                },
-                {
-                    "name": "Scottie Scheffler",
-                    "espn_id": 9478
-                },
-                {
-                    "name": "Xander Schauffele",
-                    "espn_id": 10140
-                },
-                {
-                    "name": "Jordan Spieth",
-                    "espn_id": 5467
-                },
-                {
-                    "name": "Collin Morikawa",
-                    "espn_id": 10592
-                },
-                {
-                    "name": "Hideki Matsuyama",
-                    "espn_id": 5860
-                },
-                {
-                    "name": "Ludvig Åberg",
-                    "espn_id": 4375972
-                },
-                {
-                    "name": "Wyndham Clark",
-                    "espn_id": 11119
-                },
-                {
-                    "name": "Matt Fitzpatrick",
-                    "espn_id": 9037
-                },
-                {
-                    "name": "Jason Day",
-                    "espn_id": 1680
-                },
-                {
-                    "name": "Bryson DeChambeau",
-                    "espn_id": 10046
-                },
-                {
-                    "name": "Jon Rahm",
-                    "espn_id": 9780
-                },
-                {
-                    "name": "Max Homa",
-                    "espn_id": 8973
-                },
-                {
-                    "name": "Brooks Koepka",
-                    "espn_id": 6798
-                },
-                {
-                    "name": "Justin Thomas",
-                    "espn_id": 4848
-                },
-                {
-                    "name": "Sahith Theegala",
-                    "espn_id": 10980
-                },
-                {
-                    "name": "Russell Henley",
-                    "espn_id": 5409
-                },
-                {
-                    "name": "Cameron Smith",
-                    "espn_id": 9131
-                }
-            ],
-            "event_user_player": [
-                {
-                    "bettor": "Player1",
-                    "golfer_espn_id": 3470
-                },
-                {
-                    "bettor": "Player2",
-                    "golfer_espn_id": 4364873
-                },
-                {
-                    "bettor": "Player3",
-                    "golfer_espn_id": 9478
-                },
-                {
-                    "bettor": "Player4",
-                    "golfer_espn_id": 10140
-                },
-                {
-                    "bettor": "Player5",
-                    "golfer_espn_id": 5467
-                },
-                {
-                    "bettor": "Player1",
-                    "golfer_espn_id": 10592
-                },
-                {
-                    "bettor": "Player2",
-                    "golfer_espn_id": 5860
-                },
-                {
-                    "bettor": "Player3",
-                    "golfer_espn_id": 4375972
-                },
-                {
-                    "bettor": "Player4",
-                    "golfer_espn_id": 11119
-                },
-                {
-                    "bettor": "Player5",
-                    "golfer_espn_id": 9037
-                },
-                {
-                    "bettor": "Player1",
-                    "golfer_espn_id": 1680
-                },
-                {
-                    "bettor": "Player2",
-                    "golfer_espn_id": 10046
-                },
-                {
-                    "bettor": "Player3",
-                    "golfer_espn_id": 9780
-                },
-                {
-                    "bettor": "Player4",
-                    "golfer_espn_id": 8973
-                },
-                {
-                    "bettor": "Player5",
-                    "golfer_espn_id": 6798
-                }
-            ]
-        }
-    ]
-}
+[
+    {
+        "event": 401580351,
+        "year": 2024,
+        "name": "PGA Championship",
+        "data_to_fill_if_event_and_year_missing": [
+            {
+                "bettors": [
+                    "Player1",
+                    "Player2",
+                    "Player3",
+                    "Player4",
+                    "Player5"
+                ],
+                "golfers": [
+                    {
+                        "name": "Brooks Koepka",
+                        "espn_id": 6798
+                    },
+                    {
+                        "name": "Bryson DeChambeau",
+                        "espn_id": 10046
+                    },
+                    {
+                        "name": "Collin Morikawa",
+                        "espn_id": 10592
+                    },
+                    {
+                        "name": "Hideki Matsuyama",
+                        "espn_id": 5860
+                    },
+                    {
+                        "name": "Jason Day",
+                        "espn_id": 1680
+                    },
+                    {
+                        "name": "Jon Rahm",
+                        "espn_id": 9780
+                    },
+                    {
+                        "name": "Jordan Spieth",
+                        "espn_id": 5467
+                    },
+                    {
+                        "name": "Ludvig Åberg",
+                        "espn_id": 4375972
+                    },
+                    {
+                        "name": "Matt Fitzpatrick",
+                        "espn_id": 9037
+                    },
+                    {
+                        "name": "Max Homa",
+                        "espn_id": 8973
+                    },
+                    {
+                        "name": "Rory McIlroy",
+                        "espn_id": 3470
+                    },
+                    {
+                        "name": "Scottie Scheffler",
+                        "espn_id": 9478
+                    },
+                    {
+                        "name": "Viktor Hovland",
+                        "espn_id": 4364873
+                    },
+                    {
+                        "name": "Wyndham Clark",
+                        "espn_id": 11119
+                    },
+                    {
+                        "name": "Xander Schauffele",
+                        "espn_id": 10140
+                    }
+                ],
+                "event_user_player": [
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 1680
+                    },
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 3470
+                    },
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 10592
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 9478
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 9780
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 4375972
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 5860
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 10046
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 4364873
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 5467
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 6798
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 9037
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 8973
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 10140
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 11119
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "event": 401580360,
+        "year": 2024,
+        "name": "The Open",
+        "data_to_fill_if_event_and_year_missing": [
+            {
+                "bettors": [
+                    "Player1",
+                    "Player2",
+                    "Player3",
+                    "Player4",
+                    "Player5"
+                ],
+                "golfers": [
+                    {
+                        "name": "Brooks Koepka",
+                        "espn_id": 6798
+                    },
+                    {
+                        "name": "Bryson DeChambeau",
+                        "espn_id": 10046
+                    },
+                    {
+                        "name": "Cameron Smith",
+                        "espn_id": 9131
+                    },
+                    {
+                        "name": "Collin Morikawa",
+                        "espn_id": 10592
+                    },
+                    {
+                        "name": "Jordan Spieth",
+                        "espn_id": 5467
+                    },
+                    {
+                        "name": "Ludvig Åberg",
+                        "espn_id": 4375972
+                    },
+                    {
+                        "name": "Max Homa",
+                        "espn_id": 8973
+                    },
+                    {
+                        "name": "Rory McIlroy",
+                        "espn_id": 3470
+                    },
+                    {
+                        "name": "Scottie Scheffler",
+                        "espn_id": 9478
+                    },
+                    {
+                        "name": "Shane Lowry",
+                        "espn_id": 4587
+                    },
+                    {
+                        "name": "Tiger Woods",
+                        "espn_id": 462
+                    },
+                    {
+                        "name": "Tom Kim",
+                        "espn_id": 4602673
+                    },
+                    {
+                        "name": "Tommy Fleetwood",
+                        "espn_id": 5539
+                    },
+                    {
+                        "name": "Viktor Hovland",
+                        "espn_id": 4364873
+                    },
+                    {
+                        "name": "Xander Schauffele",
+                        "espn_id": 10140
+                    }
+                ],
+                "event_user_player": [
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 3470
+                    },
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 4587
+                    },
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 4602673
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 5539
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 10592
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 4375972
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 8973
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 10046
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 4364873
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 462
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 5467
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 9478
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 6798
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 9131
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 10140
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "event": 401580355,
+        "year": 2024,
+        "name": "U.S. Open 2024",
+        "data_to_fill_if_event_and_year_missing": [
+            {
+                "bettors": [
+                    "Player1",
+                    "Player2",
+                    "Player3",
+                    "Player4",
+                    "Player5"
+                ],
+                "golfers": [
+                    {
+                        "name": "Brooks Koepka",
+                        "espn_id": 6798
+                    },
+                    {
+                        "name": "Bryson DeChambeau",
+                        "espn_id": 10046
+                    },
+                    {
+                        "name": "Cameron Smith",
+                        "espn_id": 9131
+                    },
+                    {
+                        "name": "Collin Morikawa",
+                        "espn_id": 10592
+                    },
+                    {
+                        "name": "Jason Day",
+                        "espn_id": 1680
+                    },
+                    {
+                        "name": "Justin Thomas",
+                        "espn_id": 4848
+                    },
+                    {
+                        "name": "Ludvig Åberg",
+                        "espn_id": 4375972
+                    },
+                    {
+                        "name": "Matt Fitzpatrick",
+                        "espn_id": 9037
+                    },
+                    {
+                        "name": "Max Homa",
+                        "espn_id": 8973
+                    },
+                    {
+                        "name": "Rory McIlroy",
+                        "espn_id": 3470
+                    },
+                    {
+                        "name": "Russell Henley",
+                        "espn_id": 5409
+                    },
+                    {
+                        "name": "Sahith Theegala",
+                        "espn_id": 10980
+                    },
+                    {
+                        "name": "Scottie Scheffler",
+                        "espn_id": 9478
+                    },
+                    {
+                        "name": "Viktor Hovland",
+                        "espn_id": 4364873
+                    },
+                    {
+                        "name": "Xander Schauffele",
+                        "espn_id": 10140
+                    }
+                ],
+                "event_user_player": [
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 1680
+                    },
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 10046
+                    },
+                    {
+                        "bettor": "Player1",
+                        "golfer_espn_id": 10592
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 4848
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 6798
+                    },
+                    {
+                        "bettor": "Player2",
+                        "golfer_espn_id": 9037
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 5409
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 9131
+                    },
+                    {
+                        "bettor": "Player3",
+                        "golfer_espn_id": 10980
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 3470
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 9478
+                    },
+                    {
+                        "bettor": "Player4",
+                        "golfer_espn_id": 4375972
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 8973
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 10140
+                    },
+                    {
+                        "bettor": "Player5",
+                        "golfer_espn_id": 4364873
+                    }
+                ]
+            }
+        ]
+    }
+]
