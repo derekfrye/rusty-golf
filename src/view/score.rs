@@ -1,26 +1,26 @@
 use std::collections::HashMap;
 
 use crate::controller::score::group_by_scores;
-use crate::model::{AllBettorScoresByRound, DetailedScore, ScoreData, SummaryDetailedScores};
+use crate::model::{ AllBettorScoresByRound, DetailedScore, ScoreData, SummaryDetailedScores };
 
-use maud::{html, Markup};
+use maud::{ html, Markup };
 
 pub fn render_scores_template(data: &ScoreData, expanded: bool) -> Markup {
-    let summary_scores_x =
-        crate::controller::score::group_by_bettor_name_and_round(&data.score_struct);
-    let detailed_scores =
-        crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
+    let summary_scores_x = crate::controller::score::group_by_bettor_name_and_round(
+        &data.score_struct
+    );
+    let detailed_scores = crate::controller::score::group_by_bettor_golfer_round(
+        &data.score_struct
+    );
 
     html! {
-        @if !data.score_struct.is_empty() {
-            (render_scoreboard(data))
-            @if expanded {
-                (render_summary_scores(&summary_scores_x))
-            }
-            // (render_stacked_bar_chart(data))
-            (render_drop_down_bar(&summary_scores_x, &detailed_scores))
-            (render_score_detail(data))
+        (render_scoreboard(data))
+        @if expanded {
+            (render_summary_scores(&summary_scores_x))
         }
+        // (render_stacked_bar_chart(data))
+        (render_drop_down_bar(&summary_scores_x, &detailed_scores))
+        (render_score_detail(data))
     }
 }
 
@@ -243,7 +243,7 @@ struct Bar {
     score: i32,
     direction: Direction,
     start_position: f32, // In percentage
-    width: f32,          // Width of the bar in percentage
+    width: f32, // Width of the bar in percentage
     round: i32,
 }
 
@@ -264,7 +264,7 @@ struct GolferBars {
 
 fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
-    detailed_scores: &Vec<DetailedScore>,
+    detailed_scores: &Vec<DetailedScore>
 ) -> HashMap<String, Vec<GolferBars>> {
     let mut bettor_golfers_map: HashMap<String, Vec<GolferBars>> = HashMap::new();
 
@@ -292,7 +292,10 @@ fn preprocess_golfer_data(
                 // .collect::<String>();
                 //  .next().unwrap_or(&golfer.golfer_name).chars().take(5).collect::<String>();
 
-                let total_score: isize = golfer.scores.iter().map(|&x| x as isize).sum();
+                let total_score: isize = golfer.scores
+                    .iter()
+                    .map(|&x| x as isize)
+                    .sum();
 
                 // Calculate bars
                 let mut bars: Vec<Bar> = Vec::new();
@@ -300,29 +303,21 @@ fn preprocess_golfer_data(
                 let mut cumulative_right = 0.0;
 
                 // First, calculate total required width
-                let total_width: f32 = golfer
-                    .scores
+                let total_width: f32 = golfer.scores
                     .iter()
                     .map(|&score| (score.abs() as f32) * step_factor)
                     .sum();
 
                 // Determine scaling factor if total_width exceeds 100%
-                let scaling_factor = if total_width > 100.0 {
-                    100.0 / total_width
-                } else {
-                    1.0
-                };
+                let scaling_factor = if total_width > 100.0 { 100.0 / total_width } else { 1.0 };
 
                 for &score in &golfer.scores {
-                    let direction = if score > 0 {
-                        Direction::Right
-                    } else {
-                        Direction::Left
-                    };
+                    let direction = if score > 0 { Direction::Right } else { Direction::Left };
                     // Convert score to percentage with scaling
-                    let width = (if score.abs() == 0 { 1 } else { score.abs() } as f32)
-                        * step_factor
-                        * scaling_factor;
+                    let width =
+                        ((if score.abs() == 0 { 1 } else { score.abs() }) as f32) *
+                        step_factor *
+                        scaling_factor;
 
                     let start_position = match direction {
                         Direction::Right => {
@@ -341,7 +336,7 @@ fn preprocess_golfer_data(
                         direction,
                         start_position,
                         width,
-                        round: bars.len() as i32 + 1,
+                        round: (bars.len() as i32) + 1,
                     });
                 }
 
@@ -363,7 +358,7 @@ fn preprocess_golfer_data(
 
 fn render_drop_down_bar(
     grouped_data: &AllBettorScoresByRound,
-    detailed_scores: &SummaryDetailedScores,
+    detailed_scores: &SummaryDetailedScores
 ) -> Markup {
     // Preprocess the data
     let preprocessed_data = preprocess_golfer_data(&grouped_data, &detailed_scores.detailed_scores);

@@ -551,35 +551,37 @@ pub async fn store_scores_in_db(
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
     let queries = build_insert_stms(scores, event_id);
 
-    match &conn {
-        MiddlewarePoolConnection::Sqlite(sconn) => {
-            sconn.interact(move |xxx| {
-                let tx = xxx.transaction()?;
-                {
-                    // println!("Query: {:?}", queries[0].query);
-                    let mut stmt = tx.prepare(&queries[0].query)?;
-                    let x = stmt.expanded_sql();
+    if queries.len() > 0 {
+        match &conn {
+            MiddlewarePoolConnection::Sqlite(sconn) => {
+                sconn.interact(move |xxx| {
+                    let tx = xxx.transaction()?;
+                    {
+                        // println!("Query: {:?}", queries[0].query);
+                        let mut stmt = tx.prepare(&queries[0].query)?;
+                        let x = stmt.expanded_sql();
 
-                    if cfg!(debug_assertions) {
-                        println!("Query from dbg: {:?}", x);
-                    }
-                    for query in queries {
-                        let converted_params = sql_middleware::sqlite_convert_params(
-                            &query.params
-                        )?;
+                        if cfg!(debug_assertions) {
+                            println!("Query from dbg: {:?}", x);
+                        }
+                        for query in queries {
+                            let converted_params = sql_middleware::sqlite_convert_params(
+                                &query.params
+                            )?;
 
-                        let _rs = stmt.execute(
-                            sql_middleware::sqlite_params_from_iter(converted_params.iter())
-                        )?;
+                            let _rs = stmt.execute(
+                                sql_middleware::sqlite_params_from_iter(converted_params.iter())
+                            )?;
+                        }
                     }
-                }
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(())
-            }).await??;
-            Ok(())
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(())
+                }).await??;
+            }
+            _ => panic!("Only sqlite is supported "),
         }
-        _ => panic!("Only sqlite is supported "),
     }
+    Ok(())
 }
 
 pub async fn event_and_scores_already_in_db(
@@ -634,49 +636,36 @@ pub async fn event_and_scores_already_in_db(
         _ => panic!("Only sqlite is supported "),
     })?;
 
-    let results = res?.results;
-    let mut z = results.iter().map(|row| { row.get("ins_ts") });
-
-    if z.all(|f| f.is_none()) {
-        return Ok(false);
-    } else {
-        let t = z
-            .filter(|f| f.is_some())
-            .last()
-            .ok_or_else(|| SqlMiddlewareDbError::Other("No results found".to_string()))?;
-        if !t.is_some() {
-            return Ok(false);
-        } else {
-            let dt = t.unwrap().as_timestamp();
-            if dt.is_none() {
-                return Ok(false);
-            } else {
-                let now = chrono::Utc::now().naive_utc();
-                let final_val = dt.unwrap();
-
-                if cfg!(debug_assertions) {
-                    #[allow(unused_variables)]
-                    let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
-                    let z_clone = final_val.clone();
-                    #[allow(unused_variables)]
-                    let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
-                    let diff = now - z_clone;
-                    #[allow(unused_variables)]
-                    let diff_human_readable_fmt = diff.num_days();
-                    #[allow(unused_variables)]
-                    let pass = diff.num_days() >= cache_max_age;
-                    println!(
-                        "Now: {}, Last Refresh: {}, Diff: {}, Pass: {}",
-                        now_human_readable_fmt,
-                        z_human_readable_fmt,
-                        diff_human_readable_fmt,
-                        pass
-                    );
-                }
-
-                let diff = now - final_val;
-                Ok(diff.num_days() >= cache_max_age)
+    if let Some(results) = res?.results.first() {
+        let now = chrono::Utc::now().naive_utc();
+        let val = results.get("ins_ts").and_then(|v| v.as_timestamp());
+        if let Some(final_val) = val {
+            if cfg!(debug_assertions) {
+                #[allow(unused_variables)]
+                let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
+                let z_clone = final_val.clone();
+                #[allow(unused_variables)]
+                let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
+                let diff = now - z_clone;
+                #[allow(unused_variables)]
+                let diff_human_readable_fmt = diff.num_days();
+                #[allow(unused_variables)]
+                let pass = diff.num_days() >= cache_max_age;
+                println!(
+                    "Now: {}, Last Refresh: {}, Diff: {}, Pass: {}",
+                    now_human_readable_fmt,
+                    z_human_readable_fmt,
+                    diff_human_readable_fmt,
+                    pass
+                );
             }
+
+            let diff = now - final_val;
+            Ok(diff.num_days() >= cache_max_age)
+        } else {
+            Ok(false)
         }
+    } else {
+        Ok(false)
     }
 }
