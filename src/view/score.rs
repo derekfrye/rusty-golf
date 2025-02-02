@@ -460,9 +460,10 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                 @for golfer in &bettor.golfers {
                     @let unique_rounds = {
                         // Collect unique round numbers for the round buttons
+                        // increment by 1 since we're 0 based in the database
                         let mut rds: Vec<i32> = golfer.linescores
                             .iter()
-                            .map(|ls| ls.round)
+                            .map(|ls| ls.round + 1)
                             .collect();
                         rds.sort();
                         rds.dedup();
@@ -476,7 +477,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                             //  - First column: Golfer name, rowspan=2
                             //  - Second column: colSpan=3, which holds the round buttons
                             tr {
-                                th rowspan="2" class="topheader" {
+                                th colspan="2" class="topheader" {
                                     (golfer.golfer_name)
                                 }
                                 th colspan="3" class="topheader" {
@@ -490,6 +491,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                             }
                             // Second header row:
                             tr {
+                                th { "Round" }
                                 th { "Hole" }
                                 th { "Par" }
                                 th { "Strokes" }
@@ -505,6 +507,9 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
 
                             @for ls in all_scores {
                                 tr {
+                                    td {
+                                        (ls.round + 1)
+                                    }
                                     td {
                                         (ls.hole)
                                     }
