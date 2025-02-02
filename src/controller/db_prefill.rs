@@ -233,10 +233,13 @@ pub async fn db_prefill(
                                             .unwrap();
                                         for event_user_player in event_user_player {
                                             let query_and_params_vec = QueryAndParams {
-                                                query: "INSERT INTO event_user_player (event_id, user_id, golfer_id)
-                                    select (select event_id from event where espn_id = ?1)
-                                    , (select user_id from bettor where name = ?2)
-                                    , (select golfer_id from golfer where espn_id = ?3);".to_string(),
+                                                query: {
+                                                    let mut query = "INSERT INTO event_user_player (event_id, user_id, golfer_id)".to_string();
+                                                    query.push_str(" select (select event_id from event where espn_id = ?1),");
+                                                    query.push_str("(select user_id from bettor where name = ?2),");
+                                                    query.push_str("(select golfer_id from golfer where espn_id = ?3);");
+                                                    query
+                                                },
                                                 params: vec![
                                                     RowValues::Int(json["event"].as_i64().unwrap()),
                                                     RowValues::Text(
@@ -260,10 +263,11 @@ pub async fn db_prefill(
                                                 Ok(_) => {}
                                                 Err(e) => {
                                                     println!(
-                                                        "event_id {:?}, user_id {:?}, golfer_id {:?}, err {:?}",
+                                                        "event_id {:?}, user_id {:?}, golfer_id {:?}, qry: {:?}, err {:?}",
                                                         query_and_params_vec.clone().params[0],
                                                         query_and_params_vec.clone().params[1],
                                                         query_and_params_vec.clone().params[2],
+                                                        stmt.expanded_sql(),
                                                         e
                                                     );
                                                     return Err(e.into());

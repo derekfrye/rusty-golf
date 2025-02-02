@@ -5,11 +5,11 @@
     "data_to_fill_if_event_and_year_missing": [
         {
             "bettors": [
-                "PlayerName",
-                "PlayerName2",
-                "PlayerName3",
-                "PlayerName4",
-                "PlayerName5"
+                "Player1",
+                "Player2",
+                "Player3",
+                "Player4",
+                "Player5"
             ],
             "golfers": [
                 {
