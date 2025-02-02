@@ -16,7 +16,8 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
-    let x = "file::memory:?cache=shared".to_string();
+    // let x = "file::memory:?cache=shared".to_string();
+    let x = "zzz".to_string();
     let config_and_pool = ConfigAndPool2::new_sqlite(x).await.unwrap();
 
     let ddl = vec![
@@ -40,42 +41,48 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     // first verify that nothing is in these tables
     let query = "select * from event;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 0);
+    assert_eq!(res.results.len(), 0);
     let query = "select * from golfer;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 0);
+    assert_eq!(res.results.len(), 0);
     let query = "select * from bettor;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 0);
+    assert_eq!(res.results.len(), 0);
     let query = "select * from event_user_player;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 0);
+    assert_eq!(res.results.len(), 0);
 
     let json = serde_json::from_str(include_str!("test5_dbprefill.json"))?;
     db_prefill(&json, &config_and_pool).await?;
-    
+
     // now verify that the tables have been populated
     let query = "select * from event;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 1);
+    assert_eq!(res.results.len(), 1);
 
     let query = "select * from golfer;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 22);
+    assert_eq!(res.results.len(), 22);
     let x = res.results.iter().find(|z| *z.get("espn_id").unwrap().as_int().unwrap() == 4375972);
     assert_eq!(x.is_some(), true);
     assert_eq!(x.unwrap().get("name").unwrap().as_text().unwrap(), "Ludvig Åberg");
-    
+
     let query = "select * from bettor;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 5);
+    assert_eq!(res.results.len(), 5);
     let x = res.results.iter().find(|z| z.get("name").unwrap().as_text().unwrap() == "Player5");
     assert_eq!(x.is_some(), true);
 
     let query = "select * from event_user_player;";
     let res = conn.execute_select(&query, &vec![]).await?;
-    assert_eq!(res.results. len(), 15);
-    let x = res.results.iter().find(|z| z.get("bettor").unwrap().as_text().unwrap() == "Player3" && *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 9780);
+    assert_eq!(res.results.len(), 15);
+    let x = res.results
+        .iter()
+        .find(
+            |z|
+                z.get("bettor").unwrap().as_text().unwrap() == "Player3" &&
+                *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 9780
+        );
     assert_eq!(x.is_some(), true);
 
     Ok(())
