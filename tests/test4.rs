@@ -1,3 +1,4 @@
+
 use rusty_golf::controller::db_prefill;
 use crate::db_prefill::db_prefill;
 // `, `use rusty_golf::controller::db_prefill::db_prefill;
@@ -5,7 +6,7 @@ use crate::db_prefill::db_prefill;
 // use rusty_golf::controller::score;
 
 use sql_middleware::middleware::{
-    AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool, QueryAndParams
+    AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool, QueryAndParams, RowValues
 };
 
 #[tokio::test]
@@ -70,8 +71,15 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     let x = res.results.iter().find(|z| z.get("name").unwrap().as_text().unwrap() == "Player5");
     assert_eq!(x.is_some(), true);
 
-    let query = "select * from event_user_player;";
-    let res = conn.execute_select(&query, &vec![]).await?;
+    let mut query = "select b.name as bettor, g.espn_id as golfer_espn_id ".to_string();
+    query.push_str("from event_user_player as eup ");
+    query.push_str("join bettor as b on b.user_id = eup.user_id ");
+    query.push_str("join golfer as g on g.golfer_id = eup.golfer_id ");
+    query.push_str("join event as e on e.event_id = eup.event_id ");
+    query.push_str("where e.espn_id = ?1;");
+
+    
+    let res = conn.execute_select(&query, &vec![RowValues::Int(401580355)]).await?;
     assert_eq!(res.results.len(), 15);
     let x = res.results
         .iter()

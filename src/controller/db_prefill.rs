@@ -18,10 +18,6 @@ use sql_middleware::{
     SqlMiddlewareDbError,
 };
 
-enum TestCase<'a> {
-    Sqlite(&'a mut MiddlewarePoolConnection),
-    Postgres(&'a mut MiddlewarePoolConnection),
-}
 
 /// format we have is this:
 /// [{ "event": <int>, "year": <int>, "name": "value",  "data_to_fill_if_event_and_year_missing": [
@@ -157,7 +153,7 @@ pub async fn db_prefill(
                                     let query_and_params_vec = QueryAndParams {
                                         query: "INSERT INTO event (name, espn_id, year) VALUES(?1, ?2, ?3);".to_string(),
                                         params: vec![
-                                            RowValues::Text(json["name"].to_string()),
+                                            RowValues::Text(json["name"].as_str().unwrap().to_string()),
                                             RowValues::Int(json["event"].as_i64().unwrap()),
                                             RowValues::Int(json["year"].as_i64().unwrap())
                                         ],
@@ -199,7 +195,7 @@ pub async fn db_prefill(
                                         for bettor in bettors {
                                             let query_and_params_vec = QueryAndParams {
                                                 query: "INSERT INTO bettor (name) SELECT ?1 WHERE NOT EXISTS (SELECT 1 from bettor where name = ?1);".to_string(),
-                                                params: vec![RowValues::Text(bettor.to_string())],
+                                                params: vec![RowValues::Text(bettor.as_str().unwrap().to_string())],
                                             };
                                             let converted_params =
                                                 sql_middleware::sqlite_convert_params_for_execute(
@@ -214,7 +210,7 @@ pub async fn db_prefill(
                                             let query_and_params_vec = QueryAndParams {
                                                 query: "INSERT INTO golfer (name, espn_id) SELECT ?1, ?2 WHERE NOT EXISTS (SELECT 1 from golfer where espn_id = ?2);".to_string(),
                                                 params: vec![
-                                                    RowValues::Text(golfer["name"].to_string()),
+                                                    RowValues::Text(golfer["name"].as_str().unwrap().to_string()),
                                                     RowValues::Int(
                                                         golfer["espn_id"].as_i64().unwrap()
                                                     )
@@ -243,7 +239,7 @@ pub async fn db_prefill(
                                                 params: vec![
                                                     RowValues::Int(json["event"].as_i64().unwrap()),
                                                     RowValues::Text(
-                                                        event_user_player["bettor"].to_string()
+                                                        event_user_player["bettor"].as_str().unwrap().to_string()
                                                     ),
                                                     RowValues::Int(
                                                         event_user_player["golfer_espn_id"]
