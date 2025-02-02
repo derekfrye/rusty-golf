@@ -482,7 +482,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                                 }
                                 th colspan="3" class="topheader" {
                                     @for rd in &unique_rounds {
-                                        button {
+                                        button class="linescore-round-button" data-round=(rd) {
                                             "R" (rd)
                                         }
                                         " "  // small space
@@ -499,14 +499,18 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                         }
                         tbody {
                             // Sort linescores by (round, hole) so they appear in a natural order
-                            @let  all_scores = {
+                            @let all_scores = {
                                 let mut scores = golfer.linescores.clone();
                                 scores.sort_by_key(|ls| (ls.round, ls.hole));
                                 scores
                             };
 
                             @for ls in all_scores {
-                                tr {
+
+                                @let is_round_one = ls.round + 1 == 1;
+                                @let row_class = if is_round_one { "" } else { "hidden" };
+
+                                tr class=(row_class) data-round=(ls.round + 1) {
                                     td {
                                         (ls.round + 1)
                                     }

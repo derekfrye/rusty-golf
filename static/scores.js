@@ -108,4 +108,27 @@ document.addEventListener('click', (event) => {
             element.appendChild(link);
         });
     }
+
+    if (event.target.classList.contains('linescore-round-button')) {
+        const button = event.target;
+        const selectedRound = button.getAttribute('data-round');
+
+        // Update round button styles
+        document.querySelectorAll('.linescore-round-button').forEach(btn => btn.classList.remove('selected'));
+        button.classList.add('selected');
+
+        // Show/hide corresponding table rows
+        filterRound(selectedRound);
+    }
 });
+
+function filterRound(round) {
+    // Iterate over all table rows
+    document.querySelectorAll('.linescore-table tbody tr').forEach(tr => {
+        if (tr.getAttribute('data-round') === String(round)) {
+            tr.classList.remove('hidden');
+        } else {
+            tr.classList.add('hidden');
+        }
+    });
+}

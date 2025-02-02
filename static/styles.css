@@ -419,14 +419,53 @@ h4.playerdetails {
 
 /* Each table for a golfer is ~1/3 of the container's width */
 .linescore-table {
-  flex: 0 0 33%;
-  /* or 30% if you want more margin for 3 side by side; up to you */
-  margin-right: 1rem;
+  border-collapse: collapse;
+  width: auto; /* Allow table to shrink to fit contents */
+  margin: 20px 0;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Make sure we don't blow up the table if there's few columns */
-.linescore-table table {
-  width: 100%;
+.linescore-table th,
+.linescore-table td {
+  padding: 0.5rem 0.5rem;
+  text-align: right; /* Default alignment for all columns */
+  border: 1px solid #ddd;
+  white-space: nowrap; /* Prevent wrapping to ensure column width fits content */
+  font-size: 9pt; /* Set font size for table headers and entries */
+}
+
+.linescore-table th {
+  text-align: center; /* Center alignment for headers */
+  min-width: 5rem;
+}
+
+.linescore-table th.topheader {
+  font-style: italic;
+}
+
+.linescore-table td:first-child,
+.linescore-table td:nth-child(2) {
+  text-align: left;
+}
+
+/* Additional scoped styles */
+.linescore-table.table.summary th,
+.linescore-table.table.summary td {
+  padding: 0.5rem 0.5rem; /* Adjusted padding for summary table */
+  min-width: 2.5rem; /* Adjusted width for summary table */
+}
+
+.linescore-table.table.summary td:first-child {
+  text-align: left;
+}
+
+.linescore-table.table.summary td:not(:first-child) {
+  text-align: right;
+}
+
+.linescore-table.table.summary {
+  width: auto; /* Allow table to shrink to fit contents */
 }
 
 /* The Strokes cell can be used for any additional styling */
@@ -445,11 +484,12 @@ h4.playerdetails {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 80%;
-  height: 80%;
+  width: 1.5rem; /* Fixed width */
+    height: 1.5rem; /* Fixed height */
   margin: auto; /* Let it center within the cell */
   /* So text inside doesn't wrap or push shape out */
   font-size: 0.8rem;
+  aspect-ratio: 1 / 1;
 }
 
 /* Light circle for Birdie */
@@ -474,4 +514,10 @@ h4.playerdetails {
 .score-shape-doublebogey {
   border: 0.1rem solid #000;
   /* no border-radius -> it's a square */
+}
+
+.linescore-round-button.selected {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
 }
