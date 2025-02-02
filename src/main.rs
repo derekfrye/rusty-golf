@@ -27,6 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut cfg = deadpool_postgres::Config::new();
     let dbcn: ConfigAndPool2;
+    let db_type:DatabaseType;
     // let pth = "file::memory:?cache=shared".to_string();
     // let cfg2 = ConfigAndPool2::new_sqlite(pth).await.unwrap();
     if args.db_type == DatabaseType::Postgres {
@@ -39,11 +40,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             recycling_method: RecyclingMethod::Fast,
         });
         dbcn = ConfigAndPool2::new_postgres(cfg).await?;
+        db_type = DatabaseType::Postgres;
     } else {
         dbcn = ConfigAndPool2::new_sqlite(args.db_name).await?;
         // let sqlite_configandpool = ConfigAndPool2::new_sqlite(x).await.unwrap();
         // let pool = sqlite_configandpool.pool.get().await.unwrap();
         // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+        db_type = DatabaseType::Sqlite;
     }
 
     if args.db_startup_script.is_some() {
@@ -80,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if args.db_populate_json.is_some() {
-        let _res = db_prefill::db_prefill(&args.db_populate_json.unwrap(), &dbcn);
+        let _res = db_prefill::db_prefill(&args.db_populate_json.unwrap(), &dbcn, db_type).await?;
         // db_prefill(args.db_populate_json.unwrap());
     }
 

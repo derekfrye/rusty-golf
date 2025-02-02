@@ -5,10 +5,7 @@ use crate::db_prefill::db_prefill;
 // use rusty_golf::controller::score;
 
 use sql_middleware::middleware::{
-    AsyncDatabaseExecutor,
-    ConfigAndPool as ConfigAndPool2,
-    MiddlewarePool,
-    QueryAndParams,
+    AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool, QueryAndParams
 };
 
 #[tokio::test]
@@ -16,8 +13,8 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
-    // let x = "file::memory:?cache=shared".to_string();
-    let x = "zzz".to_string();
+    let x = "file::memory:?cache=shared".to_string();
+    // let x = "zzz".to_string();
     let config_and_pool = ConfigAndPool2::new_sqlite(x).await.unwrap();
 
     let ddl = vec![
@@ -53,7 +50,7 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(res.results.len(), 0);
 
     let json = serde_json::from_str(include_str!("test5_dbprefill.json"))?;
-    db_prefill(&json, &config_and_pool).await?;
+    db_prefill(&json, &config_and_pool, DatabaseType::Sqlite).await?;
 
     // now verify that the tables have been populated
     let query = "select * from event;";
