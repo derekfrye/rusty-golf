@@ -28,10 +28,6 @@ fn render_scoreboard(data: &ScoreData) -> Markup {
     html! {
         @if !data.score_struct.is_empty(){
 
-            p class="refresh" {
-                "Last refreshed from " (data.last_refresh_source) " " (data.last_refresh) " ago."
-            }
-
             @let grouped_bettors = &data.bettor_struct;
 
             h3 { "Scoreboard" }
@@ -232,6 +228,10 @@ fn render_score_detail(data: &ScoreData) -> Markup {
                             }
                         }
                     }
+                }
+
+                p class="refresh" {
+                    "Last refreshed from " (data.last_refresh_source) " " (data.last_refresh) " ago."
                 }
             }
         }

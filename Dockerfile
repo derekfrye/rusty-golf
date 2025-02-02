@@ -6,12 +6,12 @@ FROM rust:1.84.0
 RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user and switch to it
-RUN useradd -m appuser
-USER appuser
+# RUN useradd -m appuser
+# USER appuser
 
 WORKDIR /usr/src/app
 
-COPY sqlx-middleware /usr/src/sqlx-middleware
+COPY sql-middleware /usr/src/sql-middleware
 COPY . .
 RUN cargo clean
 # trunk-ignore(hadolint/DL3059)

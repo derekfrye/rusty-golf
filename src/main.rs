@@ -42,7 +42,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config_and_pool = ConfigAndPool::new_postgres(cfg).await?;
         db_type = DatabaseType::Postgres;
     } else {
-        config_and_pool = ConfigAndPool::new_sqlite(args.db_name).await?;
+        let a = ConfigAndPool::new_sqlite(args.db_name).await;
+        match a {
+            Ok(a) => {
+                config_and_pool = a;
+            }
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
         // let sqlite_configandpool = ConfigAndPool::new_sqlite(x).await.unwrap();
         // let pool = sqlite_configandpool.pool.get().await.unwrap();
         // let conn = MiddlewarePool::get_connection(pool).await.unwrap();

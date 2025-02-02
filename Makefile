@@ -1,8 +1,8 @@
 # Variables
 APP_NAME = rusty-golf
 IMAGE_NAME = djf/$(APP_NAME)
-SQLX_MIDDLEWARE_SRC = ../sqlx-middleware
-SQLX_MIDDLEWARE_DEST = sqlx-middleware
+SQLX_MIDDLEWARE_SRC = ../sql-middleware
+SQLX_MIDDLEWARE_DEST = sql-middleware
 USERNM = `id -un 1000`
 BUILD_CONTEXT = .
 
@@ -10,10 +10,10 @@ BUILD_CONTEXT = .
 .PHONY: all
 all: build
 
-# Copy sqlx-middleware into the build context
+# Copy sql-middleware into the build context
 $(SQLX_MIDDLEWARE_DEST):
-	@echo "Copying sqlx-middleware into build context..."
-	cp -r $(SQLX_MIDDLEWARE_SRC) $(SQLX_MIDDLEWARE_DEST)
+	@echo "Copying sql-middleware into build context..."
+	rsync -a --exclude target/ $(SQLX_MIDDLEWARE_SRC)/ $(SQLX_MIDDLEWARE_DEST)/
 
 # Build the Docker image
 .PHONY: build
