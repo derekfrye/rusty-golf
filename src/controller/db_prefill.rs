@@ -40,12 +40,15 @@ pub async fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Resul
                     };
                     let tx = xxx.transaction()?;
 
-                    let converted_params = sql_middleware::sqlite_convert_params_for_execute(
-                        query_and_params_vec.params
-                    )?;
-
-                    let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                    stmt.execute(converted_params)?;
+                    let converted_params = sqlite_convert_params(&query_and_params_vec.params)?;
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params_vec.query)?;
+                        let rs = sql_middleware::sqlite_build_result_set(
+                            &mut stmt,
+                            &converted_params
+                        )?;
+                        rs
+                    };
                     if result_set.results.len() > 0 {
                         let query_and_params_vec = QueryAndParams {
                             query: "INSERT INTO event (name, espn_id, year) VALUES(?1, ?2, ?3);".to_string(),
