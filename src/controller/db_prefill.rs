@@ -2,11 +2,7 @@ use serde_json::Value;
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 use sql_middleware::{
     middleware::{
-        ConfigAndPool,
-        MiddlewarePool,
-        MiddlewarePoolConnection,
-        QueryAndParams,
-        RowValues,
+        ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams, ResultSet, RowValues
     },
     sqlite_convert_params,
     SqlMiddlewareDbError,
@@ -18,19 +14,25 @@ use sql_middleware::{
 /// , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
 /// , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
 /// }]}]
-pub async fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<(), String> {
+pub async fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Result<ResultSet, SqlMiddlewareDbError> {
     // let config_and_pool = SqliteMiddlewarePoolConnection::new("sqlite::memory:").unwrap();
     let json2 = json1.clone();
 
     let json = json2;
-    let pool = config_and_pool.pool.get().await.map_err(|e| e.to_string())?;
-    let conn = MiddlewarePool::get_connection(pool).await.map_err(|e| e.to_string())?;
+    let pool = config_and_pool.pool.get().await.map_err(SqlMiddlewareDbError::from)?;
+    let conn = MiddlewarePool::get_connection(pool).await.map_err(SqlMiddlewareDbError::from)?;
 
-    let _res = (match &conn {
+Ok(    match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
             // let conn = conn.lock().unwrap();
             sconn
                 .interact(move |xxx| {
+
+                    if cfg!(debug_assertions) {
+                        let pretty_json = serde_json::to_string_pretty(&json).unwrap();
+                        println!("{}", pretty_json);
+                    }
+
                     let query_and_params_vec = QueryAndParams {
                         query: "SELECT * FROM event WHERE event_id = ?1 AND year = ?2;".to_string(),
                         params: vec![
@@ -49,27 +51,13 @@ pub async fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Resul
                         )?;
                         rs
                     };
-                    if result_set.results.len() > 0 {
+                    if result_set.results.len() == 0 {
                         let query_and_params_vec = QueryAndParams {
                             query: "INSERT INTO event (name, espn_id, year) VALUES(?1, ?2, ?3);".to_string(),
                             params: vec![
                                 RowValues::Int(json["event"].as_i64().unwrap()),
-                                RowValues::Int(json["year"].as_i64().unwrap())
-                            ],
-                        };
-                        let converted_params = sql_middleware::sqlite_convert_params_for_execute(
-                            query_and_params_vec.params
-                        )?;
-
-                        let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                        stmt.execute(converted_params)?;
-
-                        let query_and_params_vec = QueryAndParams {
-                            query: "INSERT INTO golfer (name, espn_id) SELECT ?1, ?2 
-                                WHERE NOT EXISTS (SELECT 1 from golfer where espn_id = ?2);".to_string(),
-                            params: vec![
-                                RowValues::Int(json["event"].as_i64().unwrap()),
-                                RowValues::Int(json["year"].as_i64().unwrap())
+                                RowValues::Int(json["year"].as_i64().unwrap()),
+                                RowValues::Text(json["name"].to_string()),
                             ],
                         };
                         let converted_params = sql_middleware::sqlite_convert_params_for_execute(
@@ -151,10 +139,9 @@ pub async fn db_prefill(json1: &Value, config_and_pool: &ConfigAndPool) -> Resul
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 }).await
-                .map_err(|e| format!("Error executing query: {:?}", e))
+                // .map_err(|e| format!("Error executing query: {:?}", e))
         }
         _ => unimplemented!(),
-    })?;
-
-    Result::<(), String>::Ok(())
+    }??)
+    
 }
