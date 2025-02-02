@@ -1,4 +1,4 @@
-use std::collections::{ BTreeMap, HashMap };
+use std::collections::BTreeMap;
 
 use crate::controller::score::group_by_scores;
 use crate::model::{
@@ -294,13 +294,13 @@ struct GolferBars {
 fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &Vec<DetailedScore>
-) -> HashMap<String, Vec<GolferBars>> {
-    let mut bettor_golfers_map: HashMap<String, Vec<GolferBars>> = HashMap::new();
+) -> BTreeMap<String, Vec<GolferBars>> {
+    let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
 
     let step_factor = 3.0;
 
     for (_bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
-        let golfers: Vec<GolferBars> = detailed_scores
+        let mut golfers: Vec<GolferBars> = detailed_scores
             .iter()
             .filter(|golfer| golfer.bettor_name == summary_score.bettor_name)
             .enumerate()
@@ -317,9 +317,6 @@ fn preprocess_golfer_data(
                     &golfer.golfer_name.chars().take(1).collect::<String>(),
                     short_name.chars().take(5).collect::<String>()
                 );
-                // .map(|x| x.chars().next().unwrap_or(' '))
-                // .collect::<String>();
-                //  .next().unwrap_or(&golfer.golfer_name).chars().take(5).collect::<String>();
 
                 let total_score: isize = golfer.scores
                     .iter()
@@ -370,7 +367,6 @@ fn preprocess_golfer_data(
                 }
 
                 GolferBars {
-                    // name: golfer.golfer_name.clone(),
                     short_name,
                     total_score,
                     bars,
@@ -379,6 +375,10 @@ fn preprocess_golfer_data(
             })
             .collect();
 
+        // Sort the golfers by `short_name`
+        golfers.sort_by(|a, b| a.short_name.cmp(&b.short_name));
+
+        // Insert the sorted golfers into the map
         bettor_golfers_map.insert(summary_score.bettor_name.clone(), golfers);
     }
 
@@ -390,15 +390,10 @@ fn render_drop_down_bar(
     detailed_scores: &SummaryDetailedScores
 ) -> Markup {
     // Preprocess the data
-    let preprocessed_data = {
-        let vec: HashMap<String, Vec<GolferBars>> = preprocess_golfer_data(
+    let preprocessed_data =  preprocess_golfer_data(
             &grouped_data,
             &detailed_scores.detailed_scores
         );
-        let mut vec: Vec<_> = vec.into_iter().collect();
-        vec.sort_by_key(|(_, score)| score[0].short_name.clone());
-        vec.into_iter().collect::<HashMap<_, _>>()
-    };
 
     html! {
         h3 class="playerbars" { "Score Detail" }
