@@ -13,12 +13,7 @@ use sql_middleware::{
     SqlMiddlewareDbError,
 };
 
-/// format we have is this:
-/// [{ "event": <int>, "year": <int>, "name": "value",  "data_to_fill_if_event_and_year_missing": [
-/// { "bettors": [{"PlayerName", "PlayerName2", "PlayerName3"...}]
-/// , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
-/// , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
-/// }]}]
+
 pub async fn db_prefill(
     json1: &Value,
     config_and_pool: &ConfigAndPool,

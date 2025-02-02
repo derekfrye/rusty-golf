@@ -2,7 +2,7 @@ use clap::Parser;
 use serde_json::Value;
 use sql_middleware::middleware::DatabaseType;
 // use sqlx_middleware::db::DatabaseType;
-use std::{fs, path::PathBuf, vec};
+use std::{ fs, path::PathBuf, vec };
 
 pub fn args_checks() -> CleanArgs {
     let mut xx = Args::parse();
@@ -20,25 +20,15 @@ pub struct Args {
         long,
         value_name = "DATABASE_TYPE",
         default_value = "Sqlite",
-        value_parser = clap::value_parser!(DatabaseType))
-    ]
+        value_parser = clap::value_parser!(DatabaseType)
+    )]
     pub db_type: DatabaseType,
     // Only necessary for postgres.
     #[arg(long, value_name = "DATABASE_HOST", default_value = "localhost")]
     pub db_host: Option<String>,
-    #[arg(
-        short = 'p',
-        long,
-        value_name = "DATABASE_PORT",
-        default_value = "5432"
-    )]
+    #[arg(short = 'p', long, value_name = "DATABASE_PORT", default_value = "5432")]
     pub db_port: Option<u16>,
-    #[arg(
-        short = 'u',
-        long,
-        value_name = "DATABASE_USER",
-        default_value = "postgres"
-    )]
+    #[arg(short = 'u', long, value_name = "DATABASE_USER", default_value = "postgres")]
     pub db_user: Option<String>,
     #[arg(short = 'w', long, value_name = "DATABASE_PASSWORD")]
     pub db_password: Option<String>,
@@ -47,11 +37,7 @@ pub struct Args {
     #[arg(short = 'n', long, value_name = "DATABASE_NAME")]
     pub db_name: String,
     /// If specified, this sql is run on program startup. Be careful with the SQL you run here, don't mess up your own database.
-    #[arg(
-        long,
-        value_name = "DATABASE_STARTUP_SCRIPT",
-        value_parser = check_readable_file
-    )]
+    #[arg(long, value_name = "DATABASE_STARTUP_SCRIPT", value_parser = check_readable_file)]
     pub db_startup_script: Option<String>,
     #[arg(
         long,
@@ -92,7 +78,8 @@ impl Args {
                 return Err("Postgres password is required".to_string());
             } else if secrets_locations.contains(&self.db_password.as_deref().unwrap()) {
                 // open the file and read the contents
-                let contents = std::fs::read_to_string("/secrets/db_password")
+                let contents = std::fs
+                    ::read_to_string("/secrets/db_password")
                     .unwrap_or("tempPasswordWillbeReplacedIn!AdminPanel".to_string());
                 // set the password to the contents of the file
                 self.db_password = Some(contents.trim().to_string());
@@ -143,10 +130,7 @@ fn check_readable_file(file: &str) -> Result<String, String> {
         //     eprintln!("Failed to get current directory");
         // }
         if !path.is_file() || !fs::metadata(&path).is_ok() {
-            return Err(format!(
-                "The sql startup script '{}' is not readable.",
-                file
-            ));
+            return Err(format!("The sql startup script '{}' is not readable.", file));
         } else {
             results.push(path.to_str().unwrap().to_string());
         }
@@ -173,111 +157,120 @@ fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
 /// , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
 /// }]}]
 fn validate_json_format(json: &Value) -> Result<(), String> {
-    if !json.is_object() {
+    if !json.is_array() {
         return Err("The json file is not in the correct format.".to_string());
     }
 
     // format we expect is this:
-    // [{ "event": <int>, "year": <int>, "name": "", "data_to_fill_if_event_and_year_missing": [
-    //{ "bettors": [{"PlayerName", "PlayerName2", "PlayerName3"...}]
-    // , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
-    // , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
-    // }]}]
+    // [{ "event": <int>, "year": <int>, "name": "", 
+    // "data_to_fill_if_event_and_year_missing": [
+    // { "bettors": [{"PlayerName", "PlayerName2", "PlayerName3"...}]
+    //   , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
+    //   , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
+    // }]
+    // }, ...
+    // ]
 
     // check the json against this format
-    let expected_keys = vec![
-        "event",
-        "year",
-        "name",
-        "data_to_fill_if_event_and_year_missing",
-    ];
-    for (key, _) in json.as_object().unwrap() {
-        if !expected_keys.contains(&key.as_str()) {
-            return Err(format!(
-                "The json file is not in the correct format. Expected keys: {:?}",
-                expected_keys
-            ));
-        }
-        let event = &json["event"];
-        if !event.is_number() {
-            return Err(
-                "The json key event is not in the correct format. Expected a number.".to_string(),
-            );
-        }
-        let year = &json["year"];
-        if !year.is_number() {
-            return Err(
-                "The json key year is not in the correct format. Expected a number.".to_string(),
-            );
-        }
-        let name = &json["name"];
-        if !name.is_string() {
-            return Err(
-                "The json key name is not in the correct format. Expected a string.".to_string(),
-            );
-        }
-    }
-
-    // now check the data_to_fill_if_event_and_year_missing
-    let data_to_fill = json["data_to_fill_if_event_and_year_missing"]
-        .as_array()
-        .unwrap();
-    for data in data_to_fill {
-        let expected_keys = vec!["bettors", "golfers", "event_user_player"];
-        for (key, _) in data.as_object().unwrap() {
+    let expected_keys = vec!["event", "year", "name", "data_to_fill_if_event_and_year_missing"];
+    for element in json.as_array().unwrap() {
+        for key in element.as_object().unwrap().keys() {
             if !expected_keys.contains(&key.as_str()) {
-                return Err(format!("The json key data_to_fill_if_event_and_year_missing is not in the correct format. Expected keys: {:?}", expected_keys));
+                return Err(
+                    format!(
+                        "The json file is not in the correct format. Expected keys: {:?}",
+                        expected_keys
+                    )
+                );
+            }
+            let event = &element["event"];
+            if !event.is_number() {
+                return Err(
+                    "The json key event is not in the correct format. Expected a number.".to_string()
+                );
+            }
+            let year = &element["year"];
+            if !year.is_number() {
+                return Err(
+                    "The json key year is not in the correct format. Expected a number.".to_string()
+                );
+            }
+            let name = &element["name"];
+            if !name.is_string() {
+                return Err(
+                    "The json key name is not in the correct format. Expected a string.".to_string()
+                );
             }
         }
-    }
 
-    let bettors_check = data_to_fill
-        .iter()
-        .map(|x| x["bettors"].as_array().unwrap())
-        .flatten()
-        .collect::<Vec<_>>();
-    // check bettors are just strings
-    for bettor in bettors_check {
-        if !bettor.is_string() {
-            return Err(
-                "The json key bettors is not in the correct format. Expected strings.".to_string(),
-            );
+        // now check the data_to_fill_if_event_and_year_missing
+        let data_to_fill = element["data_to_fill_if_event_and_year_missing"].as_array().unwrap();
+        for data in data_to_fill {
+            let expected_keys = vec!["bettors", "golfers", "event_user_player"];
+            for (key, _) in data.as_object().unwrap() {
+                if !expected_keys.contains(&key.as_str()) {
+                    return Err(
+                        format!(
+                            "The json key data_to_fill_if_event_and_year_missing is not in the correct format. Expected keys: {:?}",
+                            expected_keys
+                        )
+                    );
+                }
+            }
         }
-    }
 
-    let golfers_check = data_to_fill
-        .iter()
-        .map(|x| x["golfers"].as_array().unwrap())
-        .flatten()
-        .collect::<Vec<_>>();
-    // check golfer contains name and espn_id
-    for golfer in golfers_check {
-        if !golfer.is_object() {
-            return Err(
-                "The json key golfers is not in the correct format. Expected objects.".to_string(),
-            );
+        let bettors_check = data_to_fill
+            .iter()
+            .map(|x| x["bettors"].as_array().unwrap())
+            .flatten()
+            .collect::<Vec<_>>();
+        // check bettors are just strings
+        for bettor in bettors_check {
+            if !bettor.is_string() {
+                return Err(
+                    "The json key bettors is not in the correct format. Expected strings.".to_string()
+                );
+            }
         }
-        if !golfer["name"].is_string() || !golfer["espn_id"].is_number() {
-            return Err("The json key golfers is not in the correct format. Expected objects with keys name and espn_id.".to_string());
+
+        let golfers_check = data_to_fill
+            .iter()
+            .map(|x| x["golfers"].as_array().unwrap())
+            .flatten()
+            .collect::<Vec<_>>();
+        // check golfer contains name and espn_id
+        for golfer in golfers_check {
+            if !golfer.is_object() {
+                return Err(
+                    "The json key golfers is not in the correct format. Expected objects.".to_string()
+                );
+            }
+            if !golfer["name"].is_string() || !golfer["espn_id"].is_number() {
+                return Err(
+                    "The json key golfers is not in the correct format. Expected objects with keys name and espn_id.".to_string()
+                );
+            }
         }
-    }
-    let event_user_player_check = data_to_fill
-        .iter()
-        .map(|x| x["event_user_player"].as_array().unwrap())
-        .flatten()
-        .collect::<Vec<_>>();
-    // check event_user_player contains bettor and golfer_espn_id
-    for event_user_player in event_user_player_check {
-        if !event_user_player.is_object() {
-            return Err(
-                "The json key event_user_player is not in the correct format. Expected objects."
-                    .to_string(),
-            );
-        }
-        if !event_user_player["bettor"].is_string()
-            || !event_user_player["golfer_espn_id"].is_number()
-        {
-            return Err("The json key event_user_player is not in the correct format. Expected objects with keys bettor and golfer_espn_id.".to_string());
+        let event_user_player_check = data_to_fill
+            .iter()
+            .map(|x| x["event_user_player"].as_array().unwrap())
+            .flatten()
+            .collect::<Vec<_>>();
+        // check event_user_player contains bettor and golfer_espn_id
+        for event_user_player in event_user_player_check {
+            if !event_user_player.is_object() {
+                return Err(
+                    "The json key event_user_player is not in the correct format. Expected objects.".to_string()
+                );
+            }
+            if
+                !event_user_player["bettor"].is_string() ||
+                !event_user_player["golfer_espn_id"].is_number()
+            {
+                return Err(
+                    "The json key event_user_player is not in the correct format. Expected objects with keys bettor and golfer_espn_id.".to_string()
+                );
+            }
         }
     }
 

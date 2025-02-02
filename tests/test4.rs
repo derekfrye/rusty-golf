@@ -85,7 +85,7 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .find(
             |z|
-                z.get("bettor").unwrap().as_text().unwrap() == "Player2" &&
+                z.get("bettor").unwrap().as_text().unwrap() == "Player4" &&
                 *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 9780
         );
     assert_eq!(x.is_some(), true);

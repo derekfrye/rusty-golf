@@ -21,9 +21,9 @@
             },
             "args": [
                 "--db-type=sqlite",
-                "--db-name=xxx",
-                "--db-startup-script=src/admin/model/sql/schema/sqlite/00_event.sql;src/admin/model/sql/schema/sqlite/01_golfstatistic.sql;src/admin/model/sql/schema/sqlite/02_player.sql;src/admin/model/sql/schema/sqlite/03_golfuser.sql;src/admin/model/sql/schema/sqlite/04_event_user_player.sql;src/admin/model/sql/schema/sqlite/05_eup_statistic.sql",
-                "--db_populate_json"
+                "--db-name=file::memory:?cache=shared",
+                "--db-startup-script=src/admin/model/sql/schema/sqlite/00_event.sql;src/admin/model/sql/schema/sqlite/02_golfer.sql;src/admin/model/sql/schema/sqlite/03_bettor.sql;src/admin/model/sql/schema/sqlite/04_event_user_player.sql;src/admin/model/sql/schema/sqlite/05_eup_statistic.sql",
+                "--db-populate-json=tests/test5_dbprefill.json"
             ],
             "cwd": "${workspaceFolder}",
         },
