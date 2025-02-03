@@ -372,6 +372,10 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
 
         h3 class="playerbars" { "Score by Golfer" }
 
+        p class="refresh" {
+            "Use filters from prior section to cycle through golfers, and use buttons below to cycle through rounds."
+        }
+
         @for (idx, bettor) in bettors.iter().enumerate() {
 
             // We'll hide all but the first by default, or all hidden by default
