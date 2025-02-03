@@ -566,6 +566,30 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                                     }
                                 }
                             }
+                            @if !all_scores.is_empty() {
+                                @let scores_by_round = {
+                                    let mut x = BTreeMap::new();
+                                    for ls in all_scores.iter() {
+                                        x.entry(ls.round)
+                                        .and_modify(|total| *total += ls.score - ls.par)
+                                        .or_insert(ls.score - ls.par);
+                                    }
+                                    x
+                                };
+                                @for (round, total_score) in scores_by_round.iter() {
+                                    @let is_round_one = *round == 0;  // Since ls.round is 0-based
+                                    @let row_class = if is_round_one { "linescore-total" } else { "linescore-total hidden" };
+                            
+                                    tr class=(row_class) data-round=(round + 1) {
+                                        td data-round=(round + 1) colspan="2" class="linescore-total-cell" { 
+                                            "Total:" 
+                                        }
+                                        td data-round=(round + 1) class="linescore-total-cell" {
+                                            (total_score)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

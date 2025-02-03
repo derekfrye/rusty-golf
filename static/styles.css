@@ -248,9 +248,11 @@ p.refresh {
   color: #333;
 }
 
-.player-button.selected {
-    font-weight: bold; /* Highlight the selected player button */
-    border: 1px solid #000;
+.player-button.selected,
+.linescore-round-button.selected {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
 }
 
 .player-selection {
@@ -273,6 +275,9 @@ h4.playerdetails {
 } */
 
 /* view/scores.rs/render_drop_down_bar */
+.drop-down-bar-chart {
+  max-width: 29.5rem;
+}
 
 .chart-container {
     position: relative;
@@ -515,8 +520,3 @@ h4.playerdetails {
   /* no border-radius -> it's a square */
 }
 
-.linescore-round-button.selected {
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-}
