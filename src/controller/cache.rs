@@ -1,4 +1,4 @@
-use crate::model::{Cache, CacheMap, ScoreData};
+use crate::model::{format_time_ago_for_score_view, Cache, CacheMap, ScoreData};
 use chrono::{DateTime, Utc};
 // use serde::{Deserialize, Serialize};
 
@@ -27,9 +27,9 @@ pub fn check_cache_expired(cache: Cache) -> Result<ScoreData, Box<dyn std::error
     // if we're within the cache duration, return the cache
     if cache_age < CACHE_DURATION {
         if let Some(ref score_data) = cache.data {
-            let time_since = cache_age.num_minutes();
+            // let time_since = cache_age.num_minutes();
             
-            let time_string = format!("{}m", time_since);
+            let time_string = format_time_ago_for_score_view(cache_age);
             let mut refreshed_cache = score_data.clone();
             refreshed_cache.last_refresh = time_string;
             return Ok(refreshed_cache);

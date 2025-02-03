@@ -6,7 +6,7 @@ use crate::args::CleanArgs;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
 use crate::controller::cache::{ check_cache_expired, get_or_create_cache };
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model::{ self, DetailedScore, RefreshSource, SummaryDetailedScores };
+use crate::model::{ self, format_time_ago_for_score_view, DetailedScore, RefreshSource, SummaryDetailedScores };
 use crate::model::{
     AllBettorScoresByRound,
     BettorScoreByRound,
@@ -185,7 +185,7 @@ pub async fn get_data_for_scores_page(
     let total_cache = ScoreData {
         bettor_struct: bettors,
         score_struct: golfers_and_scores.score_struct,
-        last_refresh: format!("{}m", x.num_minutes()),
+        last_refresh: format_time_ago_for_score_view(x),
         last_refresh_source: golfers_and_scores.last_refresh_source,
     };
 

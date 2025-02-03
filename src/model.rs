@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, TimeDelta};
 // use deadpool_postgres::tokio_postgres::Row;
 // use actix_web::cookie::time::format_description::well_known::iso8601::Config;
 // use deadpool_postgres::tokio_postgres::Row;
@@ -183,6 +183,44 @@ pub struct SummaryDetailedScores {
 }
 
 pub type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
+
+pub fn format_time_ago_for_score_view(td: TimeDelta) -> String {
+    // Get the total number of seconds from the TimeDelta.
+    let secs = td.num_seconds();
+
+    // Define approximate durations for each time unit.
+    const MINUTE: i64 = 60;
+    const HOUR: i64 = 60 * MINUTE;          // 3600 seconds
+    const DAY: i64 = 24 * HOUR;             // 86400 seconds
+    const WEEK: i64 = 7 * DAY;              // 604800 seconds
+    const MONTH: i64 = 30 * DAY;            // 2592000 seconds (approximation)
+    const YEAR: i64 = 365 * DAY;            // 31536000 seconds (approximation)
+
+    // Choose the largest fitting time unit.
+    if secs >= YEAR {
+        // Use floating point division to capture partial years.
+        let years = secs as f64 / YEAR as f64;
+        format!("{:.2} years", years)
+    } else if secs >= MONTH {
+        let months = secs as f64 / MONTH as f64;
+        format!("{:.2} months", months)
+    } else if secs >= WEEK {
+        let weeks = secs / WEEK;
+        format!("{} weeks", weeks)
+    } else if secs >= DAY {
+        let days = secs / DAY;
+        format!("{} days", days)
+    } else if secs >= HOUR {
+        let hours = secs / HOUR;
+        format!("{} h", hours)
+    } else if secs >= MINUTE {
+        let minutes = secs / MINUTE;
+        format!("{} min", minutes)
+    } else {
+        // For less than one minute, report seconds.
+        format!("{} s", secs)
+    }
+}
 
 pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,

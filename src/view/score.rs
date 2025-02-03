@@ -3,15 +3,7 @@ use std::collections::BTreeMap;
 use crate::controller::score::group_by_scores;
 use crate::get_title_and_score_view_conf_from_db;
 use crate::model::{
-    get_scores_from_db,
-    AllBettorScoresByRound,
-    DetailedScore,
-    LineScore,
-    RefreshSource,
-    ScoreData,
-    ScoreDisplay,
-    ScoresAndLastRefresh,
-    SummaryDetailedScores,
+    get_scores_from_db, AllBettorScoresByRound, DetailedScore, LineScore, RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, StringStat, SummaryDetailedScores
 };
 
 use maud::{ html, Markup };
@@ -40,6 +32,11 @@ pub async fn render_scores_template(
         &golfer_scores_for_line_score_render
     );
 
+    let refresh_data = RefreshData {
+        last_refresh: data.last_refresh.clone(),
+        last_refresh_source: data.last_refresh_source.clone(),
+    };
+
     Ok(
         html! {
         (render_scoreboard(data))
@@ -48,8 +45,8 @@ pub async fn render_scores_template(
         }
         // (render_stacked_bar_chart(data))
         (render_drop_down_bar(&summary_scores_x, &detailed_scores, config_and_pool, event_id).await?)
-        (render_line_score_tables(&bettor_struct))
-        (render_tee_time_detail(data))
+        (render_line_score_tables(&bettor_struct, refresh_data))
+        // (render_tee_time_detail(data))
     }
     )
 }
@@ -260,9 +257,7 @@ fn render_tee_time_detail(data: &ScoreData) -> Markup {
                     }
                 }
 
-                p class="refresh" {
-                    "Last refreshed from " (data.last_refresh_source) " " (data.last_refresh) " ago."
-                }
+                
             }
         }
     }
@@ -396,7 +391,7 @@ async fn render_drop_down_bar(
 
     Ok(
         html! {
-        h3 class="playerbars" { "Score Detail" }
+        h3 class="playerbars" { "Score by Player" }
 
         @let sorted_x = {
             let mut vec: Vec<_> = grouped_data.summary_scores.iter().collect();
@@ -474,14 +469,23 @@ pub struct BettorData {
     pub golfers: Vec<GolferData>,
 }
 
+pub struct RefreshData {
+    pub last_refresh: String,
+    pub last_refresh_source: RefreshSource,
+}
+
 #[derive(Debug)]
 pub struct GolferData {
     pub golfer_name: String,
     pub linescores: Vec<LineScore>,
+    pub tee_times: Vec<StringStat>,
 }
 
-pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
+pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: RefreshData) -> Markup {
     html! {
+
+        h3 class="playerbars" { "Score by Golfer" }
+
         @for (idx, bettor) in bettors.iter().enumerate() {
 
             // We'll hide all but the first by default, or all hidden by default
@@ -610,6 +614,10 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                 }
             }
         }
+
+        p class="refresh" {
+            "Last refreshed from " (refresh_data.last_refresh_source) " " (refresh_data.last_refresh) " ago."
+        }
     }
 }
 
@@ -665,7 +673,7 @@ fn scores_and_last_refresh_to_line_score_tables(
 ) -> Vec<BettorData> {
     // We'll group by bettor_name -> golfer_name -> Vec<LineScore>.
     // Use BTreeMap for a predictable sort order (alphabetical).
-    let mut grouped: BTreeMap<String, BTreeMap<String, Vec<LineScore>>> = BTreeMap::new();
+    let mut grouped: BTreeMap<String, BTreeMap<String, (Vec<LineScore>, Vec<StringStat>)>> = BTreeMap::new();
 
     // Iterate over every `Scores` entry in the structure
     for s in &scores_and_refresh.score_struct {
@@ -673,6 +681,7 @@ fn scores_and_last_refresh_to_line_score_tables(
         let bettor_name = &s.bettor_name;
         let golfer_name = &s.golfer_name;
         let linescores = &s.detailed_statistics.line_scores;
+        let teetimes = &s.detailed_statistics.tee_times;
 
         // Insert into the map
         grouped
@@ -680,7 +689,13 @@ fn scores_and_last_refresh_to_line_score_tables(
             .or_default()
             .entry(golfer_name.clone())
             .or_default()
-            .extend(linescores.iter().cloned());
+            .0.extend(linescores.iter().cloned());
+        grouped
+            .entry(bettor_name.clone())
+            .or_default()
+            .entry(golfer_name.clone())
+            .or_default()
+            .1.extend(teetimes.iter().cloned());
     }
 
     // Now convert that grouped map into the final Vec<BettorData>.
@@ -692,7 +707,8 @@ fn scores_and_last_refresh_to_line_score_tables(
         for (golfer_name, lscores) in golfer_map {
             golfer_data_vec.push(GolferData {
                 golfer_name,
-                linescores: lscores,
+                linescores: lscores.0,
+                tee_times: lscores.1,
             });
         }
 
