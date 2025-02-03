@@ -222,6 +222,12 @@ pub fn format_time_ago_for_score_view(td: TimeDelta) -> String {
     }
 }
 
+pub fn take_a_char_off(s: &str) -> String {
+    let mut x = s.to_string();
+    x.pop();
+    x
+}
+
 pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32

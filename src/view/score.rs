@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::get_title_and_score_view_conf_from_db;
 use crate::model::{
-    get_scores_from_db, AllBettorScoresByRound, DetailedScore, LineScore, RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, StringStat, SummaryDetailedScores
+    get_scores_from_db, take_a_char_off, AllBettorScoresByRound, DetailedScore, LineScore, RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, StringStat, SummaryDetailedScores
 };
 
 use maud::{ html, Markup };
@@ -432,7 +432,13 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
 
                                     
                                         @if golfer.tee_times.len() > (*rd - 1) as usize {
-                                            div class=(row_class) data-round=(rd) { (&golfer.tee_times[(*rd - 1) as usize].val) }
+                                            @let a = &golfer.tee_times[(*rd - 1) as usize].val;
+                                            @let b = if a.ends_with("am") || a.ends_with("pm") {
+                                                take_a_char_off(a)
+                                            } else {
+                                                a.to_string()
+                                            };
+                                            div class=(row_class) data-round=(rd) { "Tee (ct): " br { (b) }}
                                         }
                                     }
                                 }

@@ -1,7 +1,7 @@
 use std::{ collections::HashMap, vec };
 
 use crate::model::{
-    event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, IntStat, LineScore, PlayerJsonResponse, RefreshSource, ScoreDisplay, Scores, ScoresAndLastRefresh, Statistic, StringStat
+    event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, take_a_char_off, IntStat, LineScore, PlayerJsonResponse, RefreshSource, ScoreDisplay, Scores, ScoresAndLastRefresh, Statistic, StringStat
 };
 use chrono::DateTime;
 use reqwest::Client;
@@ -236,7 +236,8 @@ async fn go_get_espn_data(
                 &chrono::offset::FixedOffset::east_opt(-5 * 3600).unwrap()
             );
 
-            let special_format_time = parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string();
+            let special_format_time = take_a_char_off(&parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string()).to_string();
+            
 
             // let offset_time = crate::time::OffsetDateTime::from_unix_timestamp(parsed_time.timestamp()).unwrap();
             // let time_format = crate::time::format_description::parse("[month]/[day] [hour repr=12]:[minute][period]").unwrap();
