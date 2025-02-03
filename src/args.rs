@@ -166,18 +166,8 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
         return Err("The json file is not in the correct format.".to_string());
     }
 
-    // format we expect is this:
-    // [{ "event": <int>, "year": <int>, "name": "", 
-    // "data_to_fill_if_event_and_year_missing": [
-    // { "bettors": [{"PlayerName", "PlayerName2", "PlayerName3"...}]
-    //   , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
-    //   , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
-    // }]
-    // }, ...
-    // ]
-
     // check the json against this format
-    let expected_keys = vec!["event", "year", "name", "data_to_fill_if_event_and_year_missing"];
+    let expected_keys = vec!["event", "year", "name", "data_to_fill_if_event_and_year_missing", "score_view_step_factor"];
     for element in json.as_array().unwrap() {
         for key in element.as_object().unwrap().keys() {
             if !expected_keys.contains(&key.as_str()) {
