@@ -390,17 +390,14 @@ fn render_drop_down_bar(
     detailed_scores: &SummaryDetailedScores
 ) -> Markup {
     // Preprocess the data
-    let preprocessed_data =  preprocess_golfer_data(
-            &grouped_data,
-            &detailed_scores.detailed_scores
-        );
+    let preprocessed_data = preprocess_golfer_data(&grouped_data, &detailed_scores.detailed_scores);
 
     html! {
         h3 class="playerbars" { "Score Detail" }
 
         @let sorted_x = {
-            let mut vec: Vec<_> = grouped_data.summary_scores.iter().enumerate().collect();
-                vec.sort_by_key(|(_, score)| &score.bettor_name);
+            let mut vec: Vec<_> = grouped_data.summary_scores.iter().collect();
+                vec.sort_by_key(|score| &score.bettor_name);
                 vec
         };
 
@@ -408,8 +405,8 @@ fn render_drop_down_bar(
             // Player selection dropdown
             div class="player-selection" {                
 
-                @for (idx, summary_score) in &sorted_x {
-                    @let button_select = if *idx == 0 { " selected" } else { "" };
+                @for (idx, summary_score) in sorted_x.iter().enumerate() {
+                    @let button_select = if idx == 0 { " selected" } else { "" };
                     button class=(format!("player-button{}", button_select)) data-player=(summary_score.bettor_name) {
                         (summary_score.bettor_name)
                     }
@@ -420,7 +417,7 @@ fn render_drop_down_bar(
             div class="chart-container" {
 
                 // Iterate over each bettor
-                @for (bettor_idx, summary_score) in sorted_x {
+                @for (bettor_idx, summary_score) in sorted_x.iter().enumerate() {
 
                     @let chart_visibility = if bettor_idx == 0 { " visible" } else { " hidden" };
                     div class=(format!("chart {}", chart_visibility)) data-player=(summary_score.bettor_name)  {
@@ -510,12 +507,12 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                             //  - First column: Golfer name, rowspan=2
                             //  - Second column: colSpan=3, which holds the round buttons
                             tr {
-                                th colspan="2" class="topheader" {
+                                th rowspan="2" colspan="2" class="topheader" {
                                     (golfer.golfer_name)
                                 }
                                 th colspan="3" class="topheader" {
                                     
-                                    @for rd in &unique_rounds {
+                                    @for rd in unique_rounds.iter().take(2) {
 
                                         @let is_round_one = *rd == 1;
                                         @let row_class = if is_round_one { "linescore-round-button selected" } else { "linescore-round-button" };
@@ -529,7 +526,23 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                             }
                             // Second header row:
                             tr {
-                                th { "Round" }
+                                th colspan="3" class="topheader" {
+                                    
+                                    @for rd in unique_rounds.iter().skip(2) {
+
+                                        @let is_round_one = *rd == 1;
+                                        @let row_class = if is_round_one { "linescore-round-button selected" } else { "linescore-round-button" };
+
+                                        button class=(row_class) data-round=(rd) {
+                                            "R" (rd)
+                                        }
+                                        " "  // small space
+                                    }
+                                }
+                            }
+                            // third header row:
+                            tr {
+                                th { "Rd" }
                                 th { "Hole" }
                                 th { "Par" }
                                 th { "Strokes" }
@@ -592,7 +605,7 @@ fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
     if class_name.is_empty() {
         // Just return the raw numeric score
         html! {
-            (score)
+            score
         }
     } else {
         // Wrap the numeric score in a styled <span>
