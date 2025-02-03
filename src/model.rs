@@ -78,7 +78,7 @@ pub struct LineScore {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "PascalCase")] 
+#[serde(rename_all = "PascalCase")]
 pub enum ScoreDisplay {
     DoubleCondor,
     Condor,
@@ -273,10 +273,15 @@ pub async fn get_golfers_from_db(
     Ok(z)
 }
 
-pub async fn get_title_from_db(
+pub struct EventTitleAndScoreViewConf {
+    pub event_name: String,
+    pub score_view_step_factor: f32,
+}
+
+pub async fn get_title_and_score_view_conf_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32
-) -> Result<String, SqlMiddlewareDbError> {
+) -> Result<EventTitleAndScoreViewConf, SqlMiddlewareDbError> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
@@ -317,10 +322,20 @@ pub async fn get_title_from_db(
     let z = res?.results
         .iter()
         .map(|row| {
-            row.get("eventname")
-                .and_then(|v| v.as_text())
-                .map(|v| v.to_string())
-                .ok_or(SqlMiddlewareDbError::Other("Name not found".to_string()))
+            Ok(EventTitleAndScoreViewConf {
+                event_name: row
+                    .get("eventname")
+                    .and_then(|v| v.as_text())
+                    .map(|v| v.to_string())
+                    .ok_or(SqlMiddlewareDbError::Other("Name not found".to_string()))?,
+                score_view_step_factor: row
+                    .get("score_view_step_factor")
+                    .and_then(|v| v.as_float())
+                    .map(|v| v as f32)
+                    .ok_or(
+                        SqlMiddlewareDbError::Other("Score view step factor not found".to_string())
+                    )?,
+            })
         })
         .last()
         .unwrap_or_else(|| Err(SqlMiddlewareDbError::Other("No results found".to_string())));
@@ -590,7 +605,7 @@ pub async fn event_and_scores_already_in_db(
     event_id: i32,
     cache_max_age: i64
 ) -> Result<bool, SqlMiddlewareDbError> {
-    let z = get_title_from_db(config_and_pool, event_id).await;
+    let z = get_title_and_score_view_conf_from_db(config_and_pool, event_id).await;
     // if this threw an error, the event isn't setup, so clearly we can early return since we need to retrieve the stuff from espn
     match z {
         Err(_) => {
@@ -670,4 +685,3 @@ pub async fn event_and_scores_already_in_db(
         Ok(false)
     }
 }
-

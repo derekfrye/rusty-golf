@@ -29,6 +29,6 @@ const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
 // pub use model::CacheMap;
 
 // If you have functions like `get_title_from_db`, re-export them as well
-pub use model::get_title_from_db; // Adjust based on actual function location
+pub use model::get_title_and_score_view_conf_from_db; // Adjust based on actual function location
 
 pub mod args;

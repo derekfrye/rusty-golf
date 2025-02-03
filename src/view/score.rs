@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::controller::score::group_by_scores;
+use crate::get_title_and_score_view_conf_from_db;
 use crate::model::{
     get_scores_from_db,
     AllBettorScoresByRound,
@@ -46,7 +47,7 @@ pub async fn render_scores_template(
             (render_summary_scores(&summary_scores_x))
         }
         // (render_stacked_bar_chart(data))
-        (render_drop_down_bar(&summary_scores_x, &detailed_scores))
+        (render_drop_down_bar(&summary_scores_x, &detailed_scores, config_and_pool, event_id).await?)
         (render_line_score_tables(&bettor_struct))
         (render_tee_time_detail(data))
     }
@@ -291,13 +292,18 @@ struct GolferBars {
     is_even: bool, // For alternating row colors
 }
 
-fn preprocess_golfer_data(
+async fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
-    detailed_scores: &Vec<DetailedScore>
-) -> BTreeMap<String, Vec<GolferBars>> {
+    detailed_scores: &Vec<DetailedScore>,
+    config_and_pool: &ConfigAndPool,
+    event_id: i32
+) -> Result<BTreeMap<String, Vec<GolferBars>>, Box<dyn std::error::Error>> {
     let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
 
-    let step_factor = 3.0;
+    let step_factor = get_title_and_score_view_conf_from_db(
+        config_and_pool,
+        event_id
+    ).await?.score_view_step_factor;
 
     for (_bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
         let mut golfers: Vec<GolferBars> = detailed_scores
@@ -371,17 +377,25 @@ fn preprocess_golfer_data(
         bettor_golfers_map.insert(summary_score.bettor_name.clone(), golfers);
     }
 
-    bettor_golfers_map
+    Ok(bettor_golfers_map)
 }
 
-fn render_drop_down_bar(
+async fn render_drop_down_bar(
     grouped_data: &AllBettorScoresByRound,
-    detailed_scores: &SummaryDetailedScores
-) -> Markup {
+    detailed_scores: &SummaryDetailedScores,
+    config_and_pool: &ConfigAndPool,
+    event_id: i32
+) -> Result<Markup, Box<dyn std::error::Error>> {
     // Preprocess the data
-    let preprocessed_data = preprocess_golfer_data(&grouped_data, &detailed_scores.detailed_scores);
+    let preprocessed_data = preprocess_golfer_data(
+        &grouped_data,
+        &detailed_scores.detailed_scores,
+        config_and_pool,
+        event_id
+    ).await?;
 
-    html! {
+    Ok(
+        html! {
         h3 class="playerbars" { "Score Detail" }
 
         @let sorted_x = {
@@ -451,6 +465,7 @@ fn render_drop_down_bar(
             }
         }
     }
+    )
 }
 
 #[derive(Debug)]

@@ -3,7 +3,7 @@ use deadpool_postgres::{ ManagerConfig, RecyclingMethod };
 use rusty_golf::admin::router;
 use rusty_golf::args;
 use rusty_golf::controller::{ db_prefill, score::scores };
-use rusty_golf::model::{ get_title_from_db, CacheMap };
+use rusty_golf::model::{ get_title_and_score_view_conf_from_db, CacheMap };
 use sql_middleware::middleware::{
     ConfigAndPool,
     DatabaseType,
@@ -130,10 +130,10 @@ async fn index(
     let mut title = "Scoreboard".to_string();
     let _: i32 = match event_str.parse() {
         Ok(id) => {
-            let title_test = get_title_from_db(&config_and_pool, id).await;
+            let title_test = get_title_and_score_view_conf_from_db(&config_and_pool, id).await;
             match title_test {
                 Ok(t) => {
-                    title = t;
+                    title = t.event_name;
                 }
                 Err(_) => {
                     // eprintln!("Error: {}", x);
