@@ -156,7 +156,7 @@ fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
 
 /// Validate the json file format
 /// format we expect is this:
-/// [{ "event": <int>, "year": <int>, "name":"value", "data_to_fill_if_event_and_year_missing": [
+/// [{ "event": <int>, "year": <int>, "name":"value", "score_view_step_factor": <float>, "data_to_fill_if_event_and_year_missing": [
 /// { "bettors": [{"PlayerName", "PlayerName2", "PlayerName3"...}]
 /// , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
 /// , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
@@ -204,6 +204,12 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
             if !name.is_string() {
                 return Err(
                     "The json key name is not in the correct format. Expected a string.".to_string()
+                );
+            }
+            let score_view_step_factor = &element["score_view_step_factor"];
+            if !score_view_step_factor.is_number() {
+                return Err(
+                    "The json key score_view_step_factor is not in the correct format. Expected a number.".to_string()
                 );
             }
         }

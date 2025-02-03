@@ -3,6 +3,7 @@
         "event": 401580351,
         "year": 2024,
         "name": "PGA Championship",
+        "score_view_step_factor": 3.0,
         "data_to_fill_if_event_and_year_missing": [
             {
                 "bettors": [
@@ -143,6 +144,7 @@
         "event": 401580360,
         "year": 2024,
         "name": "The Open",
+        "score_view_step_factor": 4.5,
         "data_to_fill_if_event_and_year_missing": [
             {
                 "bettors": [
@@ -283,6 +285,7 @@
         "event": 401580355,
         "year": 2024,
         "name": "U.S. Open 2024",
+        "score_view_step_factor": 4.5,
         "data_to_fill_if_event_and_year_missing": [
             {
                 "bettors": [

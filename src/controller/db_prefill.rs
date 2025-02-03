@@ -13,7 +13,6 @@ use sql_middleware::{
     SqlMiddlewareDbError,
 };
 
-
 pub async fn db_prefill(
     json1: &Value,
     config_and_pool: &ConfigAndPool,
@@ -63,13 +62,18 @@ pub async fn db_prefill(
                                     };
                                     if result_set.results.len() == 0 {
                                         let query_and_params_vec = QueryAndParams {
-                                            query: "INSERT INTO event (name, espn_id, year) VALUES(?1, ?2, ?3);".to_string(),
+                                            query: "INSERT INTO event (name, espn_id, year, score_view_step_factor) VALUES(?1, ?2, ?3, ?4);".to_string(),
                                             params: vec![
                                                 RowValues::Text(
                                                     datum["name"].as_str().unwrap().to_string()
                                                 ),
                                                 RowValues::Int(datum["event"].as_i64().unwrap()),
-                                                RowValues::Int(datum["year"].as_i64().unwrap())
+                                                RowValues::Int(datum["year"].as_i64().unwrap()),
+                                                RowValues::Float(
+                                                    datum["score_view_step_factor"]
+                                                        .as_f64()
+                                                        .unwrap()
+                                                )
                                             ],
                                         };
                                         let converted_params =
