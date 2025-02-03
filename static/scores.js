@@ -128,7 +128,7 @@ document.addEventListener('click', (event) => {
 
 function filterRound(round) {
     // Iterate over all table rows
-    document.querySelectorAll('.linescore-table tbody tr').forEach(tr => {
+    document.querySelectorAll('.linescore-table tbody tr, .linescore-table thead tr th div').forEach(tr => {
         if (tr.getAttribute('data-round') === String(round)) {
             tr.classList.remove('hidden');
         } else {

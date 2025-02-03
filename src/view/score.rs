@@ -401,7 +401,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
                             //  - First column: Golfer name, rowspan=2
                             //  - Second column: colSpan=3, which holds the round buttons
                             tr {
-                                th rowspan="2" class="topheader" {
+                                th class="topheader" {
                                     (short_golfer_name(&golfer.golfer_name))
                                 }
                                 th colspan="2" class="topheader" {
@@ -420,6 +420,18 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
                             }
                             // Second header row:
                             tr {
+                                th class="topheader"  {
+                                    @for rd in unique_rounds.iter() {
+
+                                        @let is_round_one = *rd == 1;
+                                        @let row_class = if is_round_one { "topheader" } else { "topheader hidden" };
+
+                                    
+                                        @if golfer.tee_times.len() > (*rd - 1) as usize {
+                                            div class=(row_class) data-round=(rd) { (&golfer.tee_times[(*rd - 1) as usize].val) }
+                                        }
+                                    }
+                                }
                                 th colspan="2" class="topheader" {
                                     
                                     @for rd in unique_rounds.iter().skip(2) {
