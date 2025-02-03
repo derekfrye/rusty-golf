@@ -305,18 +305,7 @@ fn preprocess_golfer_data(
             .filter(|golfer| golfer.bettor_name == summary_score.bettor_name)
             .enumerate()
             .map(|(golfer_idx, golfer)| {
-                let short_name_x = golfer.golfer_name.split_whitespace().into_iter();
-                let short_name = if short_name_x.clone().count() >= 2 {
-                    short_name_x.clone().nth(1).unwrap_or(" ").to_string()
-                } else {
-                    golfer.golfer_name.to_string()
-                };
-
-                let short_name = format!(
-                    "{}. {}",
-                    &golfer.golfer_name.chars().take(1).collect::<String>(),
-                    short_name.chars().take(5).collect::<String>()
-                );
+                let short_name = short_golfer_name(&golfer.golfer_name);
 
                 let total_score: isize = golfer.scores
                     .iter()
@@ -507,10 +496,10 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                             //  - First column: Golfer name, rowspan=2
                             //  - Second column: colSpan=3, which holds the round buttons
                             tr {
-                                th rowspan="2" colspan="2" class="topheader" {
-                                    (golfer.golfer_name)
+                                th rowspan="2" class="topheader" {
+                                    (short_golfer_name(&golfer.golfer_name))
                                 }
-                                th colspan="3" class="topheader" {
+                                th colspan="2" class="topheader" {
                                     
                                     @for rd in unique_rounds.iter().take(2) {
 
@@ -526,7 +515,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                             }
                             // Second header row:
                             tr {
-                                th colspan="3" class="topheader" {
+                                th colspan="2" class="topheader" {
                                     
                                     @for rd in unique_rounds.iter().skip(2) {
 
@@ -542,7 +531,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                             }
                             // third header row:
                             tr {
-                                th { "Rd" }
+                                // th { "Rd" }
                                 th { "Hole" }
                                 th { "Par" }
                                 th { "Strokes" }
@@ -556,15 +545,15 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
                                 scores
                             };
 
-                            @for ls in all_scores {
+                            @for (_, ls) in all_scores.iter().enumerate() {
 
                                 @let is_round_one = ls.round + 1 == 1;
                                 @let row_class = if is_round_one { "" } else { "hidden" };
 
                                 tr class=(row_class) data-round=(ls.round + 1) {
-                                    td {
-                                        (ls.round + 1)
-                                    }
+                                    // td {
+                                    //     (ls.round + 1)
+                                    // }
                                     td {
                                         (ls.hole)
                                     }
@@ -583,6 +572,21 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>) -> Markup {
             }
         }
     }
+}
+
+fn short_golfer_name(golfer_name: &str) -> String {
+    let short_name_x = golfer_name.split_whitespace().into_iter();
+    let shortname = if short_name_x.clone().count() >= 2 {
+        short_name_x.clone().nth(1).unwrap_or(" ").to_string()
+    } else {
+        golfer_name.to_string()
+    };
+
+    format!(
+        "{}. {}",
+        golfer_name.chars().take(1).collect::<String>(),
+        shortname.chars().take(5).collect::<String>()
+    )
 }
 
 /// Helper that returns a sub‐Markup for the strokes cell, optionally wrapping
@@ -605,7 +609,7 @@ fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
     if class_name.is_empty() {
         // Just return the raw numeric score
         html! {
-            score
+            (score)
         }
     } else {
         // Wrap the numeric score in a styled <span>

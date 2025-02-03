@@ -297,7 +297,7 @@ h4.playerdetails {
     box-sizing: border-box; /* Include padding in width */
     text-align: right; /* Align text to the right */
     /* font-family: monospace; /* Use fixed-width font */
-    width: 14ch; /* Fixed width to ensure all labels pretend to have 10 characters */
+    width: 10ch; /* Fixed width to ensure all labels pretend to have 10 characters */
     white-space: nowrap; /* Prevent wrapping */
 }
 
@@ -430,7 +430,7 @@ h4.playerdetails {
   border: 1px solid #ddd;
   white-space: nowrap; /* Prevent wrapping to ensure column width fits content */
   font-size: 0.7rem; /* Set font size for table headers and entries */
-  /* height: 1.5rem; /* Ensure a minimum height for cells */
+  height: 1.5rem; /* Ensure a minimum height for cells */
 }
 
 .linescore-table th {
