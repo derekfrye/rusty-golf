@@ -2,15 +2,15 @@ use chrono::{NaiveDateTime, TimeDelta};
 // use deadpool_postgres::tokio_postgres::Row;
 // use actix_web::cookie::time::format_description::well_known::iso8601::Config;
 // use deadpool_postgres::tokio_postgres::Row;
-use serde::{ Deserialize, Serialize };
-use sql_middleware::middleware::{ ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection };
+use serde::{Deserialize, Serialize};
+use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
 use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 // use sqlx_middleware::db::Db;
-use sql_middleware::middleware::{ QueryAndParams as QueryAndParams2, RowValues as RowValues2 };
+use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
 use std::fmt;
 // use sqlx_middleware::model::{DatabaseResult, QueryAndParams, RowValues};
 
@@ -190,11 +190,11 @@ pub fn format_time_ago_for_score_view(td: TimeDelta) -> String {
 
     // Define approximate durations for each time unit.
     const MINUTE: i64 = 60;
-    const HOUR: i64 = 60 * MINUTE;          // 3600 seconds
-    const DAY: i64 = 24 * HOUR;             // 86400 seconds
-    const WEEK: i64 = 7 * DAY;              // 604800 seconds
-    const MONTH: i64 = 30 * DAY;            // 2592000 seconds (approximation)
-    const YEAR: i64 = 365 * DAY;            // 31536000 seconds (approximation)
+    const HOUR: i64 = 60 * MINUTE; // 3600 seconds
+    const DAY: i64 = 24 * HOUR; // 86400 seconds
+    const WEEK: i64 = 7 * DAY; // 604800 seconds
+    const MONTH: i64 = 30 * DAY; // 2592000 seconds (approximation)
+    const YEAR: i64 = 365 * DAY; // 31536000 seconds (approximation)
 
     // Choose the largest fitting time unit.
     if secs >= YEAR {
@@ -230,7 +230,7 @@ pub fn take_a_char_off(s: &str) -> String {
 
 pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,
-    event_id: i32
+    event_id: i32,
 ) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
@@ -251,25 +251,28 @@ pub async fn get_golfers_from_db(
     let res = (match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
             // let conn = conn.lock().unwrap();
-            sconn.interact(move |xxx| {
-                let converted_params = sql_middleware::sqlite_convert_params(
-                    &query_and_params.params
-                )?;
-                let tx = xxx.transaction()?;
+            sconn
+                .interact(move |xxx| {
+                    let converted_params =
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    let tx = xxx.transaction()?;
 
-                let result_set = {
-                    let mut stmt = tx.prepare(&query_and_params.query)?;
-                    let rs = sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
-                    rs
-                };
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(result_set)
-            }).await
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params.query)?;
+                        let rs =
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                        rs
+                    };
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
         }
         _ => panic!("Only sqlite is supported "),
     })?;
 
-    let z = res?.results
+    let z = res?
+        .results
         .iter()
         .map(|row| Scores {
             // parse column 0 as an int32
@@ -324,7 +327,7 @@ pub struct EventTitleAndScoreViewConf {
 
 pub async fn get_title_and_score_view_conf_from_db(
     config_and_pool: &ConfigAndPool,
-    event_id: i32
+    event_id: i32,
 ) -> Result<EventTitleAndScoreViewConf, SqlMiddlewareDbError> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
@@ -345,25 +348,28 @@ pub async fn get_title_and_score_view_conf_from_db(
     let res = (match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
             // let conn = conn.lock().unwrap();
-            sconn.interact(move |xxx| {
-                let converted_params = sql_middleware::sqlite_convert_params(
-                    &query_and_params.params
-                )?;
-                let tx = xxx.transaction()?;
+            sconn
+                .interact(move |xxx| {
+                    let converted_params =
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    let tx = xxx.transaction()?;
 
-                let result_set = {
-                    let mut stmt = tx.prepare(&query_and_params.query)?;
-                    let rs = sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
-                    rs
-                };
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(result_set)
-            }).await
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params.query)?;
+                        let rs =
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                        rs
+                    };
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
         }
         _ => panic!("Only sqlite is supported "),
     })?;
 
-    let z = res?.results
+    let z = res?
+        .results
         .iter()
         .map(|row| {
             Ok(EventTitleAndScoreViewConf {
@@ -376,9 +382,9 @@ pub async fn get_title_and_score_view_conf_from_db(
                     .get("score_view_step_factor")
                     .and_then(|v| v.as_float())
                     .map(|v| v as f32)
-                    .ok_or(
-                        SqlMiddlewareDbError::Other("Score view step factor not found".to_string())
-                    )?,
+                    .ok_or(SqlMiddlewareDbError::Other(
+                        "Score view step factor not found".to_string(),
+                    ))?,
             })
         })
         .last()
@@ -390,7 +396,7 @@ pub async fn get_title_and_score_view_conf_from_db(
 pub async fn get_scores_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
-    refresh_source: RefreshSource
+    refresh_source: RefreshSource,
 ) -> Result<ScoresAndLastRefresh, SqlMiddlewareDbError> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
@@ -410,27 +416,30 @@ pub async fn get_scores_from_db(
     let res = (match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
             // let conn = conn.lock().unwrap();
-            sconn.interact(move |xxx| {
-                let converted_params = sql_middleware::sqlite_convert_params(
-                    &query_and_params.params
-                )?;
-                let tx = xxx.transaction()?;
+            sconn
+                .interact(move |xxx| {
+                    let converted_params =
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    let tx = xxx.transaction()?;
 
-                let result_set = {
-                    let mut stmt = tx.prepare(&query_and_params.query)?;
-                    let rs = sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
-                    rs
-                };
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(result_set)
-            }).await
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params.query)?;
+                        let rs =
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                        rs
+                    };
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
         }
         _ => panic!("Only sqlite is supported "),
     })??;
 
     let last_time_updated = res
         .clone()
-        .results.iter()
+        .results
+        .iter()
         .map(|row| {
             row.get("ins_ts")
                 .and_then(|v| v.as_timestamp())
@@ -444,7 +453,8 @@ pub async fn get_scores_from_db(
         println!("model.rs ln 363 Last Time Updated: {:?}", x);
     }
 
-    let z: Result<Vec<Scores>, SqlMiddlewareDbError> = res.results
+    let z: Result<Vec<Scores>, SqlMiddlewareDbError> = res
+        .results
         .iter()
         .map(|row| {
             Ok(Scores {
@@ -480,66 +490,51 @@ pub async fn get_scores_from_db(
                         .and_then(|v| v.as_int())
                         .copied()
                         .unwrap_or_default(),
-                    rounds: match
-                        serde_json::from_str(
-                            row
-                                .get("rounds")
-                                .and_then(|v| v.as_text())
-                                .unwrap_or_default()
-                        )
-                    {
+                    rounds: match serde_json::from_str(
+                        row.get("rounds")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default(),
+                    ) {
                         Ok(rounds) => rounds,
                         Err(e) => {
                             return Err(SqlMiddlewareDbError::Other(e.to_string()));
                         }
                     },
-                    round_scores: match
-                        serde_json::from_str(
-                            row
-                                .get("round_scores")
-                                .and_then(|v| v.as_text())
-                                .unwrap_or_default()
-                        )
-                    {
+                    round_scores: match serde_json::from_str(
+                        row.get("round_scores")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default(),
+                    ) {
                         Ok(round_scores) => round_scores,
                         Err(e) => {
                             return Err(SqlMiddlewareDbError::Other(e.to_string()));
                         }
                     },
-                    tee_times: match
-                        serde_json::from_str(
-                            row
-                                .get("tee_times")
-                                .and_then(|v| v.as_text())
-                                .unwrap_or_default()
-                        )
-                    {
+                    tee_times: match serde_json::from_str(
+                        row.get("tee_times")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default(),
+                    ) {
                         Ok(tee_times) => tee_times,
                         Err(e) => {
                             return Err(SqlMiddlewareDbError::Other(e.to_string()));
                         }
                     },
-                    holes_completed_by_round: match
-                        serde_json::from_str(
-                            row
-                                .get("holes_completed_by_round")
-                                .and_then(|v| v.as_text())
-                                .unwrap_or_default()
-                        )
-                    {
+                    holes_completed_by_round: match serde_json::from_str(
+                        row.get("holes_completed_by_round")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default(),
+                    ) {
                         Ok(holes_completed_by_round) => holes_completed_by_round,
                         Err(e) => {
                             return Err(SqlMiddlewareDbError::Other(e.to_string()));
                         }
                     },
-                    line_scores: match
-                        serde_json::from_str(
-                            row
-                                .get("line_scores")
-                                .and_then(|v| v.as_text())
-                                .unwrap_or_default()
-                        )
-                    {
+                    line_scores: match serde_json::from_str(
+                        row.get("line_scores")
+                            .and_then(|v| v.as_text())
+                            .unwrap_or_default(),
+                    ) {
                         Ok(line_scores) => line_scores,
                         Err(e) => {
                             return Err(SqlMiddlewareDbError::Other(e.to_string()));
@@ -565,39 +560,42 @@ pub async fn get_scores_from_db(
 pub async fn store_scores_in_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
-    scores: &Vec<Scores>
+    scores: &Vec<Scores>,
 ) -> Result<(), SqlMiddlewareDbError> {
     fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> Vec<QueryAndParams2> {
         let mut queries = vec![];
         for score in scores {
-            let insert_stmt = include_str!(
-                "admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql"
-            );
+            let insert_stmt =
+                include_str!("admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
             let param = vec![
                 RowValues2::Int(event_id as i64),
                 RowValues2::Int(score.espn_id),
                 RowValues2::Int(score.eup_id),
                 RowValues2::Int(score.group),
                 RowValues2::Text(
-                    serde_json::to_string(score.detailed_statistics.rounds.as_slice()).unwrap()
+                    serde_json::to_string(score.detailed_statistics.rounds.as_slice()).unwrap(),
                 ),
                 RowValues2::Text(
-                    serde_json
-                        ::to_string(score.detailed_statistics.round_scores.as_slice())
-                        .unwrap()
+                    serde_json::to_string(score.detailed_statistics.round_scores.as_slice())
+                        .unwrap(),
                 ),
                 RowValues2::Text(
-                    serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).unwrap()
+                    serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).unwrap(),
                 ),
                 RowValues2::Text(
-                    serde_json
-                        ::to_string(score.detailed_statistics.holes_completed_by_round.as_slice())
-                        .unwrap()
+                    serde_json::to_string(
+                        score
+                            .detailed_statistics
+                            .holes_completed_by_round
+                            .as_slice(),
+                    )
+                    .unwrap(),
                 ),
                 RowValues2::Text(
-                    serde_json::to_string(score.detailed_statistics.line_scores.as_slice()).unwrap()
+                    serde_json::to_string(score.detailed_statistics.line_scores.as_slice())
+                        .unwrap(),
                 ),
-                RowValues2::Int(score.detailed_statistics.total_score as i64)
+                RowValues2::Int(score.detailed_statistics.total_score as i64),
             ];
             queries.push(QueryAndParams2 {
                 query: insert_stmt.to_string(),
@@ -614,29 +612,30 @@ pub async fn store_scores_in_db(
     if queries.len() > 0 {
         match &conn {
             MiddlewarePoolConnection::Sqlite(sconn) => {
-                sconn.interact(move |xxx| {
-                    let tx = xxx.transaction()?;
-                    {
-                        // println!("Query: {:?}", queries[0].query);
-                        let mut stmt = tx.prepare(&queries[0].query)?;
-                        let x = stmt.expanded_sql();
+                sconn
+                    .interact(move |xxx| {
+                        let tx = xxx.transaction()?;
+                        {
+                            // println!("Query: {:?}", queries[0].query);
+                            let mut stmt = tx.prepare(&queries[0].query)?;
+                            let x = stmt.expanded_sql();
 
-                        if cfg!(debug_assertions) {
-                            println!("Query from dbg: {:?}", x);
-                        }
-                        for query in queries {
-                            let converted_params = sql_middleware::sqlite_convert_params(
-                                &query.params
-                            )?;
+                            if cfg!(debug_assertions) {
+                                println!("Query from dbg: {:?}", x);
+                            }
+                            for query in queries {
+                                let converted_params =
+                                    sql_middleware::sqlite_convert_params(&query.params)?;
 
-                            let _rs = stmt.execute(
-                                sql_middleware::sqlite_params_from_iter(converted_params.iter())
-                            )?;
+                                let _rs = stmt.execute(sql_middleware::sqlite_params_from_iter(
+                                    converted_params.iter(),
+                                ))?;
+                            }
                         }
-                    }
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(())
-                }).await??;
+                        tx.commit()?;
+                        Ok::<_, SqlMiddlewareDbError>(())
+                    })
+                    .await??;
             }
             _ => panic!("Only sqlite is supported "),
         }
@@ -647,7 +646,7 @@ pub async fn store_scores_in_db(
 pub async fn event_and_scores_already_in_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
-    cache_max_age: i64
+    cache_max_age: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
     let z = get_title_and_score_view_conf_from_db(config_and_pool, event_id).await;
     // if this threw an error, the event isn't setup, so clearly we can early return since we need to retrieve the stuff from espn
@@ -678,20 +677,22 @@ pub async fn event_and_scores_already_in_db(
     let res = (match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
             // let conn = conn.lock().unwrap();
-            sconn.interact(move |xxx| {
-                let converted_params = sql_middleware::sqlite_convert_params(
-                    &query_and_params.params
-                )?;
-                let tx = xxx.transaction()?;
+            sconn
+                .interact(move |xxx| {
+                    let converted_params =
+                        sql_middleware::sqlite_convert_params(&query_and_params.params)?;
+                    let tx = xxx.transaction()?;
 
-                let result_set = {
-                    let mut stmt = tx.prepare(&query_and_params.query)?;
-                    let rs = sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
-                    rs
-                };
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(result_set)
-            }).await
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params.query)?;
+                        let rs =
+                            sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params)?;
+                        rs
+                    };
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
         }
         _ => panic!("Only sqlite is supported "),
     })?;
@@ -713,10 +714,7 @@ pub async fn event_and_scores_already_in_db(
                 let pass = diff.num_days() >= cache_max_age;
                 println!(
                     "Now: {}, Last Refresh: {}, Diff: {}, Pass: {}",
-                    now_human_readable_fmt,
-                    z_human_readable_fmt,
-                    diff_human_readable_fmt,
-                    pass
+                    now_human_readable_fmt, z_human_readable_fmt, diff_human_readable_fmt, pass
                 );
             }
 

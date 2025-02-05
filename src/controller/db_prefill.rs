@@ -2,33 +2,32 @@ use serde_json::Value;
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 use sql_middleware::{
     middleware::{
-        AnyConnWrapper,
-        ConfigAndPool,
-        DatabaseType,
-        MiddlewarePool,
-        QueryAndParams,
-        RowValues,
+        AnyConnWrapper, ConfigAndPool, DatabaseType, MiddlewarePool, QueryAndParams, RowValues,
     },
-    sqlite_convert_params,
-    SqlMiddlewareDbError,
+    sqlite_convert_params, SqlMiddlewareDbError,
 };
 
 pub async fn db_prefill(
     json1: &Value,
     config_and_pool: &ConfigAndPool,
-    db_type: DatabaseType
+    db_type: DatabaseType,
 ) -> Result<(), SqlMiddlewareDbError> {
     let json2 = json1.clone();
 
     let json = json2;
-    let pool = config_and_pool.pool.get().await.map_err(SqlMiddlewareDbError::from)?;
-    let conn = MiddlewarePool::get_connection(pool).await.map_err(SqlMiddlewareDbError::from)?;
+    let pool = config_and_pool
+        .pool
+        .get()
+        .await
+        .map_err(SqlMiddlewareDbError::from)?;
+    let conn = MiddlewarePool::get_connection(pool)
+        .await
+        .map_err(SqlMiddlewareDbError::from)?;
 
-    Ok(
-        (match db_type {
-            DatabaseType::Sqlite => {
-                // let conn = conn.lock().unwrap();
-                conn.interact_sync(move |wrapper_fn| {
+    Ok((match db_type {
+        DatabaseType::Sqlite => {
+            // let conn = conn.lock().unwrap();
+            conn.interact_sync(move |wrapper_fn| {
                     match wrapper_fn {
                         AnyConnWrapper::Sqlite(sql_conn) => {
                             if cfg!(debug_assertions) {
@@ -234,9 +233,8 @@ pub async fn db_prefill(
                         _ => Err(SqlMiddlewareDbError::Other("Unexpected database type".into())),
                     }
                 }).await
-                // .map_err(|e| format!("Error executing query: {:?}", e))
-            }
-            _ => unimplemented!(),
-        })??
-    )
+            // .map_err(|e| format!("Error executing query: {:?}", e))
+        }
+        _ => unimplemented!(),
+    })??)
 }

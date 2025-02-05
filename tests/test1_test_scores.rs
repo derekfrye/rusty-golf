@@ -37,7 +37,6 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     let query_and_params = QueryAndParams {
         query: setup_queries.to_string(),
         params: vec![],
-        
     };
 
     let pool = config_and_pool.pool.get().await.unwrap();
@@ -81,7 +80,6 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     let query_and_params = QueryAndParams {
         query: ddl.join("\n"),
         params: vec![],
-        
     };
 
     match conn {
@@ -108,7 +106,6 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     let query_and_params = QueryAndParams {
         query: setup_queries.to_string(),
         params: vec![],
-        
     };
 
     let pool = config_and_pool.pool.get().await.unwrap();

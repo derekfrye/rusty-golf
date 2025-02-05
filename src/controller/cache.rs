@@ -28,7 +28,7 @@ pub fn check_cache_expired(cache: Cache) -> Result<ScoreData, Box<dyn std::error
     if cache_age < CACHE_DURATION {
         if let Some(ref score_data) = cache.data {
             // let time_since = cache_age.num_minutes();
-            
+
             let time_string = format_time_ago_for_score_view(cache_age);
             let mut refreshed_cache = score_data.clone();
             refreshed_cache.last_refresh = time_string;

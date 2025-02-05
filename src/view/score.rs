@@ -2,42 +2,37 @@ use std::collections::BTreeMap;
 
 use crate::get_title_and_score_view_conf_from_db;
 use crate::model::{
-    get_scores_from_db, take_a_char_off, AllBettorScoresByRound, DetailedScore, LineScore, RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, StringStat, SummaryDetailedScores
+    get_scores_from_db, take_a_char_off, AllBettorScoresByRound, DetailedScore, LineScore,
+    RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, StringStat,
+    SummaryDetailedScores,
 };
 
-use maud::{ html, Markup };
+use maud::{html, Markup};
 use sql_middleware::middleware::ConfigAndPool;
 
 pub async fn render_scores_template(
     data: &ScoreData,
     expanded: bool,
     config_and_pool: &ConfigAndPool,
-    event_id: i32
+    event_id: i32,
 ) -> Result<Markup, Box<dyn std::error::Error>> {
-    let summary_scores_x = crate::controller::score::group_by_bettor_name_and_round(
-        &data.score_struct
-    );
-    let detailed_scores = crate::controller::score::group_by_bettor_golfer_round(
-        &data.score_struct
-    );
+    let summary_scores_x =
+        crate::controller::score::group_by_bettor_name_and_round(&data.score_struct);
+    let detailed_scores =
+        crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
 
-    let golfer_scores_for_line_score_render = get_scores_from_db(
-        config_and_pool,
-        event_id,
-        RefreshSource::Db
-    ).await?;
+    let golfer_scores_for_line_score_render =
+        get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?;
     // map to BettorData
-    let bettor_struct = scores_and_last_refresh_to_line_score_tables(
-        &golfer_scores_for_line_score_render
-    );
+    let bettor_struct =
+        scores_and_last_refresh_to_line_score_tables(&golfer_scores_for_line_score_render);
 
     let refresh_data = RefreshData {
         last_refresh: data.last_refresh.clone(),
         last_refresh_source: data.last_refresh_source.clone(),
     };
 
-    Ok(
-        html! {
+    Ok(html! {
         (render_scoreboard(data))
         @if expanded {
             (render_summary_scores(&summary_scores_x))
@@ -46,8 +41,7 @@ pub async fn render_scores_template(
         (render_drop_down_bar(&summary_scores_x, &detailed_scores, config_and_pool, event_id).await?)
         (render_line_score_tables(&bettor_struct, refresh_data))
         // (render_tee_time_detail(data))
-    }
-    )
+    })
 }
 
 fn render_scoreboard(data: &ScoreData) -> Markup {
@@ -147,14 +141,12 @@ fn render_summary_scores(grouped_data: &AllBettorScoresByRound) -> Markup {
     }
 }
 
-
-
 // Structure to hold individual bar information
 struct Bar {
     score: i32,
     direction: Direction,
     start_position: f32, // In percentage
-    width: f32, // Width of the bar in percentage
+    width: f32,          // Width of the bar in percentage
     round: i32,
 }
 
@@ -177,14 +169,13 @@ async fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &Vec<DetailedScore>,
     config_and_pool: &ConfigAndPool,
-    event_id: i32
+    event_id: i32,
 ) -> Result<BTreeMap<String, Vec<GolferBars>>, Box<dyn std::error::Error>> {
     let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
 
-    let step_factor = get_title_and_score_view_conf_from_db(
-        config_and_pool,
-        event_id
-    ).await?.score_view_step_factor;
+    let step_factor = get_title_and_score_view_conf_from_db(config_and_pool, event_id)
+        .await?
+        .score_view_step_factor;
 
     for (_bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
         let mut golfers: Vec<GolferBars> = detailed_scores
@@ -194,10 +185,7 @@ async fn preprocess_golfer_data(
             .map(|(golfer_idx, golfer)| {
                 let short_name = short_golfer_name(&golfer.golfer_name);
 
-                let total_score: isize = golfer.scores
-                    .iter()
-                    .map(|&x| x as isize)
-                    .sum();
+                let total_score: isize = golfer.scores.iter().map(|&x| x as isize).sum();
 
                 // Calculate bars
                 let mut bars: Vec<Bar> = Vec::new();
@@ -205,21 +193,29 @@ async fn preprocess_golfer_data(
                 let mut cumulative_right = 0.0;
 
                 // First, calculate total required width
-                let total_width: f32 = golfer.scores
+                let total_width: f32 = golfer
+                    .scores
                     .iter()
                     .map(|&score| (score.abs() as f32) * step_factor)
                     .sum();
 
                 // Determine scaling factor if total_width exceeds 100%
-                let scaling_factor = if total_width > 100.0 { 100.0 / total_width } else { 1.0 };
+                let scaling_factor = if total_width > 100.0 {
+                    100.0 / total_width
+                } else {
+                    1.0
+                };
 
                 for &score in &golfer.scores {
-                    let direction = if score > 0 { Direction::Right } else { Direction::Left };
+                    let direction = if score > 0 {
+                        Direction::Right
+                    } else {
+                        Direction::Left
+                    };
                     // Convert score to percentage with scaling
-                    let width =
-                        ((if score.abs() == 0 { 1 } else { score.abs() }) as f32) *
-                        step_factor *
-                        scaling_factor;
+                    let width = ((if score.abs() == 0 { 1 } else { score.abs() }) as f32)
+                        * step_factor
+                        * scaling_factor;
 
                     let start_position = match direction {
                         Direction::Right => {
@@ -265,18 +261,18 @@ async fn render_drop_down_bar(
     grouped_data: &AllBettorScoresByRound,
     detailed_scores: &SummaryDetailedScores,
     config_and_pool: &ConfigAndPool,
-    event_id: i32
+    event_id: i32,
 ) -> Result<Markup, Box<dyn std::error::Error>> {
     // Preprocess the data
     let preprocessed_data = preprocess_golfer_data(
         &grouped_data,
         &detailed_scores.detailed_scores,
         config_and_pool,
-        event_id
-    ).await?;
+        event_id,
+    )
+    .await?;
 
-    Ok(
-        html! {
+    Ok(html! {
         h3 class="playerbars" { "Score by Player" }
 
         @let sorted_x = {
@@ -287,7 +283,7 @@ async fn render_drop_down_bar(
 
         div class="drop-down-bar-chart" {
             // Player selection dropdown
-            div class="player-selection" {                
+            div class="player-selection" {
 
                 @for (idx, summary_score) in sorted_x.iter().enumerate() {
                     @let button_select = if idx == 0 { " selected" } else { "" };
@@ -345,8 +341,7 @@ async fn render_drop_down_bar(
                 }
             }
         }
-    }
-    )
+    })
 }
 
 #[derive(Debug)]
@@ -379,8 +374,8 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
         @for (idx, bettor) in bettors.iter().enumerate() {
 
             // We'll hide all but the first by default, or all hidden by default
-            // depending on your preference. 
-            @let visibility_class = if idx == 0 { "linescore-container visible" } 
+            // depending on your preference.
+            @let visibility_class = if idx == 0 { "linescore-container visible" }
                                     else { "linescore-container hidden" };
 
             // Container for all the golfer tables for this bettor
@@ -409,7 +404,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
                                     (short_golfer_name(&golfer.golfer_name))
                                 }
                                 th colspan="2" class="topheader" {
-                                    
+
                                     @for rd in unique_rounds.iter().take(2) {
 
                                         @let is_round_one = *rd == 1;
@@ -430,7 +425,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
                                         @let is_round_one = *rd == 1;
                                         @let row_class = if is_round_one { "topheader" } else { "topheader hidden" };
 
-                                    
+
                                         @if golfer.tee_times.len() > (*rd - 1) as usize {
                                             @let a = &golfer.tee_times[(*rd - 1) as usize].val;
                                             @let b = if a.ends_with("am") || a.ends_with("pm") {
@@ -443,7 +438,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
                                     }
                                 }
                                 th colspan="2" class="topheader" {
-                                    
+
                                     @for rd in unique_rounds.iter().skip(2) {
 
                                         @let is_round_one = *rd == 1;
@@ -506,10 +501,10 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
                                 @for (round, total_score) in scores_by_round.iter() {
                                     @let is_round_one = *round == 0;  // Since ls.round is 0-based
                                     @let row_class = if is_round_one { "linescore-total" } else { "linescore-total hidden" };
-                            
+
                                     tr class=(row_class) data-round=(round + 1) {
-                                        td data-round=(round + 1) colspan="2" class="linescore-total-cell" { 
-                                            "Total:" 
+                                        td data-round=(round + 1) colspan="2" class="linescore-total-cell" {
+                                            "Total:"
                                         }
                                         td data-round=(round + 1) class="linescore-total-cell" {
                                             (total_score)
@@ -557,7 +552,6 @@ fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
         // For anything else, we won't wrap it in a shape.
         ScoreDisplay::Par => "score-shape-par",
         // ... match other variants if you want special styles ...
-
         _ => "score-shape-par",
     };
 
@@ -577,11 +571,12 @@ fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
 }
 
 fn scores_and_last_refresh_to_line_score_tables(
-    scores_and_refresh: &ScoresAndLastRefresh
+    scores_and_refresh: &ScoresAndLastRefresh,
 ) -> Vec<BettorData> {
     // We'll group by bettor_name -> golfer_name -> Vec<LineScore>.
     // Use BTreeMap for a predictable sort order (alphabetical).
-    let mut grouped: BTreeMap<String, BTreeMap<String, (Vec<LineScore>, Vec<StringStat>)>> = BTreeMap::new();
+    let mut grouped: BTreeMap<String, BTreeMap<String, (Vec<LineScore>, Vec<StringStat>)>> =
+        BTreeMap::new();
 
     // Iterate over every `Scores` entry in the structure
     for s in &scores_and_refresh.score_struct {
@@ -597,13 +592,15 @@ fn scores_and_last_refresh_to_line_score_tables(
             .or_default()
             .entry(golfer_name.clone())
             .or_default()
-            .0.extend(linescores.iter().cloned());
+            .0
+            .extend(linescores.iter().cloned());
         grouped
             .entry(bettor_name.clone())
             .or_default()
             .entry(golfer_name.clone())
             .or_default()
-            .1.extend(teetimes.iter().cloned());
+            .1
+            .extend(teetimes.iter().cloned());
     }
 
     // Now convert that grouped map into the final Vec<BettorData>.

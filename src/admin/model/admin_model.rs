@@ -3,8 +3,7 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use sql_middleware::{
     middleware::{
-         ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection,
-        QueryAndParams,
+        ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams,
     },
     postgres_build_result_set, sqlite_build_result_set, SqlMiddlewareDbError,
 };
@@ -263,7 +262,6 @@ pub async fn create_tables(
     let query_and_params = QueryAndParams {
         query: query.to_string(),
         params: vec![],
-        
     };
 
     match sconn {

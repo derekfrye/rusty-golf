@@ -1,20 +1,16 @@
 extern crate rusty_golf;
-use deadpool_postgres::{ ManagerConfig, RecyclingMethod };
+use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
 use rusty_golf::args;
-use rusty_golf::controller::{ db_prefill, score::scores };
-use rusty_golf::model::{ get_title_and_score_view_conf_from_db, CacheMap };
+use rusty_golf::controller::{db_prefill, score::scores};
+use rusty_golf::model::{get_title_and_score_view_conf_from_db, CacheMap};
 use sql_middleware::middleware::{
-    ConfigAndPool,
-    DatabaseType,
-    MiddlewarePool,
-    MiddlewarePoolConnection,
-    QueryAndParams,
+    ConfigAndPool, DatabaseType, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams,
 };
 
 use actix_files::Files;
 use actix_web::web::Data;
-use actix_web::{ web, App, HttpResponse, HttpServer, Responder };
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -84,17 +80,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(())
-                }).await?
+                })
+                .await?
             }
         })?;
     }
 
     if args.db_populate_json.is_some() {
-        let _res = db_prefill::db_prefill(
-            &args.db_populate_json.unwrap(),
-            &config_and_pool,
-            db_type
-        ).await?;
+        let _res =
+            db_prefill::db_prefill(&args.db_populate_json.unwrap(), &config_and_pool, db_type)
+                .await?;
         // db_prefill(args.db_populate_json.unwrap());
     }
 
@@ -108,20 +103,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
             .route("/admin", web::get().to(admin))
-            .route(
-                "/health",
-                web::get().to(|| HttpResponse::Ok())
-            )
+            .route("/health", web::get().to(|| HttpResponse::Ok()))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
-        .bind("0.0.0.0:8081")?
-        .run().await?;
+    .bind("0.0.0.0:8081")?
+    .run()
+    .await?;
     Ok(())
 }
 
 async fn index(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>
+    abc: Data<ConfigAndPool>,
 ) -> impl Responder {
     // let db = Db::new(abc.get_ref().clone()).unwrap();
     let config_and_pool = abc.get_ref().clone();
@@ -147,12 +140,14 @@ async fn index(
     };
 
     let markup = rusty_golf::view::index::render_index_template(title);
-    HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(markup.into_string())
 }
 
 async fn admin(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>
+    abc: Data<ConfigAndPool>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // let db = Db::new(abc.get_ref().clone()).unwrap();
     let config_and_pool = abc.get_ref().clone();
