@@ -1,10 +1,9 @@
 use serde_json::Value;
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 use sql_middleware::{
-    middleware::{
-        AnyConnWrapper, ConfigAndPool, DatabaseType, MiddlewarePool, QueryAndParams, RowValues,
-    },
-    sqlite_convert_params, SqlMiddlewareDbError,
+    convert_sql_params, middleware::{
+        AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, MiddlewarePool, QueryAndParams, RowValues
+    }, SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery
 };
 
 pub async fn db_prefill(
@@ -48,14 +47,13 @@ pub async fn db_prefill(
                                 };
 
                                 {
-                                    let converted_params = sqlite_convert_params(
-                                        &query_and_params_vec.params
-                                    )?;
+                                    let converted_params =convert_sql_params::<SqliteParamsQuery>(&query_and_params_vec.params, ConversionMode::Query )?;
+                                    
                                     let result_set = {
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
                                         let rs = sql_middleware::sqlite_build_result_set(
                                             &mut stmt,
-                                            &converted_params
+                                            &converted_params.0
                                         )?;
                                         rs
                                     };
@@ -75,13 +73,10 @@ pub async fn db_prefill(
                                                 )
                                             ],
                                         };
-                                        let converted_params =
-                                            sql_middleware::sqlite_convert_params_for_execute(
-                                                query_and_params_vec.params
-                                            )?;
+                                        let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
 
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                        stmt.execute(converted_params)?;
+                                        stmt.execute(converted_params.0)?;
 
                                         let query_and_params_vec = QueryAndParams {
                                             query: "SELECT * FROM event WHERE espn_id = ?1 AND year = ?2;".to_string(),
@@ -90,15 +85,12 @@ pub async fn db_prefill(
                                                 RowValues::Int(datum["year"].as_i64().unwrap())
                                             ],
                                         };
-                                        let converted_params =
-                                            sql_middleware::sqlite_convert_params(
-                                                &query_and_params_vec.params
-                                            )?;
+                                        let converted_params =convert_sql_params::<SqliteParamsQuery>(&query_and_params_vec.params, ConversionMode::Query )?;
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
                                         let result_set = {
                                             let rs = sql_middleware::sqlite_build_result_set(
                                                 &mut stmt,
-                                                &converted_params
+                                                &converted_params.0
                                             )?;
                                             rs
                                         };
@@ -120,15 +112,12 @@ pub async fn db_prefill(
                                                         )
                                                     ],
                                                 };
-                                                let converted_params =
-                                                    sql_middleware::sqlite_convert_params_for_execute(
-                                                        query_and_params_vec.params
-                                                    )?;
+                                                let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
 
                                                 let mut stmt = tx.prepare(
                                                     &query_and_params_vec.query
                                                 )?;
-                                                stmt.execute(converted_params)?;
+                                                stmt.execute(converted_params.0)?;
                                             }
                                             let golfers = data["golfers"].as_array().unwrap();
                                             for golfer in golfers {
@@ -146,15 +135,12 @@ pub async fn db_prefill(
                                                         )
                                                     ],
                                                 };
-                                                let converted_params =
-                                                    sql_middleware::sqlite_convert_params_for_execute(
-                                                        query_and_params_vec.params
-                                                    )?;
+                                                let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
 
                                                 let mut stmt = tx.prepare(
                                                     &query_and_params_vec.query
                                                 )?;
-                                                stmt.execute(converted_params)?;
+                                                stmt.execute(converted_params.0)?;
                                             }
                                             let event_user_player = data["event_user_player"]
                                                 .as_array()
@@ -192,15 +178,12 @@ pub async fn db_prefill(
                                                         )
                                                     ],
                                                 };
-                                                let converted_params =
-                                                    sql_middleware::sqlite_convert_params_for_execute(
-                                                        query_and_params_vec.clone().params
-                                                    )?;
+                                                let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
 
                                                 let mut stmt = tx.prepare(
                                                     &query_and_params_vec.query
                                                 )?;
-                                                let x = stmt.execute(converted_params);
+                                                let x = stmt.execute(converted_params.0);
                                                 match x {
                                                     Ok(_) => {}
                                                     Err(e) => {
