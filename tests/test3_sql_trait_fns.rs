@@ -1,11 +1,9 @@
 use serde_json::Value;
 // use sqlx::sqlite::SqlitePoolOptions;
-use std::sync::Arc;
-use std::{collections::HashMap, vec};
-use tokio::sync::RwLock;
+use std::vec;
 
 // use rusty_golf::controller::score;
-use rusty_golf::{controller::score::get_data_for_scores_page, model::CacheMap};
+use rusty_golf::controller::score::get_data_for_scores_page;
 
 use sql_middleware::middleware::{
     AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, MiddlewarePool, QueryAndParams,
@@ -46,8 +44,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
 
     conn.execute_batch(&query_and_params.query).await?;
 
-    let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
-    let x = match get_data_for_scores_page(401580351, 2024, &cache_map, false, &config_and_pool, 0)
+    let x = match get_data_for_scores_page(401580351, 2024, false, &config_and_pool, 0)
         .await
     {
         Ok(data) => data,

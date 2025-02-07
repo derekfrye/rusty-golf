@@ -3,7 +3,7 @@ use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
 use rusty_golf::args;
 use rusty_golf::controller::{db_prefill, score::scores};
-use rusty_golf::model::{get_title_and_score_view_conf_from_db, CacheMap};
+use rusty_golf::model::get_title_and_score_view_conf_from_db;
 use sql_middleware::middleware::{
     ConfigAndPool, DatabaseType, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams,
 };
@@ -13,8 +13,6 @@ use actix_web::web::Data;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -93,11 +91,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // db_prefill(args.db_populate_json.unwrap());
     }
 
-    let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
-
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::new(cache_map.clone()))
             .app_data(Data::new(config_and_pool.clone()))
             .app_data(Data::new(args_for_web.clone()))
             .route("/", web::get().to(index))

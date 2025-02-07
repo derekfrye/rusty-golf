@@ -1,15 +1,14 @@
 use actix_web::{test, App};
+use rusty_golf::args::CleanArgs;
 use serde_json::Value;
 
 // use sqlx_middleware::convenience_items::{create_tables3, MissingDbObjects};
 // use sqlx_middleware::model::{CheckType, QueryAndParams};
 // use sqlx::sqlite::SqlitePoolOptions;
-use std::sync::Arc;
 use std::{collections::HashMap, vec};
-use tokio::sync::RwLock;
 
 // use rusty_golf::controller::score;
-use rusty_golf::{controller::score::scores, model::CacheMap};
+use rusty_golf::controller::score::scores;
 // use sqlx_middleware::db::{ConfigAndPool, Db, QueryState};
 use sql_middleware::{
     middleware::{
@@ -22,13 +21,26 @@ use sql_middleware::{
 };
 
 #[test]
-async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
+async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
     // let mut cfg = deadpool_postgres::Config::new();
     let x = "file::memory:?cache=shared".to_string();
     // let x = "xxx".to_string();
+    let args = CleanArgs {
+        db_type: sql_middleware::middleware::DatabaseType::Sqlite,
+        db_name: x.clone(),
+        db_host: None,
+        db_port: None,
+        db_user: None,
+        db_password: None,
+        db_startup_script: None,
+        combined_sql_script: "".to_string(),
+        db_populate_json: None,
+        dont_poll_espn_after_num_days: None,
+    };
+
 
     let config_and_pool = ConfigAndPool::new_sqlite(x).await.unwrap();
     // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
@@ -147,14 +159,14 @@ async fn test_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     //     QueryState::QueryReturnedSuccessfully
     // );
 
-    // Step 5: Initialize the cache
-    let cache_map: CacheMap = Arc::new(RwLock::new(HashMap::new()));
+    
+    
 
     // Step 6: Initialize the Actix-web App with the `/scores` route
     let app = test::init_service(
         App::new()
-            .app_data(actix_web::web::Data::new(cache_map.clone()))
             .app_data(actix_web::web::Data::new(config_and_pool.clone()))
+            .app_data(actix_web::web::Data::new(args.clone()))
             .route("/scores", actix_web::web::get().to(scores)),
     )
     .await;

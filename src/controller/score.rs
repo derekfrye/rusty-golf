@@ -4,19 +4,17 @@ use actix_web::{HttpResponse, Responder};
 use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
-use crate::controller::cache::{check_cache_expired, get_or_create_cache};
 use crate::controller::espn::fetch_scores_from_espn;
 use crate::model::{
-    self, format_time_ago_for_score_view, DetailedScore, RefreshSource, SummaryDetailedScores,
+    self, format_time_ago_for_score_view, DetailedScore, SummaryDetailedScores,
 };
 use crate::model::{
-    AllBettorScoresByRound, BettorScoreByRound, Bettors, Cache, CacheMap, ScoreData, Scores,
+    AllBettorScoresByRound, BettorScoreByRound, Bettors,  ScoreData, Scores,
 };
 use crate::view::score::render_scores_template;
 use std::collections::{BTreeMap, HashMap};
 
 pub async fn scores(
-    cache_map: Data<CacheMap>,
     query: web::Query<HashMap<String, String>>,
     abc: Data<ConfigAndPool>,
     args: Data<CleanArgs>,
@@ -107,7 +105,6 @@ pub async fn scores(
     let total_cache = get_data_for_scores_page(
         event_id,
         year,
-        cache_map.get_ref(),
         cache,
         &config_and_pool,
         cache_max_age,
@@ -138,19 +135,11 @@ pub async fn scores(
 pub async fn get_data_for_scores_page(
     event_id: i32,
     year: i32,
-    cache_map: &CacheMap,
     use_cache: bool,
     config_and_pool: &ConfigAndPool,
     cache_max_age: i64,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
-    let cache = get_or_create_cache(event_id, year, cache_map.clone()).await;
-    if use_cache {
-        if let Ok(mut cache) = check_cache_expired(cache) {
-            cache.last_refresh_source = RefreshSource::Db;
-            return Ok(cache);
-        }
-    }
-
+    
     let active_golfers = model::get_golfers_from_db(config_and_pool, event_id).await?;
 
     // let start_time = Instant::now();
@@ -208,15 +197,15 @@ pub async fn get_data_for_scores_page(
         last_refresh_source: golfers_and_scores.last_refresh_source,
     };
 
-    let key = format!("{}{}", event_id, year);
-    let mut cache = cache_map.write().await;
-    cache.insert(
-        key,
-        Cache {
-            data: Some(total_cache.clone()),
-            cached_time: chrono::Utc::now().to_rfc3339(),
-        },
-    );
+    // let key = format!("{}{}", event_id, year);
+    // let mut cache = cache_map.write().await;
+    // cache.insert(
+    //     key,
+    //     Cache {
+    //         data: Some(total_cache.clone()),
+    //         cached_time: chrono::Utc::now().to_rfc3339(),
+    //     },
+    // );
 
     Ok(total_cache)
 }

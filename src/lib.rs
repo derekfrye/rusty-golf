@@ -11,7 +11,6 @@ pub mod admin {
     pub mod router;
 }
 pub mod controller {
-    pub mod cache;
     pub mod db_prefill;
     pub mod espn;
     pub mod score;

@@ -8,7 +8,8 @@ SELECT golfer_espn_id,
     line_scores,
     g.name AS golfername,
     b.name as bettorname,
-    es.total_score
+    es.total_score,
+    es.ins_ts
 FROM eup_statistic AS es
 JOIN golfer AS g ON es.golfer_espn_id = g.espn_id
 join event_user_player as eup on es.eup_id = eup.eup_id
