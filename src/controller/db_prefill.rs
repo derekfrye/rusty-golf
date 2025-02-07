@@ -1,9 +1,12 @@
 use serde_json::Value;
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 use sql_middleware::{
-    convert_sql_params, middleware::{
-        AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, MiddlewarePool, QueryAndParams, RowValues
-    }, SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery
+    convert_sql_params,
+    middleware::{
+        AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, MiddlewarePool,
+        QueryAndParams, RowValues,
+    },
+    SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
 };
 
 pub async fn db_prefill(
@@ -47,8 +50,11 @@ pub async fn db_prefill(
                                 };
 
                                 {
-                                    let converted_params =convert_sql_params::<SqliteParamsQuery>(&query_and_params_vec.params, ConversionMode::Query )?;
-                                    
+                                    let converted_params = convert_sql_params::<SqliteParamsQuery>(
+                                        &query_and_params_vec.params,
+                                        ConversionMode::Query
+                                    )?;
+
                                     let result_set = {
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
                                         let rs = sql_middleware::sqlite_build_result_set(
@@ -73,7 +79,11 @@ pub async fn db_prefill(
                                                 )
                                             ],
                                         };
-                                        let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
+                                        let converted_params =
+                                            convert_sql_params::<SqliteParamsExecute>(
+                                                &query_and_params_vec.params,
+                                                ConversionMode::Execute
+                                            )?;
 
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
                                         stmt.execute(converted_params.0)?;
@@ -85,7 +95,11 @@ pub async fn db_prefill(
                                                 RowValues::Int(datum["year"].as_i64().unwrap())
                                             ],
                                         };
-                                        let converted_params =convert_sql_params::<SqliteParamsQuery>(&query_and_params_vec.params, ConversionMode::Query )?;
+                                        let converted_params =
+                                            convert_sql_params::<SqliteParamsQuery>(
+                                                &query_and_params_vec.params,
+                                                ConversionMode::Query
+                                            )?;
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
                                         let result_set = {
                                             let rs = sql_middleware::sqlite_build_result_set(
@@ -112,7 +126,11 @@ pub async fn db_prefill(
                                                         )
                                                     ],
                                                 };
-                                                let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
+                                                let converted_params =
+                                                    convert_sql_params::<SqliteParamsExecute>(
+                                                        &query_and_params_vec.params,
+                                                        ConversionMode::Execute
+                                                    )?;
 
                                                 let mut stmt = tx.prepare(
                                                     &query_and_params_vec.query
@@ -135,7 +153,11 @@ pub async fn db_prefill(
                                                         )
                                                     ],
                                                 };
-                                                let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
+                                                let converted_params =
+                                                    convert_sql_params::<SqliteParamsExecute>(
+                                                        &query_and_params_vec.params,
+                                                        ConversionMode::Execute
+                                                    )?;
 
                                                 let mut stmt = tx.prepare(
                                                     &query_and_params_vec.query
@@ -178,7 +200,11 @@ pub async fn db_prefill(
                                                         )
                                                     ],
                                                 };
-                                                let converted_params =convert_sql_params::<SqliteParamsExecute>(&query_and_params_vec.params, ConversionMode::Execute )?;
+                                                let converted_params =
+                                                    convert_sql_params::<SqliteParamsExecute>(
+                                                        &query_and_params_vec.params,
+                                                        ConversionMode::Execute
+                                                    )?;
 
                                                 let mut stmt = tx.prepare(
                                                     &query_and_params_vec.query

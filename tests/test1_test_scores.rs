@@ -41,7 +41,6 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         dont_poll_espn_after_num_days: None,
     };
 
-
     let config_and_pool = ConfigAndPool::new_sqlite(x).await.unwrap();
     // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
 
@@ -158,9 +157,6 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     //     res.db_last_exec_state,
     //     QueryState::QueryReturnedSuccessfully
     // );
-
-    
-    
 
     // Step 6: Initialize the Actix-web App with the `/scores` route
     let app = test::init_service(

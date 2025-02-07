@@ -83,8 +83,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
             get_data_for_scores_page(401580351, 2024, true, &config_and_pool, 0).await
         }
         false => {
-            get_data_for_scores_page(401580351, 2024, false, &config_and_pool, 99)
-                .await?;
+            get_data_for_scores_page(401580351, 2024, false, &config_and_pool, 99).await?;
             // now set the data back 11 days
             let query = "update eup_statistic set ins_ts = ?1;";
 
@@ -107,12 +106,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
     }
 
     // now linked to format_time_ago_for_score_view()
-    assert_eq!(
-        score_data
-            .last_refresh
-            ,
-        "1 week"
-    );
+    assert_eq!(score_data.last_refresh, "1 week");
 
     Ok(())
 }

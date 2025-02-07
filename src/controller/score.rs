@@ -5,12 +5,8 @@ use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model::{
-    self, format_time_ago_for_score_view, DetailedScore, SummaryDetailedScores,
-};
-use crate::model::{
-    AllBettorScoresByRound, BettorScoreByRound, Bettors,  ScoreData, Scores,
-};
+use crate::model::{self, format_time_ago_for_score_view, DetailedScore, SummaryDetailedScores};
+use crate::model::{AllBettorScoresByRound, BettorScoreByRound, Bettors, ScoreData, Scores};
 use crate::view::score::render_scores_template;
 use std::collections::{BTreeMap, HashMap};
 
@@ -102,14 +98,8 @@ pub async fn scores(
     // dbcn = ConfigAndPoolOld::new(cfg, DatabaseType::Sqlite).await;
     // let db = Db::new(dbcn.clone()).unwrap();
 
-    let total_cache = get_data_for_scores_page(
-        event_id,
-        year,
-        cache,
-        &config_and_pool,
-        cache_max_age,
-    )
-    .await;
+    let total_cache =
+        get_data_for_scores_page(event_id, year, cache, &config_and_pool, cache_max_age).await;
 
     match total_cache {
         Ok(cache) => {
@@ -139,7 +129,6 @@ pub async fn get_data_for_scores_page(
     config_and_pool: &ConfigAndPool,
     cache_max_age: i64,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
-    
     let active_golfers = model::get_golfers_from_db(config_and_pool, event_id).await?;
 
     // let start_time = Instant::now();
