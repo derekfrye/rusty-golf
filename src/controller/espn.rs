@@ -12,7 +12,7 @@ use serde_json::Value;
 // use sqlx_middleware::db;
 use sql_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 // use tokio::{fs::File, io::AsyncWriteExt};
-use tokio::sync::mpsc;
+// Removed mpsc import as we're using futures now
 
 pub async fn get_json_from_espn(
     scores: &[Scores],
@@ -95,15 +95,22 @@ async fn go_get_espn_data(
     year: i32,
     event_id: i32,
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
-    let num_scores = scores.len();
-    let group_size = (num_scores + 3) / 4;
-    let (tx, mut rx) = mpsc::channel(4);
     // Set up variables based on execution mode
     let json_responses = if cfg!(debug_assertions) {
         // In debug mode, fetch data directly without spawning tasks
         get_json_from_espn(&scores, year, event_id).await?
     } else {
-        // Process in parallel using multiple tasks
+        // More idiomatic approach using futures for parallelism
+        use futures::future::join_all;
+        
+        // Split the scores into 4 roughly equal groups
+        let num_scores = scores.len();
+        let group_size = (num_scores + 3) / 4;
+        
+        // Create a vector to hold our futures
+        let mut futures = Vec::with_capacity(4);
+        
+        // Create and collect futures for each group
         for task_index in 0..4 {
             let player_group = scores
                 .iter()
@@ -111,38 +118,40 @@ async fn go_get_espn_data(
                 .take(group_size)
                 .cloned()
                 .collect::<Vec<_>>();
-
-            let tx = tx.clone();
-
-            tokio::task::spawn(async move {
-                match get_json_from_espn(&player_group, year, event_id).await {
-                    Ok(result) => {
-                        if let Err(err) = tx.send(Some(result)).await {
-                            eprintln!("Failed to send ESPN data through channel: {}", err);
-                        }
-                    },
+                
+            // Skip empty groups (may happen for the last group)
+            if player_group.is_empty() {
+                continue;
+            }
+            
+            // Create a future for this group and add it to our collection
+            let player_group_clone = player_group.clone();
+            let future = tokio::task::spawn(async move {
+                match get_json_from_espn(&player_group_clone, year, event_id).await {
+                    Ok(response) => Some(response),
                     Err(err) => {
                         eprintln!("Failed to get ESPN data: {}", err);
-                        if let Err(channel_err) = tx.send(None).await {
-                            eprintln!("Failed to send error notification: {}", channel_err);
-                        }
-                    },
+                        None
+                    }
                 }
             });
+            
+            futures.push(future);
         }
-
-        drop(tx);
         
-        // Collect results from parallel tasks
+        // Wait for all futures to complete
+        let results = join_all(futures).await;
+        
+        // Combine the results
         let mut combined_response = PlayerJsonResponse {
             data: Vec::new(),
             eup_ids: Vec::new(),
         };
         
-        // Process results as they arrive
-        while let Some(Some(result)) = rx.recv().await {
-            combined_response.data.extend(result.data);
-            combined_response.eup_ids.extend(result.eup_ids);
+        // Use flatten to handle errors more idiomatically
+        for response in results.into_iter().flatten().flatten() {
+            combined_response.data.extend(response.data);
+            combined_response.eup_ids.extend(response.eup_ids);
         }
         
         combined_response
@@ -252,12 +261,25 @@ async fn go_get_espn_data(
                 tee_time.to_owned()
             };
 
-            let parsed_time =
-                DateTime::parse_from_str(&mut_tee_time, "%Y-%m-%dT%H:%MZ%z").unwrap_or_default();
+            // Try to parse the time with proper error handling
+            let parsed_time = match DateTime::parse_from_str(&mut_tee_time, "%Y-%m-%dT%H:%MZ%z") {
+                Ok(dt) => dt,
+                Err(e) => {
+                    eprintln!("Failed to parse tee time '{}': {}", mut_tee_time, e);
+                    // Use current time as a fallback with clear indication it's invalid
+                    DateTime::parse_from_rfc3339("2000-01-01T00:00:00+00:00")
+                        .expect("Hardcoded fallback date should always be valid")
+                }
+            };
 
-            // Use a safe conversion to Central time timezone, with fallback to UTC if conversion fails
+            // Use a safe conversion to Central time timezone, with fallback to UTC
+            // This is safe because we're using constant values for timezone offsets
             let central_timezone = chrono::offset::FixedOffset::east_opt(-5 * 3600)
-                .unwrap_or_else(|| chrono::offset::FixedOffset::east_opt(0).unwrap());
+                .unwrap_or_else(|| {
+                    // UTC (0 offset) is always valid
+                    chrono::offset::FixedOffset::east_opt(0)
+                        .expect("UTC timezone offset is always valid")
+                });
                 
             let parsed_time_in_central = parsed_time.with_timezone(&central_timezone);
 
@@ -293,30 +315,33 @@ async fn go_get_espn_data(
     //     }
     // })
 
-    let mut golfers_and_scores = Vec::with_capacity(golfer_scores.len());
-    
-    for statistic in &golfer_scores {
-        // Find the matching golfer or handle the error case
-        let active_golfer = match scores.iter().find(|g| g.eup_id == statistic.eup_id) {
-            Some(golfer) => golfer,
-            None => {
-                // Return early with an error if no matching golfer is found
-                return Err(Box::new(std::io::Error::new(
+    // Use iterators and combinators to build the score list
+    let result: Result<Vec<_>, _> = golfer_scores.iter().map(|statistic| {
+        // Find the matching golfer using combinator pattern
+        scores.iter()
+            .find(|g| g.eup_id == statistic.eup_id)
+            .ok_or_else(|| {
+                // Create a custom error with more context
+                Box::new(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
-                    format!("Failed to find golfer with eup_id {}", statistic.eup_id)
-                )));
-            }
-        };
-        
-        golfers_and_scores.push(Scores {
-            eup_id: statistic.eup_id,
-            golfer_name: active_golfer.golfer_name.clone(),
-            detailed_statistics: statistic.clone(),
-            bettor_name: active_golfer.bettor_name.clone(),
-            group: active_golfer.group,
-            espn_id: active_golfer.espn_id,
-        });
-    }
+                    format!("Failed to find golfer with eup_id {} in scores data", statistic.eup_id)
+                )) as Box<dyn std::error::Error>
+            })
+            .map(|active_golfer| {
+                // Create the score entry with one allocation
+                Scores {
+                    eup_id: statistic.eup_id,
+                    golfer_name: active_golfer.golfer_name.clone(),
+                    detailed_statistics: statistic.clone(),
+                    bettor_name: active_golfer.bettor_name.clone(),
+                    group: active_golfer.group,
+                    espn_id: active_golfer.espn_id,
+                }
+            })
+    }).collect();
+    
+    // Handle the collected results
+    let mut golfers_and_scores = result?;
 
     golfers_and_scores.sort_by(|a, b| {
         if a.group == b.group {
