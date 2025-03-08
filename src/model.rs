@@ -124,6 +124,14 @@ impl ScoreDisplay {
     }
 }
 
+// Add proper From implementation for i32
+impl From<i32> for ScoreDisplay {
+    fn from(value: i32) -> Self {
+        Self::from_i32(value)
+    }
+}
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerJsonResponse {
     pub data: Vec<HashMap<String, serde_json::Value>>,
@@ -249,32 +257,49 @@ pub fn format_time_ago_for_score_view(td: TimeDelta) -> String {
 }
 
 pub fn take_a_char_off(s: &str) -> String {
-    let mut x = s.to_string();
-    x.pop();
-    x
+    // Use string slicing for more efficient character removal
+    if s.is_empty() {
+        String::new()
+    } else {
+        s[..s.len()-1].to_string()
+    }
 }
 
-pub async fn get_golfers_from_db(
-    config_and_pool: &ConfigAndPool,
-    event_id: i32,
-) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
-    let query = match &conn {
-        MiddlewarePoolConnection::Postgres(_) => {
-            "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
-        }
-        MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
-        }
-    };
+/// Helper function to parse JSON from a field in a row
+fn parse_json_field<T>(row: &sql_middleware::middleware::QueryRow, field_name: &str) -> Result<T, SqlMiddlewareDbError> 
+where
+    T: for<'de> serde::Deserialize<'de> 
+{
+    let json_text = row
+        .get(field_name)
+        .and_then(|v| v.as_text())
+        .unwrap_or_default();
+        
+    serde_json::from_str(json_text)
+        .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to parse {} field: {}", field_name, e)))
+}
 
+/// Helper function to get the last timestamp from the result set
+fn get_last_timestamp(results: &[sql_middleware::middleware::QueryRow]) -> chrono::NaiveDateTime {
+    results
+        .iter()
+        .filter_map(|row| row.get("ins_ts").and_then(|v| v.as_timestamp()))
+        .last()
+        .unwrap_or_else(|| chrono::Utc::now().naive_utc())
+}
+
+/// Helper function to execute a SQL query with params using the appropriate database connection
+async fn execute_query(
+    conn: &MiddlewarePoolConnection,
+    query: &str, 
+    params: Vec<RowValues2>
+) -> Result<sql_middleware::middleware::QueryResultSet, SqlMiddlewareDbError> {
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
-        params: vec![RowValues2::Int(event_id as i64)],
+        params,
     };
 
-    let res = (match &conn {
+    let result = match conn {
         MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
             sqlite_conn
                 .interact(move |db_conn| {
@@ -301,44 +326,57 @@ pub async fn get_golfers_from_db(
             std::io::ErrorKind::Unsupported,
             "Database type not supported for this operation",
         )))),
-    })?;
+    }?;
 
-    let z = res?
+    Ok(result)
+}
+
+pub async fn get_golfers_from_db(
+    config_and_pool: &ConfigAndPool,
+    event_id: i32,
+) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
+    let query = match &conn {
+        MiddlewarePoolConnection::Postgres(_) => {
+            "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
+        }
+        MiddlewarePoolConnection::Sqlite(_) => {
+            include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
+        }
+    };
+
+    // Use the helper function to execute the query
+    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
+
+    // Use filter_map to extract rows into Scores structs more cleanly
+    let z = query_result
         .results
         .iter()
-        .map(|row| Scores {
-            // parse column 0 as an int32
-            group: row
-                .get("grp")
-                .and_then(|v| v.as_int())
-                .copied()
-                .unwrap_or_default(),
-            golfer_name: row
-                .get("golfername")
-                .and_then(|v| v.as_text())
-                .unwrap_or_default()
-                .to_string(),
-            bettor_name: row
-                .get("bettorname")
-                .and_then(|v| v.as_text())
-                .unwrap_or_default()
-                .to_string(),
-            eup_id: row
-                .get("eup_id")
-                .and_then(|v| v.as_int())
-                .copied()
-                .unwrap_or_default(),
-            espn_id: row
-                .get("espn_id")
-                .and_then(|v| v.as_int())
-                .copied()
-                .unwrap_or_default(),
-            detailed_statistics: Statistic {
-                eup_id: row
-                    .get("eup_id")
-                    .and_then(|v| v.as_int())
-                    .copied()
-                    .unwrap_or_default(),
+        .map(|row| {
+            // Helper function to extract values from row with better typing
+            fn get_int(row: &sql_middleware::middleware::QueryRow, field: &str) -> i64 {
+                row.get(field)
+                   .and_then(|v| v.as_int())
+                   .copied()
+                   .unwrap_or_default()
+            }
+            
+            fn get_string(row: &sql_middleware::middleware::QueryRow, field: &str) -> String {
+                row.get(field)
+                   .and_then(|v| v.as_text())
+                   .unwrap_or_default()
+                   .to_string()
+            }
+            
+            Scores {
+                group: get_int(row, "grp"),
+                golfer_name: get_string(row, "golfername"),
+                bettor_name: get_string(row, "bettorname"),
+                eup_id: get_int(row, "eup_id"),
+                espn_id: get_int(row, "espn_id"),
+                detailed_statistics: Statistic {
+                    eup_id: get_int(row, "eup_id"),
                 rounds: vec![],
                 round_scores: vec![],
                 tee_times: vec![],
@@ -480,13 +518,8 @@ pub async fn get_scores_from_db(
         )))),
     })??;
 
-    // Get the last update timestamp without cloning the entire result set
-    let last_time_updated = res
-        .results
-        .iter()
-        .filter_map(|row| row.get("ins_ts").and_then(|v| v.as_timestamp()))
-        .last()
-        .unwrap_or_else(|| chrono::Utc::now().naive_utc());
+    // Use a helper function to get the timestamp more clearly
+    let last_time_updated = get_last_timestamp(&res.results);
 
     if cfg!(debug_assertions) {
         // let x = last_time_updated.format("%Y-%m-%d %H:%M:%S").to_string();
@@ -530,56 +563,11 @@ pub async fn get_scores_from_db(
                         .and_then(|v| v.as_int())
                         .copied()
                         .unwrap_or_default(),
-                    rounds: match serde_json::from_str(
-                        row.get("rounds")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default(),
-                    ) {
-                        Ok(rounds) => rounds,
-                        Err(e) => {
-                            return Err(SqlMiddlewareDbError::Other(e.to_string()));
-                        }
-                    },
-                    round_scores: match serde_json::from_str(
-                        row.get("round_scores")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default(),
-                    ) {
-                        Ok(round_scores) => round_scores,
-                        Err(e) => {
-                            return Err(SqlMiddlewareDbError::Other(e.to_string()));
-                        }
-                    },
-                    tee_times: match serde_json::from_str(
-                        row.get("tee_times")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default(),
-                    ) {
-                        Ok(tee_times) => tee_times,
-                        Err(e) => {
-                            return Err(SqlMiddlewareDbError::Other(e.to_string()));
-                        }
-                    },
-                    holes_completed_by_round: match serde_json::from_str(
-                        row.get("holes_completed_by_round")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default(),
-                    ) {
-                        Ok(holes_completed_by_round) => holes_completed_by_round,
-                        Err(e) => {
-                            return Err(SqlMiddlewareDbError::Other(e.to_string()));
-                        }
-                    },
-                    line_scores: match serde_json::from_str(
-                        row.get("line_scores")
-                            .and_then(|v| v.as_text())
-                            .unwrap_or_default(),
-                    ) {
-                        Ok(line_scores) => line_scores,
-                        Err(e) => {
-                            return Err(SqlMiddlewareDbError::Other(e.to_string()));
-                        }
-                    },
+                    rounds: parse_json_field(row, "rounds")?,
+                    round_scores: parse_json_field(row, "round_scores")?,
+                    tee_times: parse_json_field(row, "tee_times")?,
+                    holes_completed_by_round: parse_json_field(row, "holes_completed_by_round")?,
+                    line_scores: parse_json_field(row, "line_scores")?,
                     total_score: row
                         .get("total_score")
                         .and_then(|v| v.as_int())
@@ -709,41 +697,11 @@ pub async fn event_and_scores_already_in_db(
             )
         }
     };
-    let query_and_params = QueryAndParams2 {
-        query: query.to_string(),
-        params: vec![RowValues2::Int(event_id as i64)],
-    };
+    
+    // Use the helper function to execute the query
+    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
 
-    let res = (match &conn {
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
-            sqlite_conn
-                .interact(move |db_conn| {
-                    let converted_params = convert_sql_params::<SqliteParamsQuery>(
-                        &query_and_params.params,
-                        ConversionMode::Query,
-                    )?;
-                    let tx = db_conn.transaction()?;
-
-                    let result_set = {
-                        let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs = sql_middleware::sqlite_build_result_set(
-                            &mut stmt,
-                            &converted_params.0,
-                        )?;
-                        rs
-                    };
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(result_set)
-                })
-                .await
-        }
-        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "Database type not supported for this operation",
-        )))),
-    })?;
-
-    if let Some(results) = res?.results.first() {
+    if let Some(results) = query_result.results.first() {
         let now = chrono::Utc::now().naive_utc();
         let val = results.get("ins_ts").and_then(|v| v.as_timestamp());
         if let Some(final_val) = val {

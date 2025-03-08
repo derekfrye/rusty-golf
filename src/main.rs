@@ -1,4 +1,4 @@
-extern crate rusty_golf;
+// extern crate no longer needed in Rust 2018+
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
 use rusty_golf::args;

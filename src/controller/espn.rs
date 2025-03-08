@@ -98,13 +98,10 @@ async fn go_get_espn_data(
     let num_scores = scores.len();
     let group_size = (num_scores + 3) / 4;
     let (tx, mut rx) = mpsc::channel(4);
-    let mut result: PlayerJsonResponse = PlayerJsonResponse {
-        data: Vec::new(),
-        eup_ids: Vec::new(),
-    };
-
-    if cfg!(debug_assertions) {
-        result = get_json_from_espn(&scores, year, event_id).await?;
+    // Set up variables based on execution mode
+    let json_responses = if cfg!(debug_assertions) {
+        // In debug mode, fetch data directly without spawning tasks
+        get_json_from_espn(&scores, year, event_id).await?
     } else {
         // Process in parallel using multiple tasks
         for task_index in 0..4 {
@@ -135,29 +132,30 @@ async fn go_get_espn_data(
         }
 
         drop(tx);
-    }
-
-    let mut json_responses = PlayerJsonResponse {
-        data: Vec::new(),
-        eup_ids: Vec::new(),
-    };
-
-    if cfg!(debug_assertions) {
-        json_responses.data.extend(result.data);
-        json_responses.eup_ids.extend(result.eup_ids);
-    } else {
+        
+        // Collect results from parallel tasks
+        let mut combined_response = PlayerJsonResponse {
+            data: Vec::new(),
+            eup_ids: Vec::new(),
+        };
+        
+        // Process results as they arrive
         while let Some(Some(result)) = rx.recv().await {
-            json_responses.data.extend(result.data);
-            json_responses.eup_ids.extend(result.eup_ids);
+            combined_response.data.extend(result.data);
+            combined_response.eup_ids.extend(result.eup_ids);
         }
+        
+        combined_response
     }
 
     let mut golfer_scores = Vec::new();
 
     for (response_idx, result) in json_responses.data.iter().enumerate() {
-        let rounds_temp = result.get("rounds").and_then(Value::as_array);
-        let vv = vec![];
-        let rounds = rounds_temp.unwrap_or(&vv);
+        // Use an empty vector by default if rounds data is missing
+        let rounds = result
+            .get("rounds")
+            .and_then(Value::as_array)
+            .unwrap_or(&[]); // Use slice reference to empty array instead of creating new Vec
 
         let mut golfer_score = Statistic {
             eup_id: json_responses.eup_ids[response_idx],
@@ -171,8 +169,11 @@ async fn go_get_espn_data(
 
         // let mut line_scores: Vec<LineScore> = vec![];
         for (i, round) in rounds.iter().enumerate() {
-            let line_scores_tmp = round.get("linescores").and_then(Value::as_array);
-            let line_scores_json = line_scores_tmp.unwrap_or(&vv);
+            // Access the line scores data with a default empty slice
+            let line_scores_json = round
+                .get("linescores")
+                .and_then(Value::as_array)
+                .unwrap_or(&[]);
             // let x = serde_json::to_string_pretty(round.get("linescores").unwrap()).unwrap();
             // let z = x.len();
             // dbg!(&line_scores);
@@ -190,6 +191,7 @@ async fn go_get_espn_data(
                     .trim_start_matches('+')
                     .parse::<i64>()
                     .unwrap_or(0);
+                // Use the From trait to convert score difference directly
                 // Convert the score difference to i32 safely
                 let score_diff = match i32::try_from(par - score) {
                     Ok(val) => val,
@@ -198,7 +200,7 @@ async fn go_get_espn_data(
                         0 // Default to par if conversion fails
                     }
                 };
-                let score_display = ScoreDisplay::from_i32(score_diff);
+                let score_display = ScoreDisplay::from(score_diff);
 
                 let line_score_tmp = LineScore {
                     hole: (idx as i32) + 1,
@@ -240,11 +242,12 @@ async fn go_get_espn_data(
             // .to_offset(time::UtcOffset::from_hms(0, 0, 0).unwrap());
 
             let tee_time = round.get("teeTime").and_then(Value::as_str).unwrap_or("");
-            let mut mut_tee_time = tee_time.to_owned();
-            if mut_tee_time.ends_with("Z") {
-                mut_tee_time.push_str("+0000");
-                // tee_time = (tee_time.to_owned() + "+0000").as_str();
-            }
+            // Format time string properly using format! macro instead of manual concatenation
+            let mut_tee_time = if tee_time.ends_with("Z") {
+                format!("{}+0000", tee_time)
+            } else {
+                tee_time.to_owned()
+            };
 
             let parsed_time =
                 DateTime::parse_from_str(&mut_tee_time, "%Y-%m-%dT%H:%MZ%z").unwrap_or_default();
