@@ -24,7 +24,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
 
     let database_exists = {
         let path = PathBuf::from(&x);
-        if !path.is_file() || !fs::metadata(&path).is_ok() {
+        if !path.is_file() || fs::metadata(&path).is_err() {
             false
         } else {
             // we're going to update the timestamp in the ins_ts column
@@ -38,20 +38,18 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
             let pool = config_and_pool.pool.get().await?;
             let mut conn = MiddlewarePool::get_connection(pool).await?;
 
-            conn.execute_dml(&query, &params).await?;
+            conn.execute_dml(query, &params).await?;
             true
         }
     };
     let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
 
-    let ddl = vec![
-        include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
+    let ddl = [include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
         // include_str!("../src/admin/model/sql/schema/sqlite/01_golfstatistic.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/03_bettor.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/04_event_user_player.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql"),
-    ];
+        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql")];
 
     let query_and_params = QueryAndParams {
         query: ddl.join("\n"),
@@ -94,7 +92,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
             let pool = config_and_pool.pool.get().await?;
             let mut conn = MiddlewarePool::get_connection(pool).await?;
 
-            conn.execute_dml(&query, &params).await?;
+            conn.execute_dml(query, &params).await?;
             get_data_for_scores_page(401580351, 2024, true, &config_and_pool, 0).await
         }
     })?;

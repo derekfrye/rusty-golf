@@ -77,7 +77,7 @@ impl Args {
     /// Validate the secrets based on the mode
     pub fn validate(&mut self) -> Result<(), String> {
         if self.db_type == DatabaseType::Postgres {
-            let secrets_locations = vec!["/secrets/db_password", "/run/secrets/db_password"];
+            let secrets_locations = ["/secrets/db_password", "/run/secrets/db_password"];
 
             if self.db_user.is_none() {
                 return Err("Postgres user is required".to_string());
@@ -112,7 +112,7 @@ impl CleanArgs {
                 let script = fs::read_to_string(file).unwrap();
                 full_script.push_str(&script);
                 // push a newline just in case
-                full_script.push_str("\n");
+                full_script.push('\n');
             }
             combined_sql_script = full_script;
         }
@@ -143,7 +143,7 @@ fn check_readable_file(file: &str) -> Result<String, String> {
         // } else {
         //     eprintln!("Failed to get current directory");
         // }
-        if !path.is_file() || !fs::metadata(&path).is_ok() {
+        if !path.is_file() || fs::metadata(&path).is_err() {
             return Err(format!(
                 "The sql startup script '{}' is not readable.",
                 file
@@ -157,7 +157,7 @@ fn check_readable_file(file: &str) -> Result<String, String> {
 
 fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
     let path = PathBuf::from(file);
-    if !path.is_file() || !fs::metadata(&path).is_ok() {
+    if !path.is_file() || fs::metadata(&path).is_err() {
         return Err(format!("The json file '{}' is not readable.", file));
     }
     let contents = fs::read_to_string(&path).unwrap();
@@ -243,8 +243,7 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
 
         let bettors_check = data_to_fill
             .iter()
-            .map(|x| x["bettors"].as_array().unwrap())
-            .flatten()
+            .flat_map(|x| x["bettors"].as_array().unwrap())
             .collect::<Vec<_>>();
         // check bettors are just strings
         for bettor in bettors_check {
@@ -258,8 +257,7 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
 
         let golfers_check = data_to_fill
             .iter()
-            .map(|x| x["golfers"].as_array().unwrap())
-            .flatten()
+            .flat_map(|x| x["golfers"].as_array().unwrap())
             .collect::<Vec<_>>();
         // check golfer contains name and espn_id
         for golfer in golfers_check {
@@ -277,8 +275,7 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
         }
         let event_user_player_check = data_to_fill
             .iter()
-            .map(|x| x["event_user_player"].as_array().unwrap())
-            .flatten()
+            .flat_map(|x| x["event_user_player"].as_array().unwrap())
             .collect::<Vec<_>>();
         // check event_user_player contains bettor and golfer_espn_id
         for event_user_player in event_user_player_check {

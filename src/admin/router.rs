@@ -11,6 +11,12 @@ use super::view::admin01_tables::CreateTableReturn;
 pub struct AdminRouter {
     // pub create_table_return: CreateTableReturn,
 }
+impl Default for AdminRouter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AdminRouter {
     const UNAUTHORIZED_BODY: &str = r#"
     <!DOCTYPE html>
@@ -63,10 +69,7 @@ impl AdminRouter {
             .to_string();
 
         // let mut token: AlphaNum14 = AlphaNum14::default();
-        let token: AlphaNum14 = match AlphaNum14::parse(&token_str) {
-            Ok(id) => id,
-            Err(_) => AlphaNum14::default(),
-        };
+        let token: AlphaNum14 = AlphaNum14::parse(&token_str).unwrap_or_default();
         let admin_page = AdminPage::parse(
             query
                 .get("p")

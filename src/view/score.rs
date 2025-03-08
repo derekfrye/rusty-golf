@@ -167,7 +167,7 @@ struct GolferBars {
 
 async fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
-    detailed_scores: &Vec<DetailedScore>,
+    detailed_scores: &[DetailedScore],
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<BTreeMap<String, Vec<GolferBars>>, Box<dyn std::error::Error>> {
@@ -177,7 +177,7 @@ async fn preprocess_golfer_data(
         .await?
         .score_view_step_factor;
 
-    for (_bettor_idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
+    for summary_score in summary_scores_x.summary_scores.iter() {
         let mut golfers: Vec<GolferBars> = detailed_scores
             .iter()
             .filter(|golfer| golfer.bettor_name == summary_score.bettor_name)
@@ -265,7 +265,7 @@ async fn render_drop_down_bar(
 ) -> Result<Markup, Box<dyn std::error::Error>> {
     // Preprocess the data
     let preprocessed_data = preprocess_golfer_data(
-        &grouped_data,
+        grouped_data,
         &detailed_scores.detailed_scores,
         config_and_pool,
         event_id,
@@ -302,7 +302,7 @@ async fn render_drop_down_bar(
                     @let chart_visibility = if bettor_idx == 0 { " visible" } else { " hidden" };
                     div class=(format!("chart {}", chart_visibility)) data-player=(summary_score.bettor_name)  {
                         // Iterate over each preprocessed golfer for the current bettor
-                        @for (_golfer_idx, golfer_bars) in preprocessed_data.get(&summary_score.bettor_name).unwrap_or(&Vec::new()).iter().enumerate() {
+                        @for golfer_bars in preprocessed_data.get(&summary_score.bettor_name).unwrap_or(&Vec::new()).iter() {
 
                             div class="chart-row" {
 
@@ -362,7 +362,7 @@ pub struct GolferData {
     pub tee_times: Vec<StringStat>,
 }
 
-pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: RefreshData) -> Markup {
+pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshData) -> Markup {
     html! {
 
         h3 class="playerbars" { "Score by Golfer" }
@@ -467,7 +467,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
                                 scores
                             };
 
-                            @for (_, ls) in all_scores.iter().enumerate() {
+                            @for ls in all_scores.iter() {
 
                                 @let is_round_one = ls.round + 1 == 1;
                                 @let row_class = if is_round_one { "" } else { "hidden" };
@@ -525,7 +525,7 @@ pub fn render_line_score_tables(bettors: &Vec<BettorData>, refresh_data: Refresh
 }
 
 fn short_golfer_name(golfer_name: &str) -> String {
-    let short_name_x = golfer_name.split_whitespace().into_iter();
+    let short_name_x = golfer_name.split_whitespace();
     let shortname = if short_name_x.clone().count() >= 2 {
         short_name_x.clone().nth(1).unwrap_or(" ").to_string()
     } else {
@@ -573,10 +573,14 @@ fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
 fn scores_and_last_refresh_to_line_score_tables(
     scores_and_refresh: &ScoresAndLastRefresh,
 ) -> Vec<BettorData> {
-    // We'll group by bettor_name -> golfer_name -> Vec<LineScore>.
-    // Use BTreeMap for a predictable sort order (alphabetical).
-    let mut grouped: BTreeMap<String, BTreeMap<String, (Vec<LineScore>, Vec<StringStat>)>> =
-        BTreeMap::new();
+    // Define type aliases for complex nested types
+    type GolferScoreData = (Vec<LineScore>, Vec<StringStat>);
+    type GolferMap = BTreeMap<String, GolferScoreData>;
+    type BettorGolferMap = BTreeMap<String, GolferMap>;
+    
+    // We'll group by bettor_name -> golfer_name -> (Vec<LineScore>, Vec<StringStat>)
+    // Use BTreeMap for a predictable sort order (alphabetical)
+    let mut grouped: BettorGolferMap = BTreeMap::new();
 
     // Iterate over every `Scores` entry in the structure
     for s in &scores_and_refresh.score_struct {

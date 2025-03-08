@@ -103,6 +103,12 @@ where
 #[derive(Debug)]
 pub struct AlphaNum14(String);
 
+impl Default for AlphaNum14 {
+    fn default() -> Self {
+        AlphaNum14("default".to_string())
+    }
+}
+
 impl AlphaNum14 {
     pub fn new(input: &str) -> Option<Self> {
         let re = Regex::new(r"^[a-zA-Z0-9]{14}$").unwrap();
@@ -117,9 +123,7 @@ impl AlphaNum14 {
         &self.0
     }
 
-    pub fn default() -> Self {
-        AlphaNum14("default".to_string())
-    }
+    // Method removed in favor of Default trait implementation
 
     pub fn parse(input: &str) -> Result<Self, String> {
         if let Some(alpha_num) = AlphaNum14::new(input) {
@@ -194,8 +198,8 @@ pub async fn test_is_db_setup(
 
             let result_set = {
                 let stmt = tx.prepare(&query_and_params.query).await?;
-                let rs = postgres_build_result_set(&stmt, &[], &tx).await?;
-                rs
+                
+                postgres_build_result_set(&stmt, &[], &tx).await?
             };
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(result_set)
@@ -205,8 +209,8 @@ pub async fn test_is_db_setup(
                 let tx = xxx.transaction()?;
                 let result_set = {
                     let mut stmt = tx.prepare(&query_and_params.query)?;
-                    let rs = sqlite_build_result_set(&mut stmt, &[])?;
-                    rs
+                    
+                    sqlite_build_result_set(&mut stmt, &[])?
                 };
                 tx.commit()?;
                 Ok::<_, SqlMiddlewareDbError>(result_set)
@@ -225,36 +229,32 @@ pub async fn create_tables(
     let pool = config_and_pool.pool.get().await?;
     let sconn = MiddlewarePool::get_connection(pool).await?;
 
-    let query = match check_type {
-        &CheckType::Table => match &sconn {
+    let query = match *check_type {
+        CheckType::Table => match &sconn {
             MiddlewarePoolConnection::Postgres(_xx) => match check_type {
-                CheckType::Table => vec![
-                    include_str!("sql/schema/postgres/00_event.sql"),
+                CheckType::Table => [include_str!("sql/schema/postgres/00_event.sql"),
                     include_str!("sql/schema/postgres/02_golfer.sql"),
                     include_str!("sql/schema/postgres/03_bettor.sql"),
                     include_str!("sql/schema/postgres/04_event_user_player.sql"),
-                    include_str!("sql/schema/postgres/05_eup_statistic.sql"),
-                ]
+                    include_str!("sql/schema/postgres/05_eup_statistic.sql")]
                 .join("\n"),
                 _ => {
                     return Ok(());
                 }
             },
             MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
-                CheckType::Table => vec![
-                    include_str!("sql/schema/sqlite/00_event.sql"),
+                CheckType::Table => [include_str!("sql/schema/sqlite/00_event.sql"),
                     include_str!("sql/schema/sqlite/02_golfer.sql"),
                     include_str!("sql/schema/sqlite/03_bettor.sql"),
                     include_str!("sql/schema/sqlite/04_event_user_player.sql"),
-                    include_str!("sql/schema/sqlite/05_eup_statistic.sql"),
-                ]
+                    include_str!("sql/schema/sqlite/05_eup_statistic.sql")]
                 .join("\n"),
                 _ => {
                     return Ok(());
                 }
             },
         },
-        &CheckType::Constraint => {
+        CheckType::Constraint => {
             return Ok(());
         }
     };

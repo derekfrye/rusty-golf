@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(json_path) = &args.db_populate_json {
-        let _res = db_prefill::db_prefill(json_path, &config_and_pool, db_type).await?;
+        db_prefill::db_prefill(json_path, &config_and_pool, db_type).await?;
     }
 
     HttpServer::new(move || {
@@ -96,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
             .route("/admin", web::get().to(admin))
-            .route("/health", web::get().to(|| HttpResponse::Ok()))
+            .route("/health", web::get().to(HttpResponse::Ok))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
     .bind("0.0.0.0:8081")?

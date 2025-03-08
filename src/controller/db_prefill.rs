@@ -20,13 +20,11 @@ pub async fn db_prefill(
     let pool = config_and_pool
         .pool
         .get()
-        .await
-        .map_err(SqlMiddlewareDbError::from)?;
+        .await?;
     let conn = MiddlewarePool::get_connection(pool)
-        .await
-        .map_err(SqlMiddlewareDbError::from)?;
+        .await?;
 
-    Ok((match db_type {
+    (match db_type {
         DatabaseType::Sqlite => {
             // let conn = conn.lock().unwrap();
             conn.interact_sync(move |wrapper_fn| {
@@ -57,13 +55,13 @@ pub async fn db_prefill(
 
                                     let result_set = {
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                        let rs = sql_middleware::sqlite_build_result_set(
+                                        
+                                        sql_middleware::sqlite_build_result_set(
                                             &mut stmt,
                                             &converted_params.0
-                                        )?;
-                                        rs
+                                        )?
                                     };
-                                    if result_set.results.len() == 0 {
+                                    if result_set.results.is_empty() {
                                         let query_and_params_vec = QueryAndParams {
                                             query: "INSERT INTO event (name, espn_id, year, score_view_step_factor) VALUES(?1, ?2, ?3, ?4);".to_string(),
                                             params: vec![
@@ -102,11 +100,11 @@ pub async fn db_prefill(
                                             )?;
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
                                         let result_set = {
-                                            let rs = sql_middleware::sqlite_build_result_set(
+                                            
+                                            sql_middleware::sqlite_build_result_set(
                                                 &mut stmt,
                                                 &converted_params.0
-                                            )?;
-                                            rs
+                                            )?
                                         };
                                         // we better have just this one row in there
                                         assert_eq!(result_set.results.len(), 1);
@@ -232,7 +230,7 @@ pub async fn db_prefill(
                                             datum["event"].as_i64().unwrap(),
                                             datum["year"].as_i64().unwrap()
                                         );
-                                        println!("{}", x.to_string());
+                                        println!("{}", x);
                                     }
                                 }
                             }
@@ -245,5 +243,5 @@ pub async fn db_prefill(
             // .map_err(|e| format!("Error executing query: {:?}", e))
         }
         _ => unimplemented!(),
-    })??)
+    })?
 }

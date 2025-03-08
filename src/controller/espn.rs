@@ -80,7 +80,7 @@ pub async fn fetch_scores_from_espn(
 }
 
 async fn store_espn_results(
-    scores: &Vec<Scores>,
+    scores: &[Scores],
     // year: i32,
     event_id: i32,
     // db: &db::Db,

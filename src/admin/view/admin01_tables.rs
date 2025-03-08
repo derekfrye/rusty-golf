@@ -87,7 +87,7 @@ impl CreateTableReturn {
         let all_objs_not_setup: Vec<&str> = {
             db_obj_setup_state
                 .iter()
-                .filter(|x| *x.get("ex").and_then(|v| v.as_bool()).unwrap_or(&false) != true)
+                .filter(|x| !(*x.get("ex").and_then(|v| v.as_bool()).unwrap_or(&false)))
                 .map(|x| {
                     x.get("tbl")
                         .ok_or("No tbl")
@@ -99,7 +99,7 @@ impl CreateTableReturn {
         let mut json_data = json!([]);
 
         // for the objs not setup, we need to share that back to the web page via json
-        if all_objs_not_setup.len() > 0 {
+        if !all_objs_not_setup.is_empty() {
             let list_of_missing_objs: Vec<_> = all_objs_not_setup
                 .clone()
                 .into_iter()
@@ -124,7 +124,7 @@ impl CreateTableReturn {
                 CheckType::Table => CheckTypeData {
                     missing_item_id: "admin01_missing_tables",
                     all_items_setup_p: "All tables are setup.",
-                    all_items_not_setup_p: format!("Not all tables are setup."),
+                    all_items_not_setup_p: "Not all tables are setup.".to_string(),
                     create_missing_obj_id: "create-missing-tables",
                     create_missing_obj_p: "Create missing tables",
                     create_obj_results_id: "create-table-results",
@@ -132,7 +132,7 @@ impl CreateTableReturn {
                 CheckType::Constraint => CheckTypeData {
                     missing_item_id: "admin01_missing_constraints",
                     all_items_setup_p: "All constraints are setup.",
-                    all_items_not_setup_p: format!("Not all constraints are setup."),
+                    all_items_not_setup_p: "Not all constraints are setup.".to_string(),
                     create_missing_obj_id: "create-missing-constraints",
                     create_missing_obj_p: "Create missing constraints",
                     create_obj_results_id: "create-constraint-results",
@@ -170,7 +170,7 @@ impl CreateTableReturn {
                 }
             }
 
-            @if all_objs_not_setup.len() == 0 {
+            @if all_objs_not_setup.is_empty() {
                 p { (all_items_setup_p) }
             } @else if detailed_output {
              button
@@ -259,27 +259,17 @@ impl CreateTableReturn {
         let actual_table_creation = create_tables(&self.config_and_pool, &CheckType::Table).await;
         // .create_tables(data.clone(), CheckType::Table, TABLES_AND_DDL)
 
-        let message: String;
-        match actual_table_creation {
-            Ok(_x) => {
-                message = "Tables created successfully".to_string();
-            }
-            Err(e) => {
-                message = format!("Error creating tables: {:?}", e);
-            }
-        }
+        let message: String = match actual_table_creation {
+            Ok(_x) => "Tables created successfully".to_string(),
+            Err(e) => format!("Error creating tables: {:?}", e),
+        };
 
         let actual_constraint_creation =
             create_tables(&self.config_and_pool, &CheckType::Constraint).await;
-        let message2: String;
-        match actual_constraint_creation {
-            Ok(_x) => {
-                message2 = "Table constraints created successfully".to_string();
-            }
-            Err(e) => {
-                message2 = format!("Error creating tables: {:?}", e);
-            }
-        }
+        let message2: String = match actual_constraint_creation {
+            Ok(_x) => "Table constraints created successfully".to_string(),
+            Err(e) => format!("Error creating tables: {:?}", e),
+        };
 
         result.html = html! {
             p { "You've run this function " (result.times_run_int) " times." }

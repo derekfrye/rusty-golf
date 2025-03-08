@@ -311,11 +311,11 @@ async fn execute_query(
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs = sql_middleware::sqlite_build_result_set(
+                        
+                        sql_middleware::sqlite_build_result_set(
                             &mut stmt,
                             &converted_params.0,
-                        )?;
-                        rs
+                        )?
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
@@ -425,11 +425,11 @@ pub async fn get_title_and_score_view_conf_from_db(
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs = sql_middleware::sqlite_build_result_set(
+                        
+                        sql_middleware::sqlite_build_result_set(
                             &mut stmt,
                             &converted_params.0,
-                        )?;
-                        rs
+                        )?
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
@@ -496,11 +496,11 @@ pub async fn get_scores_from_db(
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs = sql_middleware::sqlite_build_result_set(
+                        
+                        sql_middleware::sqlite_build_result_set(
                             &mut stmt,
                             &converted_params.0,
-                        )?;
-                        rs
+                        )?
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
@@ -671,7 +671,7 @@ pub async fn event_and_scores_already_in_db(
     cache_max_age: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
     // Check if the event is set up in the database
-    if let Err(_) = get_title_and_score_view_conf_from_db(config_and_pool, event_id).await {
+    if get_title_and_score_view_conf_from_db(config_and_pool, event_id).await.is_err() {
         // If error, the event isn't setup, so we need to retrieve from ESPN
         return Ok(false);
     }
@@ -699,7 +699,7 @@ pub async fn event_and_scores_already_in_db(
             if cfg!(debug_assertions) {
                 #[allow(unused_variables)]
                 let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
-                let z_clone = final_val.clone();
+                let z_clone = final_val;
                 #[allow(unused_variables)]
                 let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
                 let diff = now.signed_duration_since(z_clone);

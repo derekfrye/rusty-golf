@@ -62,13 +62,13 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
                     //     sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
                     let tx = xxx.transaction()?;
 
-                    let result_set = {
+                    {
                         // let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs = tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
-                        rs
+                        tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
+                        
                     };
                     tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                    Ok::<_, SqlMiddlewareDbError>(())
                 })
                 .await
             // .map_err(|e| format!("Error executing query: {:?}", e))
@@ -80,13 +80,11 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
 
     assert!(res.is_ok(), "Error executing query: {:?}", res);
 
-    let ddl = vec![
-        include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
+    let ddl = [include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/03_bettor.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/04_event_user_player.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql"),
-    ];
+        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql")];
 
     let query_and_params = QueryAndParams {
         query: ddl.join("\n"),
@@ -131,13 +129,13 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
                     //     sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
                     let tx = xxx.transaction()?;
 
-                    let result_set = {
+                    {
                         // let mut stmt = tx.prepare(&query_and_params.query)?;
-                        let rs = tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
-                        rs
+                        tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
+                        
                     };
                     tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                    Ok::<_, SqlMiddlewareDbError>(())
                 })
                 .await
             // .map_err(|e| format!("Error executing query: {:?}", e))

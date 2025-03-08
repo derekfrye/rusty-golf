@@ -17,14 +17,12 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     let x = "file::memory:?cache=shared".to_string();
     let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
 
-    let ddl = vec![
-        include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
+    let ddl = [include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
         // include_str!("../src/admin/model/sql/schema/sqlite/01_golfstatistic.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/03_bettor.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/04_event_user_player.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql"),
-    ];
+        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql")];
 
     let query_and_params = QueryAndParams {
         query: ddl.join("\n"),
