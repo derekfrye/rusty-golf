@@ -3,29 +3,29 @@
 ## Build & Run Commands
 - Build: `cargo build`
 - Run: `cargo run`
-- Build Docker image: `make build`
-- Clean build context: `make clean`
-- Rebuild Docker image: `make rebuild`
+- Check: `cargo clippy`
+- Format: `cargo fmt`
+- Docker: `make build`, `make clean`, `make rebuild`
 
 ## Test Commands
-- Run all tests: `cargo test`
-- Run specific test file: `cargo test --test test1`
-- Run specific test function: `cargo test sqlite_multiple_column_test`
-- Test with output: `cargo test -- --nocapture`
-- SQL middleware tests: `cd sql-middleware && cargo test`
+- All tests: `cargo test`
+- Single test file: `cargo test --test test1`
+- Single test function: `cargo test test_name`
+- Show output: `cargo test -- --nocapture`
+- SQL middleware tests: `cd sql-middleware && cargo test test_name`
 
 ## Code Style Guidelines
-- Use Rust 2021 edition
-- Error handling: Use `Result<T, Box<dyn std::error::Error>>` for functions that can fail
-- Naming: snake_case for variables/functions, PascalCase for types/traits
-- Async/await: Use Tokio for async runtime
-- SQL middleware: Prefer typed queries and proper error handling
-- Database access: Use the `sql-middleware` crate abstractions for database operations
-- Format code with `cargo fmt` before committing
-- Run `cargo clippy` to check for common mistakes
+- Rust 2021 edition with Tokio async runtime
+- Use snake_case for variables/functions, PascalCase for types/traits
+- Group imports: std lib, external crates, local modules
+- Error handling: `Result<T, Box<dyn std::error::Error>>` or custom error types
+- SQL middleware: Use typed queries with `QueryAndParams`, proper error handling
+- Database: Use `sql-middleware` abstractions for consistent DB operations
+- Documentation: Include SQL file paths in test code, use descriptive names
+- Run `cargo fmt` and `cargo clippy` before committing
 
-## Project Structure
-- `/src`: Application source code
-- `/sql-middleware`: SQL abstraction middleware
-- `/static`: Static assets (JS, CSS)
-- `/tests`: Integration tests
+## SQL Middleware Usage
+- Database connections: `ConfigAndPool::new_postgres/sqlite`
+- Queries: Use `convert_sql_params` for parameter conversions
+- Error handling: Use `SqlMiddlewareDbError` and propagate with `?`
+- Consistent API between database backends
