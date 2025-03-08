@@ -104,24 +104,32 @@ async fn go_get_espn_data(
     };
 
     if cfg!(debug_assertions) {
-        result = get_json_from_espn(&scores, year, event_id).await.unwrap();
+        result = get_json_from_espn(&scores, year, event_id).await?;
     } else {
-        // four threads
-        for i in 0..4 {
-            let group = scores
+        // Process in parallel using multiple tasks
+        for task_index in 0..4 {
+            let player_group = scores
                 .iter()
-                .skip(i * group_size)
+                .skip(task_index * group_size)
                 .take(group_size)
                 .cloned()
                 .collect::<Vec<_>>();
 
             let tx = tx.clone();
-            // let state = self.clone();
 
             tokio::task::spawn(async move {
-                match get_json_from_espn(&group, year, event_id).await {
-                    Ok(result) => tx.send(Some(result)).await.unwrap(),
-                    Err(_) => tx.send(None).await.unwrap(),
+                match get_json_from_espn(&player_group, year, event_id).await {
+                    Ok(result) => {
+                        if let Err(err) = tx.send(Some(result)).await {
+                            eprintln!("Failed to send ESPN data through channel: {}", err);
+                        }
+                    },
+                    Err(err) => {
+                        eprintln!("Failed to get ESPN data: {}", err);
+                        if let Err(channel_err) = tx.send(None).await {
+                            eprintln!("Failed to send error notification: {}", channel_err);
+                        }
+                    },
                 }
             });
         }
@@ -146,19 +154,13 @@ async fn go_get_espn_data(
 
     let mut golfer_scores = Vec::new();
 
-    for (idx, result) in json_responses.data.iter().enumerate() {
-        // let x = serde_json::to_string_pretty(&result).unwrap();
-        // //save to a file
-        // if idx == 0 {
-        //     let mut file = File::create("tests/espn.json_responses.json").await.unwrap();
-        //     file.write_all(x.as_bytes()).await.unwrap();
-        // }
+    for (response_idx, result) in json_responses.data.iter().enumerate() {
         let rounds_temp = result.get("rounds").and_then(Value::as_array);
         let vv = vec![];
         let rounds = rounds_temp.unwrap_or(&vv);
 
         let mut golfer_score = Statistic {
-            eup_id: json_responses.eup_ids[idx],
+            eup_id: json_responses.eup_ids[response_idx],
             rounds: Vec::new(),
             round_scores: Vec::new(),
             tee_times: Vec::new(),

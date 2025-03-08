@@ -258,8 +258,8 @@ pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await.unwrap();
-    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
     let query = match &conn {
         MiddlewarePoolConnection::Postgres(_) => {
             "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
@@ -275,15 +275,14 @@ pub async fn get_golfers_from_db(
     };
 
     let res = (match &conn {
-        MiddlewarePoolConnection::Sqlite(sconn) => {
-            // let conn = conn.lock().unwrap();
-            sconn
-                .interact(move |xxx| {
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+            sqlite_conn
+                .interact(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(
                         &query_and_params.params,
                         ConversionMode::Query,
                     )?;
-                    let tx = xxx.transaction()?;
+                    let tx = db_conn.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
@@ -298,7 +297,10 @@ pub async fn get_golfers_from_db(
                 })
                 .await
         }
-        _ => panic!("Only sqlite is supported "),
+        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "Database type not supported for this operation",
+        )))),
     })?;
 
     let z = res?
@@ -359,8 +361,8 @@ pub async fn get_title_and_score_view_conf_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<EventTitleAndScoreViewConf, SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await.unwrap();
-    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
 
     let query = match &conn {
         MiddlewarePoolConnection::Postgres(_) => {
@@ -376,15 +378,14 @@ pub async fn get_title_and_score_view_conf_from_db(
     };
 
     let res = (match &conn {
-        MiddlewarePoolConnection::Sqlite(sconn) => {
-            // let conn = conn.lock().unwrap();
-            sconn
-                .interact(move |xxx| {
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+            sqlite_conn
+                .interact(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(
                         &query_and_params.params,
                         ConversionMode::Query,
                     )?;
-                    let tx = xxx.transaction()?;
+                    let tx = db_conn.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
@@ -399,7 +400,10 @@ pub async fn get_title_and_score_view_conf_from_db(
                 })
                 .await
         }
-        _ => panic!("Only sqlite is supported "),
+        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "Database type not supported for this operation",
+        )))),
     })?;
 
     let z = res?
@@ -432,8 +436,8 @@ pub async fn get_scores_from_db(
     event_id: i32,
     refresh_source: RefreshSource,
 ) -> Result<ScoresAndLastRefresh, SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await.unwrap();
-    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
     let query = match &conn {
         MiddlewarePoolConnection::Postgres(_) => {
             "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
@@ -448,15 +452,14 @@ pub async fn get_scores_from_db(
     };
 
     let res = (match &conn {
-        MiddlewarePoolConnection::Sqlite(sconn) => {
-            // let conn = conn.lock().unwrap();
-            sconn
-                .interact(move |xxx| {
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+            sqlite_conn
+                .interact(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(
                         &query_and_params.params,
                         ConversionMode::Query,
                     )?;
-                    let tx = xxx.transaction()?;
+                    let tx = db_conn.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
@@ -471,7 +474,10 @@ pub async fn get_scores_from_db(
                 })
                 .await
         }
-        _ => panic!("Only sqlite is supported "),
+        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "Database type not supported for this operation",
+        )))),
     })??;
 
     let last_time_updated = res
@@ -600,39 +606,39 @@ pub async fn store_scores_in_db(
     event_id: i32,
     scores: &Vec<Scores>,
 ) -> Result<(), SqlMiddlewareDbError> {
-    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> Vec<QueryAndParams2> {
+    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
         let mut queries = vec![];
         for score in scores {
             let insert_stmt =
                 include_str!("admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
+            
+            // Convert all the JSON serialization to use proper error handling
+            let rounds_json = serde_json::to_string(score.detailed_statistics.rounds.as_slice())
+                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {}", e)))?;
+                
+            let round_scores_json = serde_json::to_string(score.detailed_statistics.round_scores.as_slice())
+                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {}", e)))?;
+                
+            let tee_times_json = serde_json::to_string(score.detailed_statistics.tee_times.as_slice())
+                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {}", e)))?;
+                
+            let holes_completed_json = serde_json::to_string(
+                score.detailed_statistics.holes_completed_by_round.as_slice())
+                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {}", e)))?;
+                
+            let line_scores_json = serde_json::to_string(score.detailed_statistics.line_scores.as_slice())
+                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {}", e)))?;
+            
             let param = vec![
                 RowValues2::Int(event_id as i64),
                 RowValues2::Int(score.espn_id),
                 RowValues2::Int(score.eup_id),
                 RowValues2::Int(score.group),
-                RowValues2::Text(
-                    serde_json::to_string(score.detailed_statistics.rounds.as_slice()).unwrap(),
-                ),
-                RowValues2::Text(
-                    serde_json::to_string(score.detailed_statistics.round_scores.as_slice())
-                        .unwrap(),
-                ),
-                RowValues2::Text(
-                    serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).unwrap(),
-                ),
-                RowValues2::Text(
-                    serde_json::to_string(
-                        score
-                            .detailed_statistics
-                            .holes_completed_by_round
-                            .as_slice(),
-                    )
-                    .unwrap(),
-                ),
-                RowValues2::Text(
-                    serde_json::to_string(score.detailed_statistics.line_scores.as_slice())
-                        .unwrap(),
-                ),
+                RowValues2::Text(rounds_json),
+                RowValues2::Text(round_scores_json),
+                RowValues2::Text(tee_times_json),
+                RowValues2::Text(holes_completed_json),
+                RowValues2::Text(line_scores_json),
                 RowValues2::Int(score.detailed_statistics.total_score as i64),
             ];
             queries.push(QueryAndParams2 {
@@ -640,19 +646,19 @@ pub async fn store_scores_in_db(
                 params: param,
             });
         }
-        queries
+        Ok(queries)
     }
 
-    let pool = config_and_pool.pool.get().await.unwrap();
-    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
-    let queries = build_insert_stms(scores, event_id);
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
+    let queries = build_insert_stms(scores, event_id)?;
 
-    if queries.len() > 0 {
+    if !queries.is_empty() {
         match &conn {
-            MiddlewarePoolConnection::Sqlite(sconn) => {
-                sconn
-                    .interact(move |xxx| {
-                        let tx = xxx.transaction()?;
+            MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+                sqlite_conn
+                    .interact(move |db_conn| {
+                        let tx = db_conn.transaction()?;
                         {
                             // println!("Query: {:?}", queries[0].query);
                             let mut stmt = tx.prepare(&queries[0].query)?;
@@ -675,7 +681,10 @@ pub async fn store_scores_in_db(
                     })
                     .await??;
             }
-            _ => panic!("Only sqlite is supported "),
+            _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Unsupported, 
+                "Database type not supported for this operation",
+            )))),
         }
     }
     Ok(())
@@ -686,17 +695,14 @@ pub async fn event_and_scores_already_in_db(
     event_id: i32,
     cache_max_age: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
-    let z = get_title_and_score_view_conf_from_db(config_and_pool, event_id).await;
-    // if this threw an error, the event isn't setup, so clearly we can early return since we need to retrieve the stuff from espn
-    match z {
-        Err(_) => {
-            return Ok(false);
-        }
-        Ok(_) => {}
+    // Check if the event is set up in the database
+    if let Err(_) = get_title_and_score_view_conf_from_db(config_and_pool, event_id).await {
+        // If error, the event isn't setup, so we need to retrieve from ESPN
+        return Ok(false);
     }
 
-    let pool = config_and_pool.pool.get().await.unwrap();
-    let conn = MiddlewarePool::get_connection(pool).await.unwrap();
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
     let query = match &conn {
         MiddlewarePoolConnection::Postgres(_) => {
             "SELECT min(ins_ts) as ins_ts FROM eup_statistic WHERE event_espn_id = $1;"
@@ -713,15 +719,14 @@ pub async fn event_and_scores_already_in_db(
     };
 
     let res = (match &conn {
-        MiddlewarePoolConnection::Sqlite(sconn) => {
-            // let conn = conn.lock().unwrap();
-            sconn
-                .interact(move |xxx| {
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+            sqlite_conn
+                .interact(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(
                         &query_and_params.params,
                         ConversionMode::Query,
                     )?;
-                    let tx = xxx.transaction()?;
+                    let tx = db_conn.transaction()?;
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
@@ -736,7 +741,10 @@ pub async fn event_and_scores_already_in_db(
                 })
                 .await
         }
-        _ => panic!("Only sqlite is supported "),
+        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "Database type not supported for this operation",
+        )))),
     })?;
 
     if let Some(results) = res?.results.first() {
