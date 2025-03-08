@@ -1,10 +1,11 @@
-use chrono::{NaiveDateTime, TimeDelta};
+use chrono::{NaiveDateTime, Duration as ChronoDuration};
+use sql_middleware::middleware::ResultSet;
 // use deadpool_postgres::tokio_postgres::Row;
 // use actix_web::cookie::time::format_description::well_known::iso8601::Config;
 // use deadpool_postgres::tokio_postgres::Row;
 use serde::{Deserialize, Serialize};
 use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection,
+    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection, CustomDbRow
 };
 use sql_middleware::{
     convert_sql_params, SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
@@ -130,7 +131,6 @@ impl From<i32> for ScoreDisplay {
         Self::from_i32(value)
     }
 }
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerJsonResponse {
@@ -194,7 +194,7 @@ pub struct SummaryDetailedScores {
 
 // pub type CacheMap = Arc<RwLock<HashMap<String, Cache>>>;
 
-pub fn format_time_ago_for_score_view(td: TimeDelta) -> String {
+pub fn format_time_ago_for_score_view(td: ChronoDuration) -> String {
     // Get the total number of seconds from the TimeDelta.
     let secs = td.num_seconds();
 
@@ -266,7 +266,7 @@ pub fn take_a_char_off(s: &str) -> String {
 }
 
 /// Helper function to parse JSON from a field in a row
-fn parse_json_field<T>(row: &sql_middleware::middleware::QueryRow, field_name: &str) -> Result<T, SqlMiddlewareDbError> 
+fn parse_json_field<T>(row: &sql_middleware::middleware::CustomDbRow, field_name: &str) -> Result<T, SqlMiddlewareDbError> 
 where
     T: for<'de> serde::Deserialize<'de> 
 {
@@ -280,7 +280,7 @@ where
 }
 
 /// Helper function to get the last timestamp from the result set
-fn get_last_timestamp(results: &[sql_middleware::middleware::QueryRow]) -> chrono::NaiveDateTime {
+fn get_last_timestamp(results: &[sql_middleware::middleware::CustomDbRow]) -> chrono::NaiveDateTime {
     results
         .iter()
         .filter_map(|row| row.get("ins_ts").and_then(|v| v.as_timestamp()))
@@ -293,15 +293,15 @@ async fn execute_query(
     conn: &MiddlewarePoolConnection,
     query: &str, 
     params: Vec<RowValues2>
-) -> Result<sql_middleware::middleware::QueryResultSet, SqlMiddlewareDbError> {
+) -> Result<ResultSet, SqlMiddlewareDbError> {
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
         params,
     };
 
-    let result = match conn {
+    match conn {
         MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
-            sqlite_conn
+            let result = sqlite_conn
                 .interact(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(
                         &query_and_params.params,
@@ -320,21 +320,33 @@ async fn execute_query(
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
-                .await
+                .await??;
+                
+            Ok(result)
         }
-        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "Database type not supported for this operation",
-        )))),
-    }?;
-
-    Ok(result)
+        _ => Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string())),
+    }
 }
 
 pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
+    // Helper functions for row extraction
+    fn get_int(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> i64 {
+        row.get(field)
+           .and_then(|v| v.as_int())
+           .copied()
+           .unwrap_or_default()
+    }
+    
+    fn get_string(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> String {
+        row.get(field)
+           .and_then(|v| v.as_text())
+           .unwrap_or_default()
+           .to_string()
+    }
+
     let pool = config_and_pool.pool.get().await?;
     let conn = MiddlewarePool::get_connection(pool).await?;
     let query = match &conn {
@@ -349,26 +361,11 @@ pub async fn get_golfers_from_db(
     // Use the helper function to execute the query
     let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
 
-    // Use filter_map to extract rows into Scores structs more cleanly
-    let z = query_result
+    // Map the results to Scores objects
+    let scores = query_result
         .results
         .iter()
         .map(|row| {
-            // Helper function to extract values from row with better typing
-            fn get_int(row: &sql_middleware::middleware::QueryRow, field: &str) -> i64 {
-                row.get(field)
-                   .and_then(|v| v.as_int())
-                   .copied()
-                   .unwrap_or_default()
-            }
-            
-            fn get_string(row: &sql_middleware::middleware::QueryRow, field: &str) -> String {
-                row.get(field)
-                   .and_then(|v| v.as_text())
-                   .unwrap_or_default()
-                   .to_string()
-            }
-            
             Scores {
                 group: get_int(row, "grp"),
                 golfer_name: get_string(row, "golfername"),
@@ -377,17 +374,18 @@ pub async fn get_golfers_from_db(
                 espn_id: get_int(row, "espn_id"),
                 detailed_statistics: Statistic {
                     eup_id: get_int(row, "eup_id"),
-                rounds: vec![],
-                round_scores: vec![],
-                tee_times: vec![],
-                holes_completed_by_round: vec![],
-                line_scores: vec![],
-                total_score: 0,
-            },
+                    rounds: vec![],
+                    round_scores: vec![],
+                    tee_times: vec![],
+                    holes_completed_by_round: vec![],
+                    line_scores: vec![],
+                    total_score: 0,
+                },
+            }
         })
         .collect();
 
-    Ok(z)
+    Ok(scores)
 }
 
 pub struct EventTitleAndScoreViewConf {
@@ -438,10 +436,7 @@ pub async fn get_title_and_score_view_conf_from_db(
                 })
                 .await
         }
-        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "Database type not supported for this operation",
-        )))),
+        _ => Ok(Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string()))),
     })?;
 
     let z = res?
@@ -512,10 +507,7 @@ pub async fn get_scores_from_db(
                 })
                 .await
         }
-        _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "Database type not supported for this operation",
-        )))),
+        _ => Ok(Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string()))),
     })??;
 
     // Use a helper function to get the timestamp more clearly
@@ -665,10 +657,9 @@ pub async fn store_scores_in_db(
                     })
                     .await??;
             }
-            _ => Err(SqlMiddlewareDbError::Other(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Unsupported, 
-                "Database type not supported for this operation",
-            )))),
+            _ => {
+                return Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string()))
+            }
         }
     }
     Ok(())
@@ -711,18 +702,18 @@ pub async fn event_and_scores_already_in_db(
                 let z_clone = final_val.clone();
                 #[allow(unused_variables)]
                 let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
-                let diff = now - z_clone;
+                let diff = now.signed_duration_since(z_clone);
                 #[allow(unused_variables)]
-                let diff_human_readable_fmt = diff.num_days();
+                let diff_days = diff.num_days();
                 #[allow(unused_variables)]
-                let pass = diff.num_days() >= cache_max_age;
+                let pass = diff_days >= cache_max_age;
                 println!(
-                    "Now: {}, Last Refresh: {}, Diff: {}, Pass: {}",
-                    now_human_readable_fmt, z_human_readable_fmt, diff_human_readable_fmt, pass
+                    "Now: {}, Last Refresh: {}, Diff: {} days, Pass: {}",
+                    now_human_readable_fmt, z_human_readable_fmt, diff_days, pass
                 );
             }
 
-            let diff = now - final_val;
+            let diff = now.signed_duration_since(final_val);
             Ok(diff.num_days() >= cache_max_age)
         } else {
             Ok(false)

@@ -146,16 +146,19 @@ async fn go_get_espn_data(
         }
         
         combined_response
-    }
+    };
 
     let mut golfer_scores = Vec::new();
 
+    // Create an empty vec to use as default for missing data
+    let empty_vec: Vec<Value> = Vec::new();
+    
     for (response_idx, result) in json_responses.data.iter().enumerate() {
-        // Use an empty vector by default if rounds data is missing
+        // Use the empty vector by default if rounds data is missing
         let rounds = result
             .get("rounds")
             .and_then(Value::as_array)
-            .unwrap_or(&[]); // Use slice reference to empty array instead of creating new Vec
+            .unwrap_or(&empty_vec);
 
         let mut golfer_score = Statistic {
             eup_id: json_responses.eup_ids[response_idx],
@@ -169,11 +172,11 @@ async fn go_get_espn_data(
 
         // let mut line_scores: Vec<LineScore> = vec![];
         for (i, round) in rounds.iter().enumerate() {
-            // Access the line scores data with a default empty slice
+            // Access the line scores data with a default empty vector
             let line_scores_json = round
                 .get("linescores")
                 .and_then(Value::as_array)
-                .unwrap_or(&[]);
+                .unwrap_or(&empty_vec);
             // let x = serde_json::to_string_pretty(round.get("linescores").unwrap()).unwrap();
             // let z = x.len();
             // dbg!(&line_scores);
