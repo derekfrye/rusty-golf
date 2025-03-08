@@ -256,13 +256,18 @@ pub fn format_time_ago_for_score_view(td: ChronoDuration) -> String {
     }
 }
 
+/// Removes the last character from a string
+/// 
+/// # Arguments
+/// * `s` - The input string
+/// 
+/// # Returns
+/// A new string with the last character removed, or an empty string if input is empty
 pub fn take_a_char_off(s: &str) -> String {
-    // Use string slicing for more efficient character removal
-    if s.is_empty() {
-        String::new()
-    } else {
-        s[..s.len()-1].to_string()
-    }
+    // This avoids unnecessary allocation when we need to remove the last character
+    let mut result = s.to_string();
+    result.pop(); // Safely handles empty strings (does nothing if empty)
+    result
 }
 
 /// Helper function to parse JSON from a field in a row

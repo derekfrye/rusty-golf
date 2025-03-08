@@ -109,12 +109,26 @@ impl CleanArgs {
             let files = db_startup_script.split(';');
             let mut full_script = String::new();
             for file in files {
-                let script = fs::read_to_string(file).unwrap();
-                full_script.push_str(&script);
-                // push a newline just in case
-                full_script.push('\n');
+                let file = file.trim();
+                if file.is_empty() {
+                    continue;
+                }
+                
+                match fs::read_to_string(file) {
+                    Ok(script) => {
+                        full_script.push_str(&script);
+                        // push a newline just in case
+                        full_script.push('\n');
+                    },
+                    Err(e) => {
+                        eprintln!("Warning: Failed to read SQL startup script '{}': {}", file, e);
+                        // Continue with other files rather than failing completely
+                    }
+                }
             }
-            combined_sql_script = full_script;
+            if !full_script.is_empty() {
+                combined_sql_script = full_script;
+            }
         }
         CleanArgs {
             db_type: args.db_type,

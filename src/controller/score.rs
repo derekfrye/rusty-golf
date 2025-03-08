@@ -43,54 +43,38 @@ pub async fn scores(
         }
     };
 
-    let cache_str = query
-        .get("cache")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
-    let cache: bool = match cache_str.as_str() {
+    // Helper function to get a query parameter with a default value
+    fn get_param_str<'a>(query: &'a HashMap<String, String>, key: &str) -> &'a str {
+        query.get(key).map(|s| s.as_str()).unwrap_or("")
+    }
+    
+    // Parse the boolean parameters
+    let cache = match get_param_str(&query, "cache") {
         "1" => true,
         "0" => false,
-        _ => true,
+        _ => true, // Default to true
     };
-
-    let json_str = query
-        .get("json")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
-    let json: bool = match json_str.as_str() {
+    
+    let json = match get_param_str(&query, "json") {
         "1" => true,
         "0" => false,
-        _ => json_str.parse().unwrap_or_default(),
+        other => other.parse().unwrap_or(false), // Default to false
     };
-
-    let expanded_str = query
-        .get("expanded")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
-    let expanded: bool = match expanded_str.as_str() {
+    
+    let expanded = match get_param_str(&query, "expanded") {
         "1" => true,
         "0" => false,
-        _ => expanded_str.parse().unwrap_or_default(),
+        other => other.parse().unwrap_or(false), // Default to false
     };
 
-    let cache_max_age_str = query
+    // Parse cache_max_age parameter with better error handling and default values
+    let cache_max_age: i64 = query
         .get("cache_max_age")
-        .unwrap_or(&String::new())
-        .trim()
-        .to_string();
-    let cache_max_age: i64 = match cache_max_age_str.parse() {
-        Ok(c) => c,
-        Err(_) => {
-            if clean_args.dont_poll_espn_after_num_days.is_some() {
-                clean_args.dont_poll_espn_after_num_days.unwrap()
-            } else {
-                0
-            }
-        }
-    };
+        .and_then(|value| value.trim().parse::<i64>().ok())
+        .unwrap_or_else(|| {
+            // Use the configured value if available, otherwise default to 0
+            clean_args.dont_poll_espn_after_num_days.unwrap_or(0)
+        });
 
     // let mut cfg = deadpool_postgres::Config::new();
     // let dbcn: ConfigAndPoolOld;
