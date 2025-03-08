@@ -1,4 +1,4 @@
-use std::{collections::HashMap, vec};
+use std::collections::HashMap;
 
 use crate::model::{
     event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, take_a_char_off,

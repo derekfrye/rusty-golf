@@ -5,7 +5,7 @@ use sql_middleware::middleware::ResultSet;
 // use deadpool_postgres::tokio_postgres::Row;
 use serde::{Deserialize, Serialize};
 use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection, CustomDbRow
+    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection
 };
 use sql_middleware::{
     convert_sql_params, SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
