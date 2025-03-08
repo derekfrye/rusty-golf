@@ -19,21 +19,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = args::args_checks();
     let args_for_web = args.clone();
 
-    let mut cfg = deadpool_postgres::Config::new();
+    let cfg = deadpool_postgres::Config::new();
     let config_and_pool: ConfigAndPool;
     let db_type: DatabaseType;
     // let pth = "file::memory:?cache=shared".to_string();
     // let cfg2 = ConfigAndPool::new_sqlite(pth).await.unwrap();
     if args.db_type == DatabaseType::Postgres {
-        cfg.dbname = Some(args.db_name);
-        cfg.host = args.db_host;
-        cfg.port = args.db_port;
-        cfg.user = args.db_user;
-        cfg.password = args.db_password;
-        cfg.manager = Some(ManagerConfig {
+        let mut postgres_config = cfg;
+        postgres_config.dbname = Some(args.db_name);
+        postgres_config.host = args.db_host;
+        postgres_config.port = args.db_port;
+        postgres_config.user = args.db_user;
+        postgres_config.password = args.db_password;
+        postgres_config.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
         });
-        config_and_pool = ConfigAndPool::new_postgres(cfg).await?;
+        config_and_pool = ConfigAndPool::new_postgres(postgres_config).await?;
         db_type = DatabaseType::Postgres;
     } else {
         let a = ConfigAndPool::new_sqlite(args.db_name).await;
@@ -84,11 +85,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })?;
     }
 
-    if args.db_populate_json.is_some() {
-        let _res =
-            db_prefill::db_prefill(&args.db_populate_json.unwrap(), &config_and_pool, db_type)
-                .await?;
-        // db_prefill(args.db_populate_json.unwrap());
+    if let Some(json_path) = &args.db_populate_json {
+        let _res = db_prefill::db_prefill(json_path, &config_and_pool, db_type).await?;
     }
 
     HttpServer::new(move || {
@@ -115,23 +113,14 @@ async fn index(
     let config_and_pool = abc.get_ref().clone();
     let event_str = query.get("event").unwrap_or(&String::new()).to_string();
 
-    let mut title = "Scoreboard".to_string();
-    let _: i32 = match event_str.parse() {
+    let title = match event_str.parse() {
         Ok(id) => {
-            let title_test = get_title_and_score_view_conf_from_db(&config_and_pool, id).await;
-            match title_test {
-                Ok(t) => {
-                    title = t.event_name;
-                }
-                Err(_) => {
-                    // eprintln!("Error: {}", x);
-                }
+            match get_title_and_score_view_conf_from_db(&config_and_pool, id).await {
+                Ok(event_config) => event_config.event_name,
+                Err(_) => "Scoreboard".to_string()
             }
-            id
         }
-        Err(_) => {
-            0 // or any default value you prefer
-        }
+        Err(_) => "Scoreboard".to_string()
     };
 
     let markup = rusty_golf::view::index::render_index_template(title);

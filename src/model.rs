@@ -480,15 +480,11 @@ pub async fn get_scores_from_db(
         )))),
     })??;
 
+    // Get the last update timestamp without cloning the entire result set
     let last_time_updated = res
-        .clone()
         .results
         .iter()
-        .map(|row| {
-            row.get("ins_ts")
-                .and_then(|v| v.as_timestamp())
-                .unwrap_or_default()
-        })
+        .filter_map(|row| row.get("ins_ts").and_then(|v| v.as_timestamp()))
         .last()
         .unwrap_or_else(|| chrono::Utc::now().naive_utc());
 
@@ -604,9 +600,9 @@ pub async fn get_scores_from_db(
 pub async fn store_scores_in_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
-    scores: &Vec<Scores>,
+    scores: &[Scores],
 ) -> Result<(), SqlMiddlewareDbError> {
-    fn build_insert_stms(scores: &Vec<Scores>, event_id: i32) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
+    fn build_insert_stms(scores: &[Scores], event_id: i32) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
         let mut queries = vec![];
         for score in scores {
             let insert_stmt =

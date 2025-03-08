@@ -220,7 +220,7 @@ fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<S
     sorted_scores
 }
 
-pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresByRound {
+pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRound {
     // key = bettor, value = hashmap of rounds and the corresponding score
     let mut rounds_by_bettor_storing_score_val: HashMap<String, Vec<(isize, isize)>> =
         HashMap::new();
@@ -234,10 +234,19 @@ pub fn group_by_bettor_name_and_round(scores: &Vec<Scores>) -> AllBettorScoresBy
         // let _ = golfers_name.len();
 
         for (round_idx, round_score) in score.detailed_statistics.round_scores.iter().enumerate() {
+            // Get or create the vector of scores for this bettor without cloning
             let a_single_bettors_scores = rounds_by_bettor_storing_score_val
-                .entry(bettor_name.clone())
+                .entry(bettor_name.to_string())
                 .or_default();
-            a_single_bettors_scores.push((round_idx.try_into().unwrap(), round_score.val as isize));
+            // Convert round_idx to isize safely, defaulting to 0 if conversion fails
+            let round_idx_isize = match isize::try_from(round_idx) {
+                Ok(val) => val,
+                Err(_) => {
+                    eprintln!("Warning: Failed to convert round index {} to isize", round_idx);
+                    0
+                }
+            };
+            a_single_bettors_scores.push((round_idx_isize, round_score.val as isize));
 
             // for debug watching
             // let golfers_namex = &score.golfer_name;

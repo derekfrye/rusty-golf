@@ -15,7 +15,7 @@ use sql_middleware::middleware::ConfigAndPool as ConfigAndPool2;
 use tokio::sync::mpsc;
 
 pub async fn get_json_from_espn(
-    scores: &Vec<Scores>,
+    scores: &[Scores],
     year: i32,
     event_id: i32,
 ) -> Result<PlayerJsonResponse, reqwest::Error> {
@@ -190,7 +190,15 @@ async fn go_get_espn_data(
                     .trim_start_matches('+')
                     .parse::<i64>()
                     .unwrap_or(0);
-                let score_display = ScoreDisplay::from_i32((par - score).try_into().unwrap());
+                // Convert the score difference to i32 safely
+                let score_diff = match i32::try_from(par - score) {
+                    Ok(val) => val,
+                    Err(_) => {
+                        eprintln!("Warning: Failed to convert score difference to i32");
+                        0 // Default to par if conversion fails
+                    }
+                };
+                let score_display = ScoreDisplay::from_i32(score_diff);
 
                 let line_score_tmp = LineScore {
                     hole: (idx as i32) + 1,
@@ -212,6 +220,7 @@ async fn go_get_espn_data(
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
 
+            // Parse the score value, defaulting to 0 if parsing fails
             let score = display_value
                 .trim_start_matches('+')
                 .parse::<i32>()
@@ -240,8 +249,11 @@ async fn go_get_espn_data(
             let parsed_time =
                 DateTime::parse_from_str(&mut_tee_time, "%Y-%m-%dT%H:%MZ%z").unwrap_or_default();
 
-            let parsed_time_in_central = parsed_time
-                .with_timezone(&chrono::offset::FixedOffset::east_opt(-5 * 3600).unwrap());
+            // Use a safe conversion to Central time timezone, with fallback to UTC if conversion fails
+            let central_timezone = chrono::offset::FixedOffset::east_opt(-5 * 3600)
+                .unwrap_or_else(|| chrono::offset::FixedOffset::east_opt(0).unwrap());
+                
+            let parsed_time_in_central = parsed_time.with_timezone(&central_timezone);
 
             let special_format_time =
                 take_a_char_off(&parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string())
@@ -275,23 +287,30 @@ async fn go_get_espn_data(
     //     }
     // })
 
-    let mut golfers_and_scores: Vec<Scores> = golfer_scores
-        .iter()
-        .map(|statistic| {
-            let active_golfer = &scores
-                .iter()
-                .find(|g| g.eup_id == statistic.eup_id)
-                .unwrap();
-            Scores {
-                eup_id: statistic.eup_id,
-                golfer_name: active_golfer.golfer_name.clone(),
-                detailed_statistics: statistic.clone(),
-                bettor_name: active_golfer.bettor_name.clone(),
-                group: active_golfer.group,
-                espn_id: active_golfer.espn_id,
+    let mut golfers_and_scores = Vec::with_capacity(golfer_scores.len());
+    
+    for statistic in &golfer_scores {
+        // Find the matching golfer or handle the error case
+        let active_golfer = match scores.iter().find(|g| g.eup_id == statistic.eup_id) {
+            Some(golfer) => golfer,
+            None => {
+                // Return early with an error if no matching golfer is found
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!("Failed to find golfer with eup_id {}", statistic.eup_id)
+                )));
             }
-        })
-        .collect();
+        };
+        
+        golfers_and_scores.push(Scores {
+            eup_id: statistic.eup_id,
+            golfer_name: active_golfer.golfer_name.clone(),
+            detailed_statistics: statistic.clone(),
+            bettor_name: active_golfer.bettor_name.clone(),
+            group: active_golfer.group,
+            espn_id: active_golfer.espn_id,
+        });
+    }
 
     golfers_and_scores.sort_by(|a, b| {
         if a.group == b.group {
