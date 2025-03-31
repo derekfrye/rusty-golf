@@ -1,4 +1,4 @@
-FROM rust:1.84.0
+FROM rust:1.85.1
 
 # Install tini
 # trunk-ignore(hadolint/DL3008)
