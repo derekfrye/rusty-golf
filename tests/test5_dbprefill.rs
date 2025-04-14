@@ -56,7 +56,7 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     // now verify that the tables have been populated
     let query = "select * from event ;";
     let res = conn.execute_select(query, &[]).await?;
-    assert_eq!(res.results.len(), 3);
+    assert_eq!(res.results.len(), 4);
 
     let query = "select * from golfer;";
     let res = conn.execute_select(query, &[]).await?;

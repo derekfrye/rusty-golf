@@ -176,8 +176,8 @@ async fn preprocess_golfer_data(
         .await?
         .score_view_step_factor;
 
-    // dbg!(&detailed_scores  );
-    // dbg!(&summary_scores_x);
+    // println!("{}",serde_json::to_string_pretty( &detailed_scores  ).unwrap());
+    // println!("{}",serde_json::to_string_pretty(&summary_scores_x).unwrap());
 
     for summary_score in summary_scores_x.summary_scores.iter() {
         let mut golfers: Vec<GolferBars> = detailed_scores

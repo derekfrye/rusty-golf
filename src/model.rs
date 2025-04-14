@@ -175,7 +175,7 @@ pub struct BettorScoreByRound {
     pub scores_aggregated_by_golf_grp_by_rd: Vec<isize>,
 }
 
-#[derive( Debug)]
+#[derive( Debug,Serialize, Deserialize)]
 pub struct AllBettorScoresByRound {
     pub summary_scores: Vec<BettorScoreByRound>,
 }

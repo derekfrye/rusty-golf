@@ -1,0 +1,182 @@
+[
+  {
+    "bettor_name": "Player1",
+    "golfer_name": "Scottie Scheffler",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      -4,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player1",
+    "golfer_name": "Collin Morikawa",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      0,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player1",
+    "golfer_name": "Min Woo Lee",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      -1,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player2",
+    "golfer_name": "Bryson DeChambeau",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      -1,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player2",
+    "golfer_name": "Justin Thomas",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      1,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player2",
+    "golfer_name": "Hideki Matsuyama",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      -1,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player3",
+    "golfer_name": "Rory McIlroy",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      -2,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player3",
+    "golfer_name": "Ludvig Åberg",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      0,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player3",
+    "golfer_name": "Sepp Straka",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      2,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player4",
+    "golfer_name": "Brooks Koepka",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      3,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player4",
+    "golfer_name": "Viktor Hovland",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      0,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player4",
+    "golfer_name": "Jason Day",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      -2,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player5",
+    "golfer_name": "Xander Schauffele",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      0,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player5",
+    "golfer_name": "Jon Rahm",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      2,
+      0
+    ]
+  },
+  {
+    "bettor_name": "Player5",
+    "golfer_name": "Will Zalatoris",
+    "rounds": [
+      1,
+      2
+    ],
+    "scores": [
+      2,
+      0
+    ]
+  }
+]
