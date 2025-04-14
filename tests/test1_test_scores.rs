@@ -109,7 +109,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
             })
             .await?
         }
-        MiddlewarePoolConnection::Mssql(_) => todo!()
+        // MiddlewarePoolConnection::Mssql(_) => todo!()
     }?;
 
     let setup_queries = include_str!("test1.sql");

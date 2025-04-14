@@ -361,7 +361,7 @@ pub async fn get_golfers_from_db(
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
         }
-        &MiddlewarePoolConnection::Mssql(_) => todo!()
+        // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
 
     // Use the helper function to execute the query
@@ -413,7 +413,7 @@ pub async fn get_title_and_score_view_conf_from_db(
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
         }
-        &MiddlewarePoolConnection::Mssql(_) => todo!()
+        // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
@@ -485,7 +485,7 @@ pub async fn get_scores_from_db(
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
         }
-        &MiddlewarePoolConnection::Mssql(_) => todo!()
+        // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
@@ -590,7 +590,7 @@ pub async fn store_scores_in_db(
     event_id: i32,
     scores: &[Scores],
 ) -> Result<(), SqlMiddlewareDbError> {
-    fn build_insert_stms(scores: &[Scores], event_id: i32) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
+    fn build_insert_stmts(scores: &[Scores], event_id: i32) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
         let mut queries = vec![];
         for score in scores {
             let insert_stmt =
@@ -635,7 +635,7 @@ pub async fn store_scores_in_db(
 
     let pool = config_and_pool.pool.get().await?;
     let conn = MiddlewarePool::get_connection(pool).await?;
-    let queries = build_insert_stms(scores, event_id)?;
+    let queries = build_insert_stmts(scores, event_id)?;
 
     if !queries.is_empty() {
         match &conn {
@@ -695,7 +695,7 @@ pub async fn event_and_scores_already_in_db(
                 "admin/model/sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
             )
         }
-        &MiddlewarePoolConnection::Mssql(_) => todo!()
+        // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     
     // Use the helper function to execute the query

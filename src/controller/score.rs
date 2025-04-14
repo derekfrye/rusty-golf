@@ -142,7 +142,11 @@ pub async fn get_data_for_scores_page(
         })
         .collect();
 
-    bettors.sort_by(|a, b| a.total_score.cmp(&b.total_score));
+    bettors.sort_by(|a, b| {
+        a.total_score
+            .cmp(&b.total_score)
+            .then_with(|| a.bettor_name.cmp(&b.bettor_name))
+    });
 
     for (i, bettor) in bettors.iter_mut().enumerate() {
         bettor.scoreboard_position = i;
@@ -232,9 +236,7 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
             };
             a_single_bettors_scores.push((round_idx_isize, round_score.val as isize));
 
-            // for debug watching
-            // let golfers_namex = &score.golfer_name;
-            // let _ = golfers_namex.len();
+            
         }
     }
 

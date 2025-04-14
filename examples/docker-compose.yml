@@ -13,35 +13,23 @@ services:
       - DB_PASSWORD=/secrets/db_password
       - DB_NAME=golf
     volumes:
-      - ./db_password.txt:/secrets/db_password:ro,z
+      - rusty_golf_data:/data
+      - ../tests/test5_dbprefill.json:/eup.json:z
+      - ./init_db.sql:/db_startup_script.sql:z
+    entrypoint: ["/usr/bin/tini", "--", "/usr/local/cargo/bin/rusty-golf"]
+    command: [
+      "--db-type=sqlite"
+      , "--db-name=/data/xxx"
+      , "--db-startup-script=/init_db.sql"
+      , "--db-populate-json=/eup.json"
+      , "--dont-poll-espn-after-num-days=0",
+      ]
     networks:
       rusty-golf:
         ipv4_address: 10.8.0.202
 
-  postgres:
-    image: postgres:17.0
-    container_name: rusty-golf-db
-    environment:
-      POSTGRES_PASSWORD: /run/secrets/db_password
-      POSTGRES_INITDB_ARGS: "--data-checksums"
-      PGDATA: /pgdata
-    ports:
-      - 9001:5432
-    networks:
-      rusty-golf:
-        ipv4_address: 10.8.0.201
-    volumes:
-      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:z # runs on first initdb
-      - rusty_golf_pg_data:/pgdata
-    secrets:
-       - db_password
-
-secrets:
-   db_password:
-     file: db_password.txt
-
 volumes:
-  rusty_golf_pg_data:
+  rusty_golf_data:
     external: true
 
 networks:
