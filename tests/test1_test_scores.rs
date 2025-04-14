@@ -1,4 +1,4 @@
-use actix_web::{test, App};
+use actix_web::{App, test};
 use rusty_golf::args::CleanArgs;
 use serde_json::Value;
 
@@ -11,13 +11,13 @@ use std::{collections::HashMap, vec};
 use rusty_golf::controller::score::scores;
 // use sqlx_middleware::db::{ConfigAndPool, Db, QueryState};
 use sql_middleware::{
+    SqlMiddlewareDbError,
     middleware::{
         ConfigAndPool,
         MiddlewarePool,
         MiddlewarePoolConnection,
         QueryAndParams, //RowValues, QueryState
     },
-    SqlMiddlewareDbError,
 };
 
 #[test]
@@ -65,7 +65,6 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
                     {
                         // let mut stmt = tx.prepare(&query_and_params.query)?;
                         tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
-                        
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(())
@@ -80,11 +79,13 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
 
     assert!(res.is_ok(), "Error executing query: {:?}", res);
 
-    let ddl = [include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
+    let ddl = [
+        include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/03_bettor.sql"),
         include_str!("../src/admin/model/sql/schema/sqlite/04_event_user_player.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql")];
+        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql"),
+    ];
 
     let query_and_params = QueryAndParams {
         query: ddl.join("\n"),
@@ -108,8 +109,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
                 Ok::<_, SqlMiddlewareDbError>(())
             })
             .await?
-        }
-        // MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // MiddlewarePoolConnection::Mssql(_) => todo!()
     }?;
 
     let setup_queries = include_str!("test1.sql");
@@ -133,7 +133,6 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
                     {
                         // let mut stmt = tx.prepare(&query_and_params.query)?;
                         tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
-                        
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(())

@@ -1,10 +1,10 @@
 use crate::{
-    admin::model::admin_model::{Bettor, Player, PlayerBettorRow, RowData},
     HTMX_PATH,
+    admin::model::admin_model::{Bettor, Player, PlayerBettorRow, RowData},
 };
 
 use actix_web::web;
-use maud::{html, Markup};
+use maud::{Markup, html};
 use std::collections::HashMap;
 
 // Render the main page

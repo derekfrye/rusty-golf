@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::model::{
-    event_and_scores_already_in_db, get_scores_from_db, store_scores_in_db, take_a_char_off,
     IntStat, LineScore, PlayerJsonResponse, RefreshSource, ScoreDisplay, Scores,
-    ScoresAndLastRefresh, Statistic, StringStat,
+    ScoresAndLastRefresh, Statistic, StringStat, event_and_scores_already_in_db,
+    get_scores_from_db, store_scores_in_db, take_a_char_off,
 };
 use chrono::DateTime;
 use reqwest::Client;
@@ -28,9 +28,7 @@ pub async fn get_json_from_espn(
     for score in scores {
         let url = format!(
             "https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/{}/playersummary?season={}&player={}",
-            event_id,
-            year,
-            score.espn_id
+            event_id, year, score.espn_id
         );
 
         let resp = client.get(&url).send().await?;
@@ -102,14 +100,14 @@ async fn go_get_espn_data(
     } else {
         // More idiomatic approach using futures for parallelism
         use futures::future::join_all;
-        
+
         // Split the scores into 4 roughly equal groups
         let num_scores = scores.len();
         let group_size = (num_scores + 3) / 4;
-        
+
         // Create a vector to hold our futures
         let mut futures = Vec::with_capacity(4);
-        
+
         // Create and collect futures for each group
         for task_index in 0..4 {
             let player_group = scores
@@ -118,12 +116,12 @@ async fn go_get_espn_data(
                 .take(group_size)
                 .cloned()
                 .collect::<Vec<_>>();
-                
+
             // Skip empty groups (may happen for the last group)
             if player_group.is_empty() {
                 continue;
             }
-            
+
             // Create a future for this group and add it to our collection
             let player_group_clone = player_group.clone();
             let future = tokio::task::spawn(async move {
@@ -135,25 +133,25 @@ async fn go_get_espn_data(
                     }
                 }
             });
-            
+
             futures.push(future);
         }
-        
+
         // Wait for all futures to complete
         let results = join_all(futures).await;
-        
+
         // Combine the results
         let mut combined_response = PlayerJsonResponse {
             data: Vec::new(),
             eup_ids: Vec::new(),
         };
-        
+
         // Use flatten to handle errors more idiomatically
         for response in results.into_iter().flatten().flatten() {
             combined_response.data.extend(response.data);
             combined_response.eup_ids.extend(response.eup_ids);
         }
-        
+
         combined_response
     };
 
@@ -161,7 +159,7 @@ async fn go_get_espn_data(
 
     // Create an empty vec to use as default for missing data
     let empty_vec: Vec<Value> = Vec::new();
-    
+
     for (response_idx, result) in json_responses.data.iter().enumerate() {
         // Use the empty vector by default if rounds data is missing
         let rounds = result
@@ -274,13 +272,13 @@ async fn go_get_espn_data(
 
             // Use a safe conversion to Central time timezone, with fallback to UTC
             // This is safe because we're using constant values for timezone offsets
-            let central_timezone = chrono::offset::FixedOffset::east_opt(-5 * 3600)
-                .unwrap_or_else(|| {
+            let central_timezone =
+                chrono::offset::FixedOffset::east_opt(-5 * 3600).unwrap_or_else(|| {
                     // UTC (0 offset) is always valid
                     chrono::offset::FixedOffset::east_opt(0)
                         .expect("UTC timezone offset is always valid")
                 });
-                
+
             let parsed_time_in_central = parsed_time.with_timezone(&central_timezone);
 
             let special_format_time =
@@ -316,30 +314,37 @@ async fn go_get_espn_data(
     // })
 
     // Use iterators and combinators to build the score list
-    let result: Result<Vec<_>, _> = golfer_scores.iter().map(|statistic| {
-        // Find the matching golfer using combinator pattern
-        scores.iter()
-            .find(|g| g.eup_id == statistic.eup_id)
-            .ok_or_else(|| {
-                // Create a custom error with more context
-                Box::new(std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    format!("Failed to find golfer with eup_id {} in scores data", statistic.eup_id)
-                )) as Box<dyn std::error::Error>
-            })
-            .map(|active_golfer| {
-                // Create the score entry with one allocation
-                Scores {
-                    eup_id: statistic.eup_id,
-                    golfer_name: active_golfer.golfer_name.clone(),
-                    detailed_statistics: statistic.clone(),
-                    bettor_name: active_golfer.bettor_name.clone(),
-                    group: active_golfer.group,
-                    espn_id: active_golfer.espn_id,
-                }
-            })
-    }).collect();
-    
+    let result: Result<Vec<_>, _> = golfer_scores
+        .iter()
+        .map(|statistic| {
+            // Find the matching golfer using combinator pattern
+            scores
+                .iter()
+                .find(|g| g.eup_id == statistic.eup_id)
+                .ok_or_else(|| {
+                    // Create a custom error with more context
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        format!(
+                            "Failed to find golfer with eup_id {} in scores data",
+                            statistic.eup_id
+                        ),
+                    )) as Box<dyn std::error::Error>
+                })
+                .map(|active_golfer| {
+                    // Create the score entry with one allocation
+                    Scores {
+                        eup_id: statistic.eup_id,
+                        golfer_name: active_golfer.golfer_name.clone(),
+                        detailed_statistics: statistic.clone(),
+                        bettor_name: active_golfer.bettor_name.clone(),
+                        group: active_golfer.group,
+                        espn_id: active_golfer.espn_id,
+                    }
+                })
+        })
+        .collect();
+
     // Handle the collected results
     let mut golfers_and_scores = result?;
 

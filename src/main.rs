@@ -10,7 +10,7 @@ use sql_middleware::middleware::{
 
 use actix_files::Files;
 use actix_web::web::Data;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpResponse, HttpServer, Responder, web};
 use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 
@@ -81,8 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok::<_, SqlMiddlewareDbError>(())
                 })
                 .await?
-            }
-            // MiddlewarePoolConnection::Mssql(_) => todo!()
+            } // MiddlewarePoolConnection::Mssql(_) => todo!()
         })?;
     }
 
@@ -115,13 +114,11 @@ async fn index(
     let event_str = query.get("event").unwrap_or(&String::new()).to_string();
 
     let title = match event_str.parse() {
-        Ok(id) => {
-            match get_title_and_score_view_conf_from_db(&config_and_pool, id).await {
-                Ok(event_config) => event_config.event_name,
-                Err(_) => "Scoreboard".to_string()
-            }
-        }
-        Err(_) => "Scoreboard".to_string()
+        Ok(id) => match get_title_and_score_view_conf_from_db(&config_and_pool, id).await {
+            Ok(event_config) => event_config.event_name,
+            Err(_) => "Scoreboard".to_string(),
+        },
+        Err(_) => "Scoreboard".to_string(),
     };
 
     let markup = rusty_golf::view::index::render_index_template(title);

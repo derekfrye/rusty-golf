@@ -1,9 +1,9 @@
 use crate::{
-    admin::model::admin_model::{AdminPage, AlphaNum14},
     HTMX_PATH,
+    admin::model::admin_model::{AdminPage, AlphaNum14},
 };
 
-use maud::{html, Markup};
+use maud::{Markup, html};
 
 // Render the main page
 pub async fn render_default_page(token: AlphaNum14) -> Markup {

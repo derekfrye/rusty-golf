@@ -1,11 +1,12 @@
 use regex::Regex;
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::Value;
 use sql_middleware::{
+    SqlMiddlewareDbError,
     middleware::{
         ConfigAndPool, CustomDbRow, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams,
     },
-    postgres_build_result_set, sqlite_build_result_set, SqlMiddlewareDbError,
+    postgres_build_result_set, sqlite_build_result_set,
 };
 use std::str::FromStr;
 
@@ -111,9 +112,10 @@ impl Default for AlphaNum14 {
 
 impl TryFrom<&str> for AlphaNum14 {
     type Error = &'static str;
-    
+
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        AlphaNum14::new(value).ok_or("Invalid alphanumeric string: must be exactly 14 alphanumeric characters")
+        AlphaNum14::new(value)
+            .ok_or("Invalid alphanumeric string: must be exactly 14 alphanumeric characters")
     }
 }
 
@@ -128,8 +130,11 @@ impl AlphaNum14 {
         // Using a static regex for better performance and safety
         use std::sync::OnceLock;
         static REGEX: OnceLock<Regex> = OnceLock::new();
-        let re = REGEX.get_or_init(|| Regex::new(r"^[a-zA-Z0-9]{14}$").expect("Invalid regex pattern - this is a programming error"));
-        
+        let re = REGEX.get_or_init(|| {
+            Regex::new(r"^[a-zA-Z0-9]{14}$")
+                .expect("Invalid regex pattern - this is a programming error")
+        });
+
         if re.is_match(input) {
             Some(AlphaNum14(input.to_string()))
         } else {
@@ -213,7 +218,7 @@ pub async fn test_is_db_setup(
 
             let result_set = {
                 let stmt = tx.prepare(&query_and_params.query).await?;
-                
+
                 postgres_build_result_set(&stmt, &[], &tx).await?
             };
             tx.commit().await?;
@@ -224,15 +229,14 @@ pub async fn test_is_db_setup(
                 let tx = xxx.transaction()?;
                 let result_set = {
                     let mut stmt = tx.prepare(&query_and_params.query)?;
-                    
+
                     sqlite_build_result_set(&mut stmt, &[])?
                 };
                 tx.commit()?;
                 Ok::<_, SqlMiddlewareDbError>(result_set)
             })
             .await?
-        }
-        // MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // MiddlewarePoolConnection::Mssql(_) => todo!()
     }?;
 
     Ok(res.results)
@@ -248,22 +252,26 @@ pub async fn create_tables(
     let query = match *check_type {
         CheckType::Table => match &sconn {
             MiddlewarePoolConnection::Postgres(_xx) => match check_type {
-                CheckType::Table => [include_str!("sql/schema/postgres/00_event.sql"),
+                CheckType::Table => [
+                    include_str!("sql/schema/postgres/00_event.sql"),
                     include_str!("sql/schema/postgres/02_golfer.sql"),
                     include_str!("sql/schema/postgres/03_bettor.sql"),
                     include_str!("sql/schema/postgres/04_event_user_player.sql"),
-                    include_str!("sql/schema/postgres/05_eup_statistic.sql")]
+                    include_str!("sql/schema/postgres/05_eup_statistic.sql"),
+                ]
                 .join("\n"),
                 _ => {
                     return Ok(());
                 }
             },
             MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
-                CheckType::Table => [include_str!("sql/schema/sqlite/00_event.sql"),
+                CheckType::Table => [
+                    include_str!("sql/schema/sqlite/00_event.sql"),
                     include_str!("sql/schema/sqlite/02_golfer.sql"),
                     include_str!("sql/schema/sqlite/03_bettor.sql"),
                     include_str!("sql/schema/sqlite/04_event_user_player.sql"),
-                    include_str!("sql/schema/sqlite/05_eup_statistic.sql")]
+                    include_str!("sql/schema/sqlite/05_eup_statistic.sql"),
+                ]
                 .join("\n"),
                 _ => {
                     return Ok(());
@@ -298,8 +306,7 @@ pub async fn create_tables(
                 Ok::<_, SqlMiddlewareDbError>(())
             })
             .await?
-        }
-        // MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // MiddlewarePoolConnection::Mssql(_) => todo!()
     }?;
 
     Ok(())

@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 
-COPY sql-middleware /usr/src/sql-middleware
+# COPY sql-middleware /usr/src/sql-middleware
 COPY . .
 RUN cargo clean
 # trunk-ignore(hadolint/DL3059)

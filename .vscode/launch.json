@@ -25,7 +25,7 @@
                 "--db-name=xxx",
                 "--db-startup-script=src/admin/model/sql/schema/sqlite/00_event.sql;src/admin/model/sql/schema/sqlite/02_golfer.sql;src/admin/model/sql/schema/sqlite/03_bettor.sql;src/admin/model/sql/schema/sqlite/04_event_user_player.sql;src/admin/model/sql/schema/sqlite/05_eup_statistic.sql",
                 "--db-populate-json=tests/test5_dbprefill.json",
-                "--dont-poll-espn-after-num-days=0", // always read from the db
+                "--dont-poll-espn-after-num-days=10", // 0 means always read from the db, any number over 0 means read from the db if the event is older than that number of days
             ],
             "cwd": "${workspaceFolder}",
         },

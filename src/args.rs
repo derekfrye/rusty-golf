@@ -113,15 +113,18 @@ impl CleanArgs {
                 if file.is_empty() {
                     continue;
                 }
-                
+
                 match fs::read_to_string(file) {
                     Ok(script) => {
                         full_script.push_str(&script);
                         // push a newline just in case
                         full_script.push('\n');
-                    },
+                    }
                     Err(e) => {
-                        eprintln!("Warning: Failed to read SQL startup script '{}': {}", file, e);
+                        eprintln!(
+                            "Warning: Failed to read SQL startup script '{}': {}",
+                            file, e
+                        );
                         // Continue with other files rather than failing completely
                     }
                 }
@@ -245,12 +248,10 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
             let expected_keys = vec!["bettors", "golfers", "event_user_player"];
             for (key, _) in data.as_object().unwrap() {
                 if !expected_keys.contains(&key.as_str()) {
-                    return Err(
-                        format!(
-                            "The json key data_to_fill_if_event_and_year_missing is not in the correct format. Expected keys: {:?}",
-                            expected_keys
-                        )
-                    );
+                    return Err(format!(
+                        "The json key data_to_fill_if_event_and_year_missing is not in the correct format. Expected keys: {:?}",
+                        expected_keys
+                    ));
                 }
             }
         }

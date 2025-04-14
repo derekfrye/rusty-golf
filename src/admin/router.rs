@@ -1,6 +1,6 @@
 use crate::admin::model::admin_model::{AdminPage, AlphaNum14};
 
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use maud::PreEscaped;
 use sql_middleware::middleware::ConfigAndPool;
 use std::{collections::HashMap, env};

@@ -5,7 +5,7 @@ use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model::{self, format_time_ago_for_score_view, DetailedScore, SummaryDetailedScores};
+use crate::model::{self, DetailedScore, SummaryDetailedScores, format_time_ago_for_score_view};
 use crate::model::{AllBettorScoresByRound, BettorScoreByRound, Bettors, ScoreData, Scores};
 use crate::view::score::render_scores_template;
 use std::collections::{BTreeMap, HashMap};
@@ -47,20 +47,20 @@ pub async fn scores(
     fn get_param_str<'a>(query: &'a HashMap<String, String>, key: &str) -> &'a str {
         query.get(key).map(|s| s.as_str()).unwrap_or("")
     }
-    
+
     // Parse the boolean parameters
     let cache = match get_param_str(&query, "cache") {
         "1" => true,
         "0" => false,
         _ => true, // Default to true
     };
-    
+
     let json = match get_param_str(&query, "json") {
         "1" => true,
         "0" => false,
         other => other.parse().unwrap_or(false), // Default to false
     };
-    
+
     let expanded = match get_param_str(&query, "expanded") {
         "1" => true,
         "0" => false,
@@ -73,6 +73,7 @@ pub async fn scores(
         .and_then(|value| value.trim().parse::<i64>().ok())
         .unwrap_or_else(|| {
             // Use the configured value if available, otherwise default to 0
+            // value of zero means we'll always read from db
             clean_args.dont_poll_espn_after_num_days.unwrap_or(0)
         });
 
@@ -230,13 +231,14 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
             let round_idx_isize = match isize::try_from(round_idx) {
                 Ok(val) => val,
                 Err(_) => {
-                    eprintln!("Warning: Failed to convert round index {} to isize", round_idx);
+                    eprintln!(
+                        "Warning: Failed to convert round index {} to isize",
+                        round_idx
+                    );
                     0
                 }
             };
             a_single_bettors_scores.push((round_idx_isize, round_score.val as isize));
-
-            
         }
     }
 

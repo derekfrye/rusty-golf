@@ -1,12 +1,11 @@
 use serde_json::Value;
 // use sqlx_middleware::db::{ConfigAndPool, DatabaseType, Db, QueryState};
 use sql_middleware::{
-    convert_sql_params,
+    SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery, convert_sql_params,
     middleware::{
         AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, MiddlewarePool,
         QueryAndParams, RowValues,
     },
-    SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
 };
 
 pub async fn db_prefill(
@@ -17,12 +16,8 @@ pub async fn db_prefill(
     let json2 = json1.clone();
 
     let json = json2;
-    let pool = config_and_pool
-        .pool
-        .get()
-        .await?;
-    let conn = MiddlewarePool::get_connection(pool)
-        .await?;
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
 
     (match db_type {
         DatabaseType::Sqlite => {

@@ -30,4 +30,5 @@ SET grp = EXCLUDED.grp,
     tee_times = EXCLUDED.tee_times,
     holes_completed_by_round = EXCLUDED.holes_completed_by_round,
     line_scores = EXCLUDED.line_scores,
-    ins_ts = CURRENT_TIMESTAMP;
+    ins_ts = CURRENT_TIMESTAMP,
+    total_score = EXCLUDED.total_score;

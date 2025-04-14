@@ -1,14 +1,14 @@
-use chrono::{NaiveDateTime, Duration as ChronoDuration};
+use chrono::{Duration as ChronoDuration, NaiveDateTime};
 use sql_middleware::middleware::ResultSet;
 // use deadpool_postgres::tokio_postgres::Row;
 // use actix_web::cookie::time::format_description::well_known::iso8601::Config;
 // use deadpool_postgres::tokio_postgres::Row;
 use serde::{Deserialize, Serialize};
 use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection
+    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection,
 };
 use sql_middleware::{
-    convert_sql_params, SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
+    SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery, convert_sql_params,
 };
 use std::collections::HashMap;
 
@@ -257,10 +257,10 @@ pub fn format_time_ago_for_score_view(td: ChronoDuration) -> String {
 }
 
 /// Removes the last character from a string
-/// 
+///
 /// # Arguments
 /// * `s` - The input string
-/// 
+///
 /// # Returns
 /// A new string with the last character removed, or an empty string if input is empty
 pub fn take_a_char_off(s: &str) -> String {
@@ -271,21 +271,27 @@ pub fn take_a_char_off(s: &str) -> String {
 }
 
 /// Helper function to parse JSON from a field in a row
-fn parse_json_field<T>(row: &sql_middleware::middleware::CustomDbRow, field_name: &str) -> Result<T, SqlMiddlewareDbError> 
+fn parse_json_field<T>(
+    row: &sql_middleware::middleware::CustomDbRow,
+    field_name: &str,
+) -> Result<T, SqlMiddlewareDbError>
 where
-    T: for<'de> serde::Deserialize<'de> 
+    T: for<'de> serde::Deserialize<'de>,
 {
     let json_text = row
         .get(field_name)
         .and_then(|v| v.as_text())
         .unwrap_or_default();
-        
-    serde_json::from_str(json_text)
-        .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to parse {} field: {}", field_name, e)))
+
+    serde_json::from_str(json_text).map_err(|e| {
+        SqlMiddlewareDbError::Other(format!("Failed to parse {} field: {}", field_name, e))
+    })
 }
 
 /// Helper function to get the last timestamp from the result set
-fn get_last_timestamp(results: &[sql_middleware::middleware::CustomDbRow]) -> chrono::NaiveDateTime {
+fn get_last_timestamp(
+    results: &[sql_middleware::middleware::CustomDbRow],
+) -> chrono::NaiveDateTime {
     results
         .iter()
         .filter_map(|row| row.get("ins_ts").and_then(|v| v.as_timestamp()))
@@ -296,8 +302,8 @@ fn get_last_timestamp(results: &[sql_middleware::middleware::CustomDbRow]) -> ch
 /// Helper function to execute a SQL query with params using the appropriate database connection
 async fn execute_query(
     conn: &MiddlewarePoolConnection,
-    query: &str, 
-    params: Vec<RowValues2>
+    query: &str,
+    params: Vec<RowValues2>,
 ) -> Result<ResultSet, SqlMiddlewareDbError> {
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
@@ -316,20 +322,19 @@ async fn execute_query(
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
-                        
-                        sql_middleware::sqlite_build_result_set(
-                            &mut stmt,
-                            &converted_params.0,
-                        )?
+
+                        sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
                 .await??;
-                
+
             Ok(result)
         }
-        _ => Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string())),
+        _ => Err(SqlMiddlewareDbError::Other(
+            "Database type not supported for this operation".to_string(),
+        )),
     }
 }
 
@@ -340,16 +345,16 @@ pub async fn get_golfers_from_db(
     // Helper functions for row extraction
     fn get_int(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> i64 {
         row.get(field)
-           .and_then(|v| v.as_int())
-           .copied()
-           .unwrap_or_default()
+            .and_then(|v| v.as_int())
+            .copied()
+            .unwrap_or_default()
     }
-    
+
     fn get_string(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> String {
         row.get(field)
-           .and_then(|v| v.as_text())
-           .unwrap_or_default()
-           .to_string()
+            .and_then(|v| v.as_text())
+            .unwrap_or_default()
+            .to_string()
     }
 
     let pool = config_and_pool.pool.get().await?;
@@ -360,8 +365,7 @@ pub async fn get_golfers_from_db(
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
-        }
-        // &MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
 
     // Use the helper function to execute the query
@@ -371,23 +375,21 @@ pub async fn get_golfers_from_db(
     let scores = query_result
         .results
         .iter()
-        .map(|row| {
-            Scores {
-                group: get_int(row, "grp"),
-                golfer_name: get_string(row, "golfername"),
-                bettor_name: get_string(row, "bettorname"),
+        .map(|row| Scores {
+            group: get_int(row, "grp"),
+            golfer_name: get_string(row, "golfername"),
+            bettor_name: get_string(row, "bettorname"),
+            eup_id: get_int(row, "eup_id"),
+            espn_id: get_int(row, "espn_id"),
+            detailed_statistics: Statistic {
                 eup_id: get_int(row, "eup_id"),
-                espn_id: get_int(row, "espn_id"),
-                detailed_statistics: Statistic {
-                    eup_id: get_int(row, "eup_id"),
-                    rounds: vec![],
-                    round_scores: vec![],
-                    tee_times: vec![],
-                    holes_completed_by_round: vec![],
-                    line_scores: vec![],
-                    total_score: 0,
-                },
-            }
+                rounds: vec![],
+                round_scores: vec![],
+                tee_times: vec![],
+                holes_completed_by_round: vec![],
+                line_scores: vec![],
+                total_score: 0,
+            },
         })
         .collect();
 
@@ -412,8 +414,7 @@ pub async fn get_title_and_score_view_conf_from_db(
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
-        }
-        // &MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
@@ -432,18 +433,17 @@ pub async fn get_title_and_score_view_conf_from_db(
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
-                        
-                        sql_middleware::sqlite_build_result_set(
-                            &mut stmt,
-                            &converted_params.0,
-                        )?
+
+                        sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
                 .await
         }
-        _ => Ok(Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string()))),
+        _ => Ok(Err(SqlMiddlewareDbError::Other(
+            "Database type not supported for this operation".to_string(),
+        ))),
     })?;
 
     let z = res?
@@ -484,8 +484,7 @@ pub async fn get_scores_from_db(
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
-        }
-        // &MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
@@ -504,18 +503,17 @@ pub async fn get_scores_from_db(
 
                     let result_set = {
                         let mut stmt = tx.prepare(&query_and_params.query)?;
-                        
-                        sql_middleware::sqlite_build_result_set(
-                            &mut stmt,
-                            &converted_params.0,
-                        )?
+
+                        sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
                     };
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
                 .await
         }
-        _ => Ok(Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string()))),
+        _ => Ok(Err(SqlMiddlewareDbError::Other(
+            "Database type not supported for this operation".to_string(),
+        ))),
     })??;
 
     // Use a helper function to get the timestamp more clearly
@@ -590,29 +588,52 @@ pub async fn store_scores_in_db(
     event_id: i32,
     scores: &[Scores],
 ) -> Result<(), SqlMiddlewareDbError> {
-    fn build_insert_stmts(scores: &[Scores], event_id: i32) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
+    fn build_insert_stmts(
+        scores: &[Scores],
+        event_id: i32,
+    ) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
         let mut queries = vec![];
         for score in scores {
             let insert_stmt =
                 include_str!("admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
-            
+
             // Convert all the JSON serialization to use proper error handling
             let rounds_json = serde_json::to_string(score.detailed_statistics.rounds.as_slice())
-                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {}", e)))?;
-                
-            let round_scores_json = serde_json::to_string(score.detailed_statistics.round_scores.as_slice())
-                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {}", e)))?;
-                
-            let tee_times_json = serde_json::to_string(score.detailed_statistics.tee_times.as_slice())
-                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {}", e)))?;
-                
+                .map_err(|e| {
+                    SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {}", e))
+                })?;
+
+            let round_scores_json = serde_json::to_string(
+                score.detailed_statistics.round_scores.as_slice(),
+            )
+            .map_err(|e| {
+                SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {}", e))
+            })?;
+
+            let tee_times_json = serde_json::to_string(
+                score.detailed_statistics.tee_times.as_slice(),
+            )
+            .map_err(|e| {
+                SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {}", e))
+            })?;
+
             let holes_completed_json = serde_json::to_string(
-                score.detailed_statistics.holes_completed_by_round.as_slice())
-                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {}", e)))?;
-                
-            let line_scores_json = serde_json::to_string(score.detailed_statistics.line_scores.as_slice())
-                .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {}", e)))?;
-            
+                score
+                    .detailed_statistics
+                    .holes_completed_by_round
+                    .as_slice(),
+            )
+            .map_err(|e| {
+                SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {}", e))
+            })?;
+
+            let line_scores_json = serde_json::to_string(
+                score.detailed_statistics.line_scores.as_slice(),
+            )
+            .map_err(|e| {
+                SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {}", e))
+            })?;
+
             let param = vec![
                 RowValues2::Int(event_id as i64),
                 RowValues2::Int(score.espn_id),
@@ -666,7 +687,9 @@ pub async fn store_scores_in_db(
                     .await??;
             }
             _ => {
-                return Err(SqlMiddlewareDbError::Other("Database type not supported for this operation".to_string()))
+                return Err(SqlMiddlewareDbError::Other(
+                    "Database type not supported for this operation".to_string(),
+                ));
             }
         }
     }
@@ -679,7 +702,10 @@ pub async fn event_and_scores_already_in_db(
     cache_max_age: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
     // Check if the event is set up in the database
-    if get_title_and_score_view_conf_from_db(config_and_pool, event_id).await.is_err() {
+    if get_title_and_score_view_conf_from_db(config_and_pool, event_id)
+        .await
+        .is_err()
+    {
         // If error, the event isn't setup, so we need to retrieve from ESPN
         return Ok(false);
     }
@@ -694,10 +720,9 @@ pub async fn event_and_scores_already_in_db(
             include_str!(
                 "admin/model/sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
             )
-        }
-        // &MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
-    
+
     // Use the helper function to execute the query
     let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
 

@@ -2,12 +2,11 @@ use std::collections::BTreeMap;
 
 use crate::get_title_and_score_view_conf_from_db;
 use crate::model::{
-    get_scores_from_db, take_a_char_off, AllBettorScoresByRound, DetailedScore, LineScore,
-    RefreshSource, ScoreData, ScoreDisplay, ScoresAndLastRefresh, StringStat,
-    SummaryDetailedScores,
+    AllBettorScoresByRound, DetailedScore, LineScore, RefreshSource, ScoreData, ScoreDisplay,
+    ScoresAndLastRefresh, StringStat, SummaryDetailedScores, get_scores_from_db, take_a_char_off,
 };
 
-use maud::{html, Markup};
+use maud::{Markup, html};
 use sql_middleware::middleware::ConfigAndPool;
 
 pub async fn render_scores_template(
@@ -577,7 +576,7 @@ fn scores_and_last_refresh_to_line_score_tables(
     type GolferScoreData = (Vec<LineScore>, Vec<StringStat>);
     type GolferMap = BTreeMap<String, GolferScoreData>;
     type BettorGolferMap = BTreeMap<String, GolferMap>;
-    
+
     // We'll group by bettor_name -> golfer_name -> (Vec<LineScore>, Vec<StringStat>)
     // Use BTreeMap for a predictable sort order (alphabetical)
     let mut grouped: BettorGolferMap = BTreeMap::new();
