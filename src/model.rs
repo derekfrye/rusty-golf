@@ -168,12 +168,14 @@ impl fmt::Display for RefreshSource {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BettorScoreByRound {
     pub bettor_name: String,
     pub computed_rounds: Vec<isize>,
     pub scores_aggregated_by_golf_grp_by_rd: Vec<isize>,
 }
 
+#[derive( Debug)]
 pub struct AllBettorScoresByRound {
     pub summary_scores: Vec<BettorScoreByRound>,
 }

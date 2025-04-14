@@ -176,6 +176,9 @@ async fn preprocess_golfer_data(
         .await?
         .score_view_step_factor;
 
+    // dbg!(&detailed_scores  );
+    // dbg!(&summary_scores_x);
+
     for summary_score in summary_scores_x.summary_scores.iter() {
         let mut golfers: Vec<GolferBars> = detailed_scores
             .iter()
