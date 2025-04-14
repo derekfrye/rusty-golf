@@ -9,3 +9,5 @@ xxx
 xxx-shm
 xxx-wal
 sql-middleware
+tests/test6/debug/actual_output.html
+tests/test6/debug/output.html
