@@ -199,6 +199,7 @@ pub async fn test_is_db_setup(
                 return Ok(vec![]);
             }
         },
+        &MiddlewarePoolConnection::Mssql(_) => todo!(),
     };
 
     let query_and_params = QueryAndParams {
@@ -231,6 +232,7 @@ pub async fn test_is_db_setup(
             })
             .await?
         }
+        MiddlewarePoolConnection::Mssql(_) => todo!()
     }?;
 
     Ok(res.results)
@@ -267,6 +269,7 @@ pub async fn create_tables(
                     return Ok(());
                 }
             },
+            &MiddlewarePoolConnection::Mssql(_) => todo!(),
         },
         CheckType::Constraint => {
             return Ok(());
@@ -296,6 +299,7 @@ pub async fn create_tables(
             })
             .await?
         }
+        MiddlewarePoolConnection::Mssql(_) => todo!()
     }?;
 
     Ok(())

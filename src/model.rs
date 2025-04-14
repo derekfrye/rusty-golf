@@ -361,6 +361,7 @@ pub async fn get_golfers_from_db(
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
         }
+        &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
 
     // Use the helper function to execute the query
@@ -412,6 +413,7 @@ pub async fn get_title_and_score_view_conf_from_db(
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
         }
+        &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
@@ -483,6 +485,7 @@ pub async fn get_scores_from_db(
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
         }
+        &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
@@ -692,6 +695,7 @@ pub async fn event_and_scores_already_in_db(
                 "admin/model/sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
             )
         }
+        &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     
     // Use the helper function to execute the query
