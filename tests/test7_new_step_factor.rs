@@ -130,76 +130,76 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|v| *v)
                 .expect("Could not get count of event_user_player entries");
                 
-            assert!(count > 0, "Expected event 401703504 to have event_user_player entries with step factors");
+            assert!(count == 15, "Expected event 401703504 to have event_user_player entries with step factors");
         }
         
         // STEP 3: Insert some dummy data for testing the visual rendering
         let query = "SELECT event_id FROM event WHERE espn_id = ?1;";
         let result = conn.execute_select(query, &[sql_middleware::middleware::RowValues::Int(event_id.into())]).await?;
         
-        let event_db_id = result.results[0]
+        let _event_db_id = result.results[0]
             .get("event_id")
             .and_then(|v| v.as_int())
             .map(|v| *v)
             .expect("Could not get event_id from database");
             
-        // Insert dummy statistics for the event
-        for detail in &detailed_scores.detailed_scores {
-            // Find eup_id for this golfer-bettor combination
-            let query = format!("
-                SELECT eup.eup_id 
-                FROM event_user_player eup
-                JOIN bettor b ON eup.user_id = b.user_id
-                JOIN golfer g ON eup.golfer_id = g.golfer_id
-                WHERE eup.event_id = ? AND b.name = ? AND g.name = ?
-            ");
+        // // Insert dummy statistics for the event
+        // for detail in &detailed_scores.detailed_scores {
+        //     // Find eup_id for this golfer-bettor combination
+        //     let query = format!("
+        //         SELECT eup.eup_id 
+        //         FROM event_user_player eup
+        //         JOIN bettor b ON eup.user_id = b.user_id
+        //         JOIN golfer g ON eup.golfer_id = g.golfer_id
+        //         WHERE eup.event_id = ? AND b.name = ? AND g.name = ?
+        //     ");
             
-            let result = conn.execute_select(
-                &query, 
-                &[
-                    sql_middleware::middleware::RowValues::Int(event_db_id),
-                    sql_middleware::middleware::RowValues::Text(detail.bettor_name.clone()),
-                    sql_middleware::middleware::RowValues::Text(detail.golfer_name.clone()),
-                ]
-            ).await;
+        //     let result = conn.execute_select(
+        //         &query, 
+        //         &[
+        //             sql_middleware::middleware::RowValues::Int(event_db_id),
+        //             sql_middleware::middleware::RowValues::Text(detail.bettor_name.clone()),
+        //             sql_middleware::middleware::RowValues::Text(detail.golfer_name.clone()),
+        //         ]
+        //     ).await;
             
-            // If we found an eup_id, insert statistics
-            if let Ok(res) = result {
-                if !res.results.is_empty() {
-                    if let Some(eup_id) = res.results[0].get("eup_id").and_then(|v| v.as_int()) {
-                        // Insert dummy statistics
-                        let rounds_json = serde_json::to_string(&detail.rounds)?;
-                        let round_scores_json = serde_json::to_string(&detail.scores)?;
-                        let tee_times_json = "[]"; // Empty for simplicity
-                        let holes_completed_json = "[]"; // Empty for simplicity
-                        let line_scores_json = "[]"; // Empty for simplicity
+        //     // If we found an eup_id, insert statistics
+        //     if let Ok(res) = result {
+        //         if !res.results.is_empty() {
+        //             if let Some(eup_id) = res.results[0].get("eup_id").and_then(|v| v.as_int()) {
+        //                 // Insert dummy statistics
+        //                 let rounds_json = serde_json::to_string(&detail.rounds)?;
+        //                 let round_scores_json = serde_json::to_string(&detail.scores)?;
+        //                 let tee_times_json = "[]"; // Empty for simplicity
+        //                 let holes_completed_json = "[]"; // Empty for simplicity
+        //                 let line_scores_json = "[]"; // Empty for simplicity
                         
-                        let query = "
-                            INSERT INTO eup_statistic 
-                            (event_espn_id, golfer_espn_id, eup_id, grp, rounds, round_scores, 
-                            tee_times, holes_completed_by_round, line_scores, total_score)
-                            VALUES (?, 1, ?, 1, ?, ?, ?, ?, ?, ?)
-                        ";
+        //                 let query = "
+        //                     INSERT INTO eup_statistic 
+        //                     (event_espn_id, golfer_espn_id, eup_id, grp, rounds, round_scores, 
+        //                     tee_times, holes_completed_by_round, line_scores, total_score)
+        //                     VALUES (?, 1, ?, 1, ?, ?, ?, ?, ?, ?)
+        //                 ";
                         
-                        let total_score: i32 = detail.scores.iter().sum();
+        //                 let total_score: i32 = detail.scores.iter().sum();
                         
-                        let _ = conn.execute_dml(
-                            query,
-                            &[
-                                sql_middleware::middleware::RowValues::Int(event_id.into()),
-                                sql_middleware::middleware::RowValues::Int(*eup_id),
-                                sql_middleware::middleware::RowValues::Text(rounds_json),
-                                sql_middleware::middleware::RowValues::Text(round_scores_json),
-                                sql_middleware::middleware::RowValues::Text(tee_times_json.to_string()),
-                                sql_middleware::middleware::RowValues::Text(holes_completed_json.to_string()),
-                                sql_middleware::middleware::RowValues::Text(line_scores_json.to_string()),
-                                sql_middleware::middleware::RowValues::Int(total_score.into()),
-                            ]
-                        ).await;
-                    }
-                }
-            }
-        }
+        //                 let _ = conn.execute_dml(
+        //                     query,
+        //                     &[
+        //                         sql_middleware::middleware::RowValues::Int(event_id.into()),
+        //                         sql_middleware::middleware::RowValues::Int(*eup_id),
+        //                         sql_middleware::middleware::RowValues::Text(rounds_json),
+        //                         sql_middleware::middleware::RowValues::Text(round_scores_json),
+        //                         sql_middleware::middleware::RowValues::Text(tee_times_json.to_string()),
+        //                         sql_middleware::middleware::RowValues::Text(holes_completed_json.to_string()),
+        //                         sql_middleware::middleware::RowValues::Text(line_scores_json.to_string()),
+        //                         sql_middleware::middleware::RowValues::Int(total_score.into()),
+        //                     ]
+        //                 ).await;
+        //             }
+        //         }
+        //     }
+        // }
         
         // Now render the template (data will be pulled from the DB)
         let html_output = test_render_template(
@@ -270,7 +270,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|v| *v)
                 .expect("Could not get count of event_user_player entries with step factors");
                 
-            assert!(count > 0, "Expected event 401703504 to have event_user_player entries with step factors");
+            assert!(count == 15, "Expected event 401703504 to have event_user_player entries with step factors");
             
             // Let's verify at least one specific step factor value
             let query = "SELECT b.name as bettorname, eup.score_view_step_factor 
