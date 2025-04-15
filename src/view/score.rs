@@ -172,9 +172,13 @@ async fn preprocess_golfer_data(
 ) -> Result<BTreeMap<String, Vec<GolferBars>>, Box<dyn std::error::Error>> {
     let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
 
-    let step_factor = get_title_and_score_view_conf_from_db(config_and_pool, event_id)
+    // Get the global step factor for the event
+    let global_step_factor = get_title_and_score_view_conf_from_db(config_and_pool, event_id)
         .await?
         .score_view_step_factor;
+        
+    // Get per-player step factors if available
+    let player_step_factors = crate::model::get_player_step_factors(config_and_pool, event_id).await?;
 
     // println!("{}",serde_json::to_string_pretty( &detailed_scores  ).unwrap());
     // println!("{}",serde_json::to_string_pretty(&summary_scores_x).unwrap());
@@ -186,9 +190,26 @@ async fn preprocess_golfer_data(
             .enumerate()
             .map(|(golfer_idx, golfer)| {
                 let short_name = short_golfer_name(&golfer.golfer_name);
-
                 let total_score: isize = golfer.scores.iter().map(|&x| x as isize).sum();
-
+                
+                // Try to find if this golfer has a specific step factor
+                // We need to look up by golfer name to find a matching ESPN ID
+                // First, get the full name mappings to ESPN IDs
+                let mut found_step_factor = None;
+                
+                // Try to find ESPN ID for this golfer to look up player-specific step factor
+                for (key, value) in &player_step_factors {
+                    let (_espn_id, bettor_name) = key;
+                    if bettor_name == &golfer.bettor_name {
+                        // If we find a match, use the player-specific step factor
+                        found_step_factor = Some(*value);
+                        break;
+                    }
+                }
+                
+                // Use player-specific step factor if found, otherwise use global step factor
+                let step_factor = found_step_factor.unwrap_or(global_step_factor);
+                
                 // Calculate bars
                 let mut bars: Vec<Bar> = Vec::new();
                 let mut cumulative_left = 0.0;

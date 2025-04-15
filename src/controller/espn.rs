@@ -340,6 +340,7 @@ async fn go_get_espn_data(
                         bettor_name: active_golfer.bettor_name.clone(),
                         group: active_golfer.group,
                         espn_id: active_golfer.espn_id,
+                        score_view_step_factor: active_golfer.score_view_step_factor,
                     }
                 })
         })

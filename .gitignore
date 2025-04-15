@@ -11,3 +11,5 @@ xxx-wal
 sql-middleware
 tests/test6/debug/actual_output.html
 tests/test6/debug/output.html
+tests/test7/debug_401580355/actual_output.html
+tests/test7/debug_401703504/actual_output.html

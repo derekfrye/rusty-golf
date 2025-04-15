@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS event_user_player (
     golfer_id INTEGER NOT NULL REFERENCES golfer(golfer_id),
     last_refresh_ts DATETIME,
     ins_ts DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    score_view_step_factor REAL DEFAULT 3.0,
 
     UNIQUE (event_id, user_id, golfer_id)
     );

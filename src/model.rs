@@ -33,6 +33,7 @@ pub struct Scores {
     pub bettor_name: String,
     pub detailed_statistics: Statistic,
     pub group: i64,
+    pub score_view_step_factor: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -392,10 +393,51 @@ pub async fn get_golfers_from_db(
                 line_scores: vec![],
                 total_score: 0,
             },
+            score_view_step_factor: None,
         })
         .collect();
 
     Ok(scores)
+}
+
+pub async fn get_player_step_factors(
+    config_and_pool: &ConfigAndPool,
+    event_id: i32,
+) -> Result<HashMap<(i64, String), f32>, SqlMiddlewareDbError> {
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
+    
+    // We'll use the same SQL query as get_scores_from_db, but we only care about
+    // the golfer_espn_id, bettorname, and score_view_step_factor fields
+    let query = include_str!("admin/model/sql/functions/sqlite/03_sp_get_scores.sql");
+    
+    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
+    
+    // Create a map of (golfer_espn_id, bettor_name) -> score_view_step_factor
+    let step_factors: HashMap<(i64, String), f32> = query_result
+        .results
+        .iter()
+        .filter_map(|row| {
+            let golfer_espn_id = row
+                .get("golfer_espn_id")
+                .and_then(|v| v.as_int())
+                .copied()?;
+                
+            let bettor_name = row
+                .get("bettorname")
+                .and_then(|v| v.as_text())?
+                .to_string();
+                
+            let step_factor = row
+                .get("score_view_step_factor")
+                .and_then(|v| v.as_float())
+                .map(|v| v as f32)?;
+                
+            Some(((golfer_espn_id, bettor_name), step_factor))
+        })
+        .collect();
+        
+    Ok(step_factors)
 }
 
 pub struct EventTitleAndScoreViewConf {
@@ -574,6 +616,10 @@ pub async fn get_scores_from_db(
                         .map(|v| *v as i32)
                         .unwrap_or_default(),
                 },
+                score_view_step_factor: row
+                    .get("score_view_step_factor")
+                    .and_then(|v| v.as_float())
+                    .map(|v| v as f32),
             })
         })
         .collect::<Result<Vec<Scores>, SqlMiddlewareDbError>>();

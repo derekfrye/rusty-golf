@@ -161,22 +161,7 @@ pub async fn db_prefill(
                                                 .as_array()
                                                 .unwrap();
                                             for event_user_player in event_user_player {
-                                                let query_and_params_vec = QueryAndParams {
-                                                    query: {
-                                                        let mut query =
-                                                            "INSERT INTO event_user_player (event_id, user_id, golfer_id)".to_string();
-                                                        query.push_str(
-                                                            " select (select event_id from event where espn_id = ?1),"
-                                                        );
-                                                        query.push_str(
-                                                            "(select user_id from bettor where name = ?2),"
-                                                        );
-                                                        query.push_str(
-                                                            "(select golfer_id from golfer where espn_id = ?3);"
-                                                        );
-                                                        query
-                                                    },
-                                                    params: vec![
+                                                let mut params = vec![
                                                         RowValues::Int(
                                                             datum["event"].as_i64().unwrap()
                                                         ),
@@ -191,7 +176,33 @@ pub async fn db_prefill(
                                                                 .as_i64()
                                                                 .unwrap()
                                                         )
-                                                    ],
+                                                    ];
+                                                    
+                                                let mut query_columns = "(event_id, user_id, golfer_id".to_string();
+                                                let mut query_values = " select (select event_id from event where espn_id = ?1),".to_string();
+                                                query_values.push_str("(select user_id from bettor where name = ?2),");
+                                                query_values.push_str("(select golfer_id from golfer where espn_id = ?3)");
+                                                
+                                                // Check if score_view_step_factor is present in JSON
+                                                if event_user_player.get("score_view_step_factor").is_some() {
+                                                    query_columns.push_str(", score_view_step_factor");
+                                                    query_values.push_str(", ?4");
+                                                    params.push(RowValues::Float(
+                                                        event_user_player["score_view_step_factor"]
+                                                            .as_f64()
+                                                            .unwrap()
+                                                    ));
+                                                } else {
+                                                    query_columns.push_str(", score_view_step_factor");
+                                                    query_values.push_str(", NULL");
+                                                }
+                                                
+                                                query_columns.push_str(")");
+                                                query_values.push_str(";");
+                                                
+                                                let query_and_params_vec = QueryAndParams {
+                                                    query: format!("INSERT INTO event_user_player {}{}", query_columns, query_values),
+                                                    params,
                                                 };
                                                 let converted_params =
                                                     convert_sql_params::<SqliteParamsExecute>(
