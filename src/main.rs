@@ -3,7 +3,7 @@ use deadpool_postgres::{ ManagerConfig, RecyclingMethod };
 use rusty_golf::admin::router;
 use rusty_golf::args;
 use rusty_golf::controller::{ db_prefill, score::scores };
-use rusty_golf::model::get_title_and_score_view_conf_from_db;
+use rusty_golf::model::get_event_details;
 use sql_middleware::middleware::{
     ConfigAndPool,
     DatabaseType,
@@ -117,7 +117,7 @@ async fn index(
 
     let title = match event_str.parse() {
         Ok(id) =>
-            match get_title_and_score_view_conf_from_db(&config_and_pool, id).await {
+            match get_event_details(&config_and_pool, id).await {
                 Ok(event_config) => event_config.event_name,
                 Err(e) => {
                     eprintln!("Error: {}", e);

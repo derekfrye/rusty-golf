@@ -1,11 +1,11 @@
-use crate::args::CleanArgs;
 use actix_web::web::{self, Data};
 use actix_web::{HttpResponse, Responder};
 use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model::{self, DetailedScore, SummaryDetailedScores, format_time_ago_for_score_view};
+// Import the renamed function
+use crate::model::{self, get_event_details, DetailedScore, SummaryDetailedScores, format_time_ago_for_score_view};
 use crate::model::{AllBettorScoresByRound, BettorScoreByRound, Bettors, ScoreData, Scores};
 use crate::view::score::render_scores_template;
 use std::collections::{BTreeMap, HashMap};
@@ -13,13 +13,8 @@ use std::collections::{BTreeMap, HashMap};
 pub async fn scores(
     query: web::Query<HashMap<String, String>>,
     abc: Data<ConfigAndPool>,
-    args: Data<CleanArgs>,
 ) -> impl Responder {
-    // let db = Db::new(abc.get_ref().clone()).unwrap();
     let config_and_pool = abc.get_ref().clone();
-    let clean_args = args.get_ref().clone();
-    // let pool = abc.get_ref().clone().pool.get().await.unwrap();
-    // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
     let event_str = query
         .get("event")
@@ -67,21 +62,15 @@ pub async fn scores(
         other => other.parse().unwrap_or(false), // Default to false
     };
 
-    // Parse cache_max_age parameter with better error handling and default values
-    let cache_max_age: i64 = query
-        .get("cache_max_age")
-        .and_then(|value| value.trim().parse::<i64>().ok())
-        .unwrap_or_else(|| {
-            // Use the configured value if available, otherwise default to 0
-            // value of zero means we'll always read from db
-            clean_args.dont_poll_espn_after_num_days.unwrap_or(0)
-        });
-
-    // let mut cfg = deadpool_postgres::Config::new();
-    // let dbcn: ConfigAndPoolOld;
-    // cfg.dbname = Some("xxx".to_string());
-    // dbcn = ConfigAndPoolOld::new(cfg, DatabaseType::Sqlite).await;
-    // let db = Db::new(dbcn.clone()).unwrap();
+    // Determine cache_max_age based on refresh_from_espn flag from the database
+    let cache_max_age: i64 = match get_event_details(&config_and_pool, event_id).await {
+        Ok(event_details) => match event_details.refresh_from_espn {
+            1 => 0,  // Refresh from ESPN requested, set cache age to 0
+            0 => 99, // Do not refresh from ESPN, set cache age to 99
+            _ => 0,  // Any other value, default to refreshing (cache age 0)
+        },
+        Err(_) => 0, // If error fetching details, default to refreshing (cache age 0)
+    };
 
     let total_cache =
         get_data_for_scores_page(event_id, year, cache, &config_and_pool, cache_max_age).await;
@@ -116,7 +105,6 @@ pub async fn get_data_for_scores_page(
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
     let active_golfers = model::get_golfers_from_db(config_and_pool, event_id).await?;
 
-    // let start_time = Instant::now();
     let golfers_and_scores = fetch_scores_from_espn(
         active_golfers.clone(),
         year,
@@ -161,11 +149,6 @@ pub async fn get_data_for_scores_page(
         };
     }
 
-    // let time_since = start_time.elapsed();
-    // let minutes = time_since.as_secs() / 60;
-    // let seconds = time_since.as_secs() % 60;
-    // let time_string = format!("{}m, {}s", minutes, seconds);
-
     let x = chrono::Utc::now().naive_utc() - golfers_and_scores.last_refresh;
 
     let total_cache = ScoreData {
@@ -174,16 +157,6 @@ pub async fn get_data_for_scores_page(
         last_refresh: format_time_ago_for_score_view(x),
         last_refresh_source: golfers_and_scores.last_refresh_source,
     };
-
-    // let key = format!("{}{}", event_id, year);
-    // let mut cache = cache_map.write().await;
-    // cache.insert(
-    //     key,
-    //     Cache {
-    //         data: Some(total_cache.clone()),
-    //         cached_time: chrono::Utc::now().to_rfc3339(),
-    //     },
-    // );
 
     Ok(total_cache)
 }
@@ -210,24 +183,16 @@ fn sort_scores(grouped_scores: HashMap<usize, Vec<Scores>>) -> Vec<(usize, Vec<S
 }
 
 pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRound {
-    // key = bettor, value = hashmap of rounds and the corresponding score
     let mut rounds_by_bettor_storing_score_val: HashMap<String, Vec<(isize, isize)>> =
         HashMap::new();
 
-    // Accumulate scores by bettor and round
     for score in scores {
         let bettor_name = &score.bettor_name;
 
-        // for debug watching
-        // let golfers_name = &score.golfer_name;
-        // let _ = golfers_name.len();
-
         for (round_idx, round_score) in score.detailed_statistics.round_scores.iter().enumerate() {
-            // Get or create the vector of scores for this bettor without cloning
             let a_single_bettors_scores = rounds_by_bettor_storing_score_val
                 .entry(bettor_name.to_string())
                 .or_default();
-            // Convert round_idx to isize safely, defaulting to 0 if conversion fails
             let round_idx_isize = match isize::try_from(round_idx) {
                 Ok(val) => val,
                 Err(_) => {
@@ -247,7 +212,6 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
     };
     let mut bettor_names: Vec<String> = Vec::new();
 
-    // Preserves order of bettors
     for score in scores {
         let bettor_name = &score.bettor_name;
         if rounds_by_bettor_storing_score_val.contains_key(bettor_name)
@@ -257,8 +221,6 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
         }
     }
 
-    // Preserves order of bettors
-    // this actually just needs to sum all the scores where the rounds are 0, store that val, sum all scores where rounds are 1, store that value, etc
     for bettor_name in &bettor_names {
         if rounds_by_bettor_storing_score_val.contains_key(bettor_name) {
             let res1 = rounds_by_bettor_storing_score_val
@@ -289,37 +251,30 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
 }
 
 pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
-    // Nested HashMap: bettor -> golfer -> round -> accumulated score
     let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
     
-    // Map to keep track of ESPN IDs: (bettor_name, golfer_name) -> espn_id
     let mut espn_id_map: HashMap<(String, String), i64> = HashMap::new();
 
-    // To preserve the order of bettors and golfers as they appear in the input
     let mut bettor_order: Vec<String> = Vec::new();
     let mut golfer_order_map: HashMap<String, Vec<String>> = HashMap::new();
 
-    // Accumulate scores by bettor, golfer, and round
     for score in scores {
         let bettor_name = &score.bettor_name;
         let golfer_name = &score.golfer_name;
 
-        // Track the order of bettors
         if !bettor_order.contains(bettor_name) {
             bettor_order.push(bettor_name.clone());
         }
 
-        // Track the order of golfers per bettor
         golfer_order_map
             .entry(bettor_name.clone())
             .or_default()
             .push(golfer_name.clone());
             
-        // Store the ESPN ID mapping
         espn_id_map.insert((bettor_name.clone(), golfer_name.clone()), score.espn_id);
 
         for (round_idx, score) in score.detailed_statistics.round_scores.iter().enumerate() {
-            let round_val = (round_idx as i32) + 1; // Assuming rounds start at 1
+            let round_val = (round_idx as i32) + 1;
             let round_score = score.val;
 
             scores_map
@@ -335,13 +290,11 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
         }
     }
 
-    // Remove duplicate golfers while preserving order
     for golfers in golfer_order_map.values_mut() {
         let mut seen = HashMap::new();
         golfers.retain(|golfer| seen.insert(golfer.clone(), ()).is_none());
     }
 
-    // Build the summary scores
     let mut summary_scores = SummaryDetailedScores {
         detailed_scores: Vec::new(),
     };
@@ -357,7 +310,6 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
 
                         let (round_numbers, round_scores): (Vec<i32>, Vec<i32>) = rounds.iter().cloned().unzip();
 
-                        // Get the ESPN ID from our map
                         let golfer_espn_id = espn_id_map
                             .get(&(bettor_name.clone(), golfer_name.clone()))
                             .copied()

@@ -103,7 +103,7 @@ async fn go_get_espn_data(
 
         // Split the scores into 4 roughly equal groups
         let num_scores = scores.len();
-        let group_size = (num_scores + 3) / 4;
+        let group_size = num_scores.div_ceil(4);
 
         // Create a vector to hold our futures
         let mut futures = Vec::with_capacity(4);

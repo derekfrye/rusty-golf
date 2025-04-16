@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::get_title_and_score_view_conf_from_db;
+use crate::get_event_details;
 use crate::model::{
     AllBettorScoresByRound,
     DetailedScore,
@@ -190,7 +190,7 @@ async fn preprocess_golfer_data(
     let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
 
     // Get the global step factor for the event
-    let global_step_factor = get_title_and_score_view_conf_from_db(
+    let global_step_factor = get_event_details(
         config_and_pool,
         event_id
     ).await?.score_view_step_factor;
@@ -456,8 +456,8 @@ pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshDat
                                         @let row_class = if is_latest_round { "topheader" } else { "topheader hidden" };
 
 
-                                        @if golfer.tee_times.len() >= (*rd - 1) as usize {
-                                            @let a = &golfer.tee_times[(*rd - 1) as usize].val;
+                                        @if golfer.tee_times.len() >= (*rd - 1) {
+                                            @let a = &golfer.tee_times[*rd - 1].val;
                                             @let b = if a.ends_with("am") || a.ends_with("pm") {
                                                 take_a_char_off(a)
                                             } else {
