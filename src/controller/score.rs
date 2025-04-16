@@ -291,6 +291,9 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
 pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
     // Nested HashMap: bettor -> golfer -> round -> accumulated score
     let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
+    
+    // Map to keep track of ESPN IDs: (bettor_name, golfer_name) -> espn_id
+    let mut espn_id_map: HashMap<(String, String), i64> = HashMap::new();
 
     // To preserve the order of bettors and golfers as they appear in the input
     let mut bettor_order: Vec<String> = Vec::new();
@@ -311,6 +314,9 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
             .entry(bettor_name.clone())
             .or_default()
             .push(golfer_name.clone());
+            
+        // Store the ESPN ID mapping
+        espn_id_map.insert((bettor_name.clone(), golfer_name.clone()), score.espn_id);
 
         for (round_idx, score) in score.detailed_statistics.round_scores.iter().enumerate() {
             let round_val = (round_idx as i32) + 1; // Assuming rounds start at 1
@@ -349,13 +355,20 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
                             rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
                         rounds.sort_by_key(|&(round, _)| round);
 
-                        let (round_numbers, scores) = rounds.iter().cloned().unzip();
+                        let (round_numbers, round_scores): (Vec<i32>, Vec<i32>) = rounds.iter().cloned().unzip();
 
+                        // Get the ESPN ID from our map
+                        let golfer_espn_id = espn_id_map
+                            .get(&(bettor_name.clone(), golfer_name.clone()))
+                            .copied()
+                            .unwrap_or(0);
+                        
                         summary_scores.detailed_scores.push(DetailedScore {
                             bettor_name: bettor_name.clone(),
                             golfer_name: golfer_name.clone(),
+                            golfer_espn_id,
                             rounds: round_numbers,
-                            scores,
+                            scores: round_scores,
                         });
                     }
                 }

@@ -197,14 +197,10 @@ async fn preprocess_golfer_data(
                 // First, get the full name mappings to ESPN IDs
                 let mut found_step_factor = None;
                 
-                // Try to find ESPN ID for this golfer to look up player-specific step factor
-                for (key, value) in &player_step_factors {
-                    let (_espn_id, bettor_name) = key;
-                    if bettor_name == &golfer.bettor_name {
-                        // If we find a match, use the player-specific step factor
-                        found_step_factor = Some(*value);
-                        break;
-                    }
+                // Use the golfer_espn_id to find the matching player-specific step factor
+                if let Some(value) = player_step_factors.get(&(golfer.golfer_espn_id, golfer.bettor_name.clone())) {
+                    // If we find a match, use the player-specific step factor
+                    found_step_factor = Some(*value);
                 }
                 
                 // Use player-specific step factor if found, otherwise use global step factor
@@ -430,8 +426,8 @@ pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshDat
 
                                     @for rd in unique_rounds.iter().take(2) {
 
-                                        @let is_round_one = *rd == 1;
-                                        @let row_class = if is_round_one { "linescore-round-button selected" } else { "linescore-round-button" };
+                                        @let is_latest_round = rd == unique_rounds.last().unwrap();
+                                        @let row_class = if is_latest_round { "linescore-round-button selected" } else { "linescore-round-button" };
 
                                         button class=(row_class) data-round=(rd) {
                                             "R" (rd)
@@ -445,11 +441,11 @@ pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshDat
                                 th class="topheader"  {
                                     @for rd in unique_rounds.iter() {
 
-                                        @let is_round_one = *rd == 1;
-                                        @let row_class = if is_round_one { "topheader" } else { "topheader hidden" };
+                                        @let is_latest_round = rd == unique_rounds.last().unwrap();
+                                        @let row_class = if is_latest_round { "topheader" } else { "topheader hidden" };
 
 
-                                        @if golfer.tee_times.len() > (*rd - 1) as usize {
+                                        @if golfer.tee_times.len() >= (*rd - 1) as usize {
                                             @let a = &golfer.tee_times[(*rd - 1) as usize].val;
                                             @let b = if a.ends_with("am") || a.ends_with("pm") {
                                                 take_a_char_off(a)

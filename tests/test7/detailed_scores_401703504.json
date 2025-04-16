@@ -9,7 +9,8 @@
     "scores": [
       -4,
       0
-    ]
+    ],
+    "golfer_espn_id": 2001
   },
   {
     "bettor_name": "Player1",
@@ -21,7 +22,8 @@
     "scores": [
       0,
       0
-    ]
+    ],
+    "golfer_espn_id": 2002
   },
   {
     "bettor_name": "Player1",
@@ -33,7 +35,8 @@
     "scores": [
       -1,
       0
-    ]
+    ],
+    "golfer_espn_id": 2003
   },
   {
     "bettor_name": "Player2",
@@ -45,7 +48,8 @@
     "scores": [
       -1,
       0
-    ]
+    ],
+    "golfer_espn_id": 2004
   },
   {
     "bettor_name": "Player2",
@@ -57,7 +61,8 @@
     "scores": [
       1,
       0
-    ]
+    ],
+    "golfer_espn_id": 2005
   },
   {
     "bettor_name": "Player2",
@@ -69,7 +74,8 @@
     "scores": [
       -1,
       0
-    ]
+    ],
+    "golfer_espn_id": 2006
   },
   {
     "bettor_name": "Player3",
@@ -81,11 +87,12 @@
     "scores": [
       -2,
       0
-    ]
+    ],
+    "golfer_espn_id": 2007
   },
   {
     "bettor_name": "Player3",
-    "golfer_name": "Ludvig Åberg",
+    "golfer_name": "Ludvig \u00c5berg",
     "rounds": [
       1,
       2
@@ -93,7 +100,8 @@
     "scores": [
       0,
       0
-    ]
+    ],
+    "golfer_espn_id": 2008
   },
   {
     "bettor_name": "Player3",
@@ -105,7 +113,8 @@
     "scores": [
       2,
       0
-    ]
+    ],
+    "golfer_espn_id": 2009
   },
   {
     "bettor_name": "Player4",
@@ -117,7 +126,8 @@
     "scores": [
       3,
       0
-    ]
+    ],
+    "golfer_espn_id": 2010
   },
   {
     "bettor_name": "Player4",
@@ -129,7 +139,8 @@
     "scores": [
       0,
       0
-    ]
+    ],
+    "golfer_espn_id": 2011
   },
   {
     "bettor_name": "Player4",
@@ -141,7 +152,8 @@
     "scores": [
       -2,
       0
-    ]
+    ],
+    "golfer_espn_id": 2012
   },
   {
     "bettor_name": "Player5",
@@ -153,7 +165,8 @@
     "scores": [
       0,
       0
-    ]
+    ],
+    "golfer_espn_id": 2013
   },
   {
     "bettor_name": "Player5",
@@ -165,7 +178,8 @@
     "scores": [
       2,
       0
-    ]
+    ],
+    "golfer_espn_id": 2014
   },
   {
     "bettor_name": "Player5",
@@ -177,6 +191,7 @@
     "scores": [
       2,
       0
-    ]
+    ],
+    "golfer_espn_id": 2015
   }
 ]

@@ -526,77 +526,77 @@
                     {
                         "bettor": "Player1",
                         "golfer_espn_id": 9478,
-                        "score_view_step_factor": 1
+                        "score_view_step_factor": 7
                     },
                     {
                         "bettor": "Player2",
                         "golfer_espn_id": 10046,
-                        "score_view_step_factor": 2
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player3",
                         "golfer_espn_id": 3470,
-                        "score_view_step_factor": 3
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player4",
                         "golfer_espn_id": 6798,
-                        "score_view_step_factor": 5
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player5",
                         "golfer_espn_id": 10140,
-                        "score_view_step_factor": 4
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player5",
                         "golfer_espn_id": 9780,
-                        "score_view_step_factor": 4
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player4",
                         "golfer_espn_id": 4364873,
-                        "score_view_step_factor": 5
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player3",
                         "golfer_espn_id": 4375972,
-                        "score_view_step_factor": 3
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player2",
                         "golfer_espn_id": 4848,
-                        "score_view_step_factor": 2
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player1",
                         "golfer_espn_id": 10592,
-                        "score_view_step_factor": 1
+                        "score_view_step_factor": 7
                     },
                     {
                         "bettor": "Player1",
                         "golfer_espn_id": 4410932,
-                        "score_view_step_factor": 1
+                        "score_view_step_factor": 7
                     },
                     {
                         "bettor": "Player2",
                         "golfer_espn_id": 5860,
-                        "score_view_step_factor": 2
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player3",
                         "golfer_espn_id": 8961,
-                        "score_view_step_factor": 3
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player4",
                         "golfer_espn_id": 1680,
-                        "score_view_step_factor": 5
+                        "score_view_step_factor": 4.5
                     },
                     {
                         "bettor": "Player5",
                         "golfer_espn_id": 9877,
-                        "score_view_step_factor": 4
+                        "score_view_step_factor": 4.5
                     }
                 ]
             }

@@ -1,6 +1,6 @@
 [package]
 name = "rusty-golf"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 
 [dependencies]
@@ -21,6 +21,7 @@ deadpool-postgres = "0"
 sql-middleware = "0"
 clap = { version = "4", features = ["derive"] }
 futures = "0"
+scraper = "0.23.1"
 
 [dependencies.tokio-util]
 version = "0.7"

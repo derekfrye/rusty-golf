@@ -186,6 +186,7 @@ pub struct AllBettorScoresByRound {
 pub struct DetailedScore {
     pub bettor_name: String,
     pub golfer_name: String,
+    pub golfer_espn_id: i64,
     pub rounds: Vec<i32>,
     pub scores: Vec<i32>,
 }
