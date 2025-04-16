@@ -369,7 +369,8 @@ pub async fn get_golfers_from_db(
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
-        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
+        } 
+        // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
 
     // Use the helper function to execute the query
