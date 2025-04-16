@@ -99,8 +99,6 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
         }
     })?;
 
-    // let x = chrono::Utc::now().naive_utc() - score_data.last_refresh;
-    //     last_refresh: format!("{}m, {}s", x.num_minutes(), x.num_seconds()),
     if cfg!(debug_assertions) {
         println!("last_refresh: {}", score_data.last_refresh);
     }
