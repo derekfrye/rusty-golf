@@ -217,12 +217,6 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     // STEP 1: Verify that the score_view_step_factor is set correctly in the database
     let pool = config_and_pool.pool.get().await?;
     let mut conn = MiddlewarePool::get_connection(pool).await?;
-    
-    // Set refresh_from_espn to a valid value (0 or 1)
-    let update_query = "UPDATE event SET refresh_from_espn = 1 WHERE espn_id = ?1;";
-    conn.execute_dml(update_query, &[sql_middleware::middleware::RowValues::Int(event_id.into())]).await?;
-    
-    // Now query for score_view_step_factor
     let query = "SELECT score_view_step_factor FROM event WHERE espn_id = ?1;";
     let result = conn.execute_select(query, &[sql_middleware::middleware::RowValues::Int(event_id.into())]).await?;
     
@@ -260,7 +254,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     // based on score_view_step_factor (4.5)
 
     // STEP 6: Get the factor that should be used by preprocess_golfer_data
-    let config = rusty_golf::model::get_event_details(&config_and_pool, event_id).await?;
+    let config = rusty_golf::model::get_title_and_score_view_conf_from_db(&config_and_pool, event_id).await?;
     assert_eq!(config.score_view_step_factor, 4.5, "score_view_step_factor should be 4.5");
     
     // STEP 7: Test that the HTML contains bars with widths proportional to scores * step_factor
@@ -333,7 +327,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
                                 );
                                 
                                 // Instead of matching scores directly, extract and verify the pattern
-                                for bar in bars.iter() {
+                                for (_i, bar) in bars.iter().enumerate() {
                                     // Get the actual width and score from the bar
                                     if let Some(style) = bar.value().attr("style") {
                                         if let Some(width_str) = style.split("width:").nth(1).and_then(|s| s.split(';').next()) {

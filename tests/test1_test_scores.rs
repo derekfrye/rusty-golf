@@ -38,6 +38,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         db_startup_script: None,
         combined_sql_script: "".to_string(),
         db_populate_json: None,
+        dont_poll_espn_after_num_days: None,
     };
 
     let config_and_pool = ConfigAndPool::new_sqlite(x).await.unwrap();

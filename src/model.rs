@@ -299,7 +299,7 @@ fn get_last_timestamp(
     results
         .iter()
         .filter_map(|row| row.get("ins_ts").and_then(|v| v.as_timestamp()))
-        .next_back()
+        .last()
         .unwrap_or_else(|| chrono::Utc::now().naive_utc())
 }
 
@@ -369,8 +369,7 @@ pub async fn get_golfers_from_db(
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
-        } 
-        // &MiddlewarePoolConnection::Mssql(_) => todo!()
+        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
 
     // Use the helper function to execute the query
@@ -445,11 +444,9 @@ pub async fn get_player_step_factors(
 pub struct EventTitleAndScoreViewConf {
     pub event_name: String,
     pub score_view_step_factor: f32,
-    pub refresh_from_espn: i64, // Added field
 }
 
-// Renamed function
-pub async fn get_event_details(
+pub async fn get_title_and_score_view_conf_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<EventTitleAndScoreViewConf, SqlMiddlewareDbError> {
@@ -461,7 +458,7 @@ pub async fn get_event_details(
             "SELECT EXISTS(SELECT 1 FROM event WHERE event_id = $1)"
         }
         MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_details.sql")
+            include_str!("admin/model/sql/functions/sqlite/01_sp_get_event_name.sql")
         } // &MiddlewarePoolConnection::Mssql(_) => todo!()
     };
     let query_and_params = QueryAndParams2 {
@@ -494,7 +491,7 @@ pub async fn get_event_details(
         ))),
     })?;
 
-    let final_results = res?
+    let z = res?
         .results
         .iter()
         .map(|row| {
@@ -511,83 +508,12 @@ pub async fn get_event_details(
                     .ok_or(SqlMiddlewareDbError::Other(
                         "Score view step factor not found".to_string(),
                     ))?,
-                // Populate the new field
-                refresh_from_espn: row
-                    .get("refresh_from_espn") // Assuming this column name
-                    .and_then(|v| v.as_int())
-                    .copied()
-                    .ok_or(SqlMiddlewareDbError::Other(
-                        "Refresh from ESPN flag not found".to_string(),
-                    ))?,
             })
         })
-        .next_back()
+        .last()
         .unwrap_or_else(|| Err(SqlMiddlewareDbError::Other("No results found".to_string())));
 
-    final_results
-}
-
-// Renamed function call in event_and_scores_already_in_db
-pub async fn event_and_scores_already_in_db(
-    config_and_pool: &ConfigAndPool,
-    event_id: i32,
-    cache_max_age: i64,
-) -> Result<bool, SqlMiddlewareDbError> {
-    // Check if the event is set up in the database
-    // Updated function call
-    if get_event_details(config_and_pool, event_id)
-        .await
-        .is_err()
-    {
-        // If error, the event isn't setup, so we need to retrieve from ESPN
-        return Ok(false);
-    }
-
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
-    let query = match &conn {
-        MiddlewarePoolConnection::Postgres(_) => {
-            "SELECT min(ins_ts) as ins_ts FROM eup_statistic WHERE event_espn_id = $1;"
-        }
-        MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!(
-                "admin/model/sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
-            )
-        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
-    };
-
-    // Use the helper function to execute the query
-    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
-
-    if let Some(results) = query_result.results.first() {
-        let now = chrono::Utc::now().naive_utc();
-        let val = results.get("ins_ts").and_then(|v| v.as_timestamp());
-        if let Some(final_val) = val {
-            if cfg!(debug_assertions) {
-                #[allow(unused_variables)]
-                let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
-                let z_clone = final_val;
-                #[allow(unused_variables)]
-                let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
-                let diff = now.signed_duration_since(z_clone);
-                #[allow(unused_variables)]
-                let diff_days = diff.num_days();
-                #[allow(unused_variables)]
-                let pass = diff_days >= cache_max_age;
-                println!(
-                    "Now: {}, Last Refresh: {}, Diff: {} days, Pass: {}",
-                    now_human_readable_fmt, z_human_readable_fmt, diff_days, pass
-                );
-            }
-
-            let diff = now.signed_duration_since(final_val);
-            Ok(diff.num_days() >= cache_max_age)
-        } else {
-            Ok(false)
-        }
-    } else {
-        Ok(false)
-    }
+    z
 }
 
 pub async fn get_scores_from_db(
@@ -817,4 +743,65 @@ pub async fn store_scores_in_db(
         }
     }
     Ok(())
+}
+
+pub async fn event_and_scores_already_in_db(
+    config_and_pool: &ConfigAndPool,
+    event_id: i32,
+    cache_max_age: i64,
+) -> Result<bool, SqlMiddlewareDbError> {
+    // Check if the event is set up in the database
+    if get_title_and_score_view_conf_from_db(config_and_pool, event_id)
+        .await
+        .is_err()
+    {
+        // If error, the event isn't setup, so we need to retrieve from ESPN
+        return Ok(false);
+    }
+
+    let pool = config_and_pool.pool.get().await?;
+    let conn = MiddlewarePool::get_connection(pool).await?;
+    let query = match &conn {
+        MiddlewarePoolConnection::Postgres(_) => {
+            "SELECT min(ins_ts) as ins_ts FROM eup_statistic WHERE event_espn_id = $1;"
+        }
+        MiddlewarePoolConnection::Sqlite(_) => {
+            include_str!(
+                "admin/model/sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
+            )
+        } // &MiddlewarePoolConnection::Mssql(_) => todo!()
+    };
+
+    // Use the helper function to execute the query
+    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
+
+    if let Some(results) = query_result.results.first() {
+        let now = chrono::Utc::now().naive_utc();
+        let val = results.get("ins_ts").and_then(|v| v.as_timestamp());
+        if let Some(final_val) = val {
+            if cfg!(debug_assertions) {
+                #[allow(unused_variables)]
+                let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
+                let z_clone = final_val;
+                #[allow(unused_variables)]
+                let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
+                let diff = now.signed_duration_since(z_clone);
+                #[allow(unused_variables)]
+                let diff_days = diff.num_days();
+                #[allow(unused_variables)]
+                let pass = diff_days >= cache_max_age;
+                println!(
+                    "Now: {}, Last Refresh: {}, Diff: {} days, Pass: {}",
+                    now_human_readable_fmt, z_human_readable_fmt, diff_days, pass
+                );
+            }
+
+            let diff = now.signed_duration_since(final_val);
+            Ok(diff.num_days() >= cache_max_age)
+        } else {
+            Ok(false)
+        }
+    } else {
+        Ok(false)
+    }
 }

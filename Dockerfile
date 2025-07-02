@@ -1,28 +1,47 @@
-FROM rust:1.85.1
+# --- Builder stage ---
+FROM fedora:42 AS builder
 
-# Install tini
-# trunk-ignore(hadolint/DL3008)
-# trunk-ignore(hadolint/DL3015)
-RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user and switch to it
-# RUN useradd -m appuser
-# USER appuser
+# Install Rust, Cargo, and build dependencies
+RUN dnf -y update && \
+    dnf -y install rust cargo openssl-devel pkgconf gcc sqlite-devel sqlite && \
+    dnf clean all
 
 WORKDIR /usr/src/app
 
-# COPY sql-middleware /usr/src/sql-middleware
 COPY . .
+
+# Optional clean to reduce caching issues
 RUN cargo clean
-# trunk-ignore(hadolint/DL3059)
+
+# Build the release binary
 RUN cargo build --release
-# trunk-ignore(hadolint/DL3059)
-RUN cargo install --path .
+
+# --- Runtime stage ---
+FROM fedora:42
+
+# Install tini and runtime dependencies only
+RUN dnf -y install tini openssl curl && \
+    dnf clean all
+
+# Create a non-root user
+# RUN useradd -m -U appuser
+
+# WORKDIR /home/appuser
+
+# Copy the binary from the builder
+COPY --from=builder /usr/src/app/target/release/rusty-golf /usr/local/bin/rusty-golf
+
+# Set permissions
+# RUN chown appuser:appuser /usr/local/bin/rusty-golf
+
+# Drop privileges
+# USER appuser
 
 # Use tini as the init system
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Add HEALTHCHECK instruction
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:8081/health || exit 1
 
-CMD ["rusty-golf"]
+# Default command
+CMD ["/usr/local/bin/rusty-golf"]

@@ -1,20 +1,16 @@
 // extern crate no longer needed in Rust 2018+
-use deadpool_postgres::{ ManagerConfig, RecyclingMethod };
+use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::admin::router;
 use rusty_golf::args;
-use rusty_golf::controller::{ db_prefill, score::scores };
-use rusty_golf::model::get_event_details;
+use rusty_golf::controller::{db_prefill, score::scores};
+use rusty_golf::model::get_title_and_score_view_conf_from_db;
 use sql_middleware::middleware::{
-    ConfigAndPool,
-    DatabaseType,
-    MiddlewarePool,
-    MiddlewarePoolConnection,
-    QueryAndParams,
+    ConfigAndPool, DatabaseType, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams,
 };
 
 use actix_files::Files;
 use actix_web::web::Data;
-use actix_web::{ App, HttpResponse, HttpServer, Responder, web };
+use actix_web::{App, HttpResponse, HttpServer, Responder, web};
 use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 
@@ -47,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 config_and_pool = a;
             }
             Err(e) => {
-                eprintln!("Error: {}\nBacktrace: {:?}", e, std::backtrace::Backtrace::capture());
+                eprintln!("Error: {}", e);
                 std::process::exit(1);
             }
         }
@@ -83,7 +79,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(())
-                }).await?
+                })
+                .await?
             } // MiddlewarePoolConnection::Mssql(_) => todo!()
         })?;
     }
@@ -102,41 +99,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/health", web::get().to(HttpResponse::Ok))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
-        .bind("0.0.0.0:8081")?
-        .run().await?;
+    .bind("0.0.0.0:8081")?
+    .run()
+    .await?;
     Ok(())
 }
 
 async fn index(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>
+    abc: Data<ConfigAndPool>,
 ) -> impl Responder {
     // let db = Db::new(abc.get_ref().clone()).unwrap();
     let config_and_pool = abc.get_ref().clone();
     let event_str = query.get("event").unwrap_or(&String::new()).to_string();
 
     let title = match event_str.parse() {
-        Ok(id) =>
-            match get_event_details(&config_and_pool, id).await {
-                Ok(event_config) => event_config.event_name,
-                Err(e) => {
-                    eprintln!("Error: {}", e);
-                    "Scoreboard".to_string()
-                }
-            }
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            "Scoreboard".to_string()
-        }
+        Ok(id) => match get_title_and_score_view_conf_from_db(&config_and_pool, id).await {
+            Ok(event_config) => event_config.event_name,
+            Err(_) => "Scoreboard".to_string(),
+        },
+        Err(_) => "Scoreboard".to_string(),
     };
 
     let markup = rusty_golf::view::index::render_index_template(title);
-    HttpResponse::Ok().content_type("text/html").body(markup.into_string())
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(markup.into_string())
 }
 
 async fn admin(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>
+    abc: Data<ConfigAndPool>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // let db = Db::new(abc.get_ref().clone()).unwrap();
     let config_and_pool = abc.get_ref().clone();

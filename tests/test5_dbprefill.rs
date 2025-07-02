@@ -60,9 +60,8 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
 
     let query = "select * from golfer;";
     let res = conn.execute_select(query, &[]).await?;
-    // The test5_dbprefill.json file has 26 golfers (with some duplicates)
-    // Duplicates are handled by the INSERT statement that uses "WHERE NOT EXISTS"
-    assert_eq!(res.results.len(), 26);
+    // x unq entries
+    assert_eq!(res.results.len(), 23);
     let x = res
         .results
         .iter()

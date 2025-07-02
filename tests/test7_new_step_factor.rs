@@ -107,12 +107,6 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
         // STEP 1: Verify that the event has the correct global step factor
         let pool = config_and_pool.pool.get().await?;
         let mut conn = MiddlewarePool::get_connection(pool).await?;
-        
-        // Set refresh_from_espn to a valid value (0 or 1) for all events
-        let update_query = "UPDATE event SET refresh_from_espn = 1 WHERE espn_id = ?1;";
-        conn.execute_dml(update_query, &[sql_middleware::middleware::RowValues::Int(event_id.into())]).await?;
-        
-        // Now query for score_view_step_factor
         let query = "SELECT score_view_step_factor FROM event WHERE espn_id = ?1;";
         let result = conn.execute_select(query, &[sql_middleware::middleware::RowValues::Int(event_id.into())]).await?;
         
@@ -133,7 +127,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
             let count = result.results[0]
                 .get("count")
                 .and_then(|v| v.as_int())
-                .copied()
+                .map(|v| *v)
                 .expect("Could not get count of event_user_player entries");
                 
             assert!(count == 15, "Expected event 401703504 to have event_user_player entries with step factors");
@@ -146,7 +140,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
         let _event_db_id = result.results[0]
             .get("event_id")
             .and_then(|v| v.as_int())
-            .copied()
+            .map(|v| *v)
             .expect("Could not get event_id from database");
             
         // // Insert dummy statistics for the event
@@ -255,7 +249,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
             let count = result.results[0]
                 .get("count")
                 .and_then(|v| v.as_int())
-                .copied()
+                .map(|v| *v)
                 .expect("Could not get count of event_user_player entries with step factors");
                 
             assert_eq!(count, 0, "Expected event 401580355 to have no event_user_player entries with step factors");
@@ -273,7 +267,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
             let count = result.results[0]
                 .get("count")
                 .and_then(|v| v.as_int())
-                .copied()
+                .map(|v| *v)
                 .expect("Could not get count of event_user_player entries with step factors");
                 
             assert!(count == 15, "Expected event 401703504 to have event_user_player entries with step factors");
