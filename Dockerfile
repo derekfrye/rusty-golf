@@ -29,13 +29,16 @@ RUN dnf -y install tini openssl curl && \
 # WORKDIR /home/appuser
 
 # Copy the binary from the builder
-COPY --from=builder /usr/src/app/target/release/rusty-golf /usr/local/bin/rusty-golf
+COPY --from=builder /usr/src/app/target/release/rusty-golf /usr/src/app/rusty-golf
+COPY --from=builder /usr/src/app/static /usr/src/app/static
 
 # Set permissions
 # RUN chown appuser:appuser /usr/local/bin/rusty-golf
 
 # Drop privileges
 # USER appuser
+
+WORKDIR /usr/src/app
 
 # Use tini as the init system
 ENTRYPOINT ["/usr/bin/tini", "--"]
@@ -44,4 +47,4 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:8081/health || exit 1
 
 # Default command
-CMD ["/usr/local/bin/rusty-golf"]
+CMD ["/usr/src/app/rusty-golf"]
