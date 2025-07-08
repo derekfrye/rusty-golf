@@ -55,8 +55,6 @@ pub struct Args {
         value_parser = check_readable_file_and_json
     )]
     pub db_populate_json: Option<Value>,
-    #[arg(long, value_name = "DONT_POLL_ESPN_AFTER_NUM_DAYS")]
-    pub dont_poll_espn_after_num_days: Option<i64>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,7 +68,6 @@ pub struct CleanArgs {
     pub db_startup_script: Option<String>,
     pub db_populate_json: Option<Value>,
     pub combined_sql_script: String,
-    pub dont_poll_espn_after_num_days: Option<i64>,
 }
 
 impl Args {
@@ -143,7 +140,6 @@ impl CleanArgs {
             db_startup_script: args.db_startup_script,
             combined_sql_script,
             db_populate_json: args.db_populate_json,
-            dont_poll_espn_after_num_days: args.dont_poll_espn_after_num_days,
         }
     }
 }

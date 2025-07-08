@@ -103,7 +103,7 @@ async fn go_get_espn_data(
 
         // Split the scores into 4 roughly equal groups
         let num_scores = scores.len();
-        let group_size = (num_scores + 3) / 4;
+        let group_size = num_scores.div_ceil(4);
 
         // Create a vector to hold our futures
         let mut futures = Vec::with_capacity(4);
@@ -259,12 +259,14 @@ async fn go_get_espn_data(
                 tee_time.to_owned()
             };
 
+            let mut failed_to_parse = false;
             // Try to parse the time with proper error handling
             let parsed_time = match DateTime::parse_from_str(&mut_tee_time, "%Y-%m-%dT%H:%MZ%z") {
                 Ok(dt) => dt,
-                Err(e) => {
-                    eprintln!("Failed to parse tee time '{}': {}", mut_tee_time, e);
+                Err(_e) => {
+                    // eprintln!("Failed to parse tee time '{}': {}", mut_tee_time, e);
                     // Use current time as a fallback with clear indication it's invalid
+                    failed_to_parse = true;
                     DateTime::parse_from_rfc3339("2000-01-01T00:00:00+00:00")
                         .expect("Hardcoded fallback date should always be valid")
                 }
@@ -289,10 +291,12 @@ async fn go_get_espn_data(
             // let time_format = crate::time::format_description::parse("[month]/[day] [hour repr=12]:[minute][period]").unwrap();
             // let formatted_time = offset_time.format(&time_format).unwrap();
 
+            if !failed_to_parse{
             golfer_score.tee_times.push(StringStat {
                 val: special_format_time,
                 // last_refresh_date: chrono::Utc::now().to_rfc3339(),
             });
+        }
 
             let holes_completed = golfer_score.line_scores.len();
             golfer_score.holes_completed_by_round.push(IntStat {

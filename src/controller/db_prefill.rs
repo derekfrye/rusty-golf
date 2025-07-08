@@ -197,8 +197,8 @@ pub async fn db_prefill(
                                                     query_values.push_str(", NULL");
                                                 }
                                                 
-                                                query_columns.push_str(")");
-                                                query_values.push_str(";");
+                                                query_columns.push(')');
+                                                query_values.push(';');
                                                 
                                                 let query_and_params_vec = QueryAndParams {
                                                     query: format!("INSERT INTO event_user_player {}{}", query_columns, query_values),
