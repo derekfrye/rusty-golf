@@ -1,5 +1,5 @@
-use maud::{html, Markup};
 use crate::model::AllBettorScoresByRound;
+use maud::{Markup, html};
 
 pub fn render_summary_scores(grouped_data: &AllBettorScoresByRound) -> Markup {
     html! {

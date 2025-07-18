@@ -5,7 +5,9 @@ use sql_middleware::middleware::ConfigAndPool;
 // use sqlx_middleware::db::{ConfigAndPool as ConfigAndPoolOld, DatabaseType,};
 use crate::controller::espn::fetch_scores_from_espn;
 // Import the renamed function
-use crate::model::{self, get_event_details, DetailedScore, SummaryDetailedScores, format_time_ago_for_score_view};
+use crate::model::{
+    self, DetailedScore, SummaryDetailedScores, format_time_ago_for_score_view, get_event_details,
+};
 use crate::model::{AllBettorScoresByRound, BettorScoreByRound, Bettors, ScoreData, Scores};
 use crate::view::score::render_scores_template;
 use std::collections::{BTreeMap, HashMap};
@@ -65,9 +67,9 @@ pub async fn scores(
     // Determine cache_max_age based on refresh_from_espn flag from the database
     let cache_max_age: i64 = match get_event_details(&config_and_pool, event_id).await {
         Ok(event_details) => match event_details.refresh_from_espn {
-            1 => 99,  // Refresh from ESPN requested, set cache age to 99 (which means only read from db once 99 days has passed)
+            1 => 99, // Refresh from ESPN requested, set cache age to 99 (which means only read from db once 99 days has passed)
             0 => 0, // Do not refresh from ESPN, set cache age to 0 (which menas always read from db)
-            _ => 0,  // Any other value, default to not refreshing (cache age 0)
+            _ => 0, // Any other value, default to not refreshing (cache age 0)
         },
         Err(_) => 0, // If error fetching details, default to not refreshing (cache age 0)
     };
@@ -196,9 +198,7 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
             let round_idx_isize = match isize::try_from(round_idx) {
                 Ok(val) => val,
                 Err(_) => {
-                    eprintln!(
-                        "Warning: Failed to convert round index {round_idx} to isize"
-                    );
+                    eprintln!("Warning: Failed to convert round index {round_idx} to isize");
                     0
                 }
             };
@@ -251,7 +251,7 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
 
 pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
     let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
-    
+
     let mut espn_id_map: HashMap<(String, String), i64> = HashMap::new();
 
     let mut bettor_order: Vec<String> = Vec::new();
@@ -269,7 +269,7 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
             .entry(bettor_name.clone())
             .or_default()
             .push(golfer_name.clone());
-            
+
         espn_id_map.insert((bettor_name.clone(), golfer_name.clone()), score.espn_id);
 
         for (round_idx, score) in score.detailed_statistics.round_scores.iter().enumerate() {
@@ -307,13 +307,14 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
                             rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
                         rounds.sort_by_key(|&(round, _)| round);
 
-                        let (round_numbers, round_scores): (Vec<i32>, Vec<i32>) = rounds.iter().cloned().unzip();
+                        let (round_numbers, round_scores): (Vec<i32>, Vec<i32>) =
+                            rounds.iter().cloned().unzip();
 
                         let golfer_espn_id = espn_id_map
                             .get(&(bettor_name.clone(), golfer_name.clone()))
                             .copied()
                             .unwrap_or(0);
-                        
+
                         summary_scores.detailed_scores.push(DetailedScore {
                             bettor_name: bettor_name.clone(),
                             golfer_name: golfer_name.clone(),

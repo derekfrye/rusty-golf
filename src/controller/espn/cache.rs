@@ -1,10 +1,9 @@
-use sql_middleware::middleware::ConfigAndPool;
-use crate::model::{
-    RefreshSource, Scores, ScoresAndLastRefresh, 
-    event_and_scores_already_in_db, get_scores_from_db
-};
-use crate::controller::espn::storage::store_espn_results;
 use crate::controller::espn::processing::go_get_espn_data;
+use crate::controller::espn::storage::store_espn_results;
+use crate::model::{
+    RefreshSource, Scores, ScoresAndLastRefresh, event_and_scores_already_in_db, get_scores_from_db,
+};
+use sql_middleware::middleware::ConfigAndPool;
 
 pub async fn fetch_scores_from_espn(
     scores: Vec<Scores>,

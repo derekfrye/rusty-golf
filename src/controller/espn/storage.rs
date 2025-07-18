@@ -1,8 +1,7 @@
-use sql_middleware::middleware::ConfigAndPool;
 use crate::model::{
-    RefreshSource, Scores, ScoresAndLastRefresh, 
-    get_scores_from_db, store_scores_in_db
+    RefreshSource, Scores, ScoresAndLastRefresh, get_scores_from_db, store_scores_in_db,
 };
+use sql_middleware::middleware::ConfigAndPool;
 
 pub async fn store_espn_results(
     scores: &[Scores],

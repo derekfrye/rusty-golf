@@ -1,13 +1,11 @@
 use sql_middleware::middleware::{
     ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection, ResultSet,
 };
-use sql_middleware::{
-    convert_sql_params, SqlMiddlewareDbError, SqliteParamsQuery,
-};
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
+use sql_middleware::{SqlMiddlewareDbError, SqliteParamsQuery, convert_sql_params};
 
-use crate::model::types::{RefreshSource, Scores, ScoresAndLastRefresh};
 use crate::model::score::Statistic;
+use crate::model::types::{RefreshSource, Scores, ScoresAndLastRefresh};
 
 pub fn parse_json_field<T>(
     row: &sql_middleware::middleware::CustomDbRow,

@@ -1,10 +1,8 @@
 use sql_middleware::middleware::{
     ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection,
 };
-use sql_middleware::{
-    convert_sql_params, SqlMiddlewareDbError, SqliteParamsQuery,
-};
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
+use sql_middleware::{SqlMiddlewareDbError, SqliteParamsQuery, convert_sql_params};
 
 pub struct EventTitleAndScoreViewConf {
     pub event_name: String,
@@ -57,8 +55,7 @@ pub async fn get_event_details(
         ))),
     })?;
 
-    res?
-        .results
+    res?.results
         .iter()
         .map(|row| {
             Ok(EventTitleAndScoreViewConf {

@@ -1,5 +1,5 @@
-use maud::{html, Markup};
 use crate::model::ScoreData;
+use maud::{Markup, html};
 
 pub fn render_scoreboard(data: &ScoreData) -> Markup {
     html! {

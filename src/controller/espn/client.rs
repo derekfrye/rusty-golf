@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use reqwest::Client;
 use crate::model::{PlayerJsonResponse, Scores};
+use reqwest::Client;
+use std::collections::HashMap;
 
 pub async fn get_json_from_espn(
     scores: &[Scores],

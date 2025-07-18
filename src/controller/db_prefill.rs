@@ -50,7 +50,6 @@ pub async fn db_prefill(
 
                                     let result_set = {
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
-                                        
                                         sql_middleware::sqlite_build_result_set(
                                             &mut stmt,
                                             &converted_params.0
@@ -95,7 +94,6 @@ pub async fn db_prefill(
                                             )?;
                                         let mut stmt = tx.prepare(&query_and_params_vec.query)?;
                                         let result_set = {
-                                            
                                             sql_middleware::sqlite_build_result_set(
                                                 &mut stmt,
                                                 &converted_params.0
@@ -177,12 +175,10 @@ pub async fn db_prefill(
                                                                 .unwrap()
                                                         )
                                                     ];
-                                                    
                                                 let mut query_columns = "(event_id, user_id, golfer_id".to_string();
                                                 let mut query_values = " select (select event_id from event where espn_id = ?1),".to_string();
                                                 query_values.push_str("(select user_id from bettor where name = ?2),");
                                                 query_values.push_str("(select golfer_id from golfer where espn_id = ?3)");
-                                                
                                                 // Check if score_view_step_factor is present in JSON
                                                 if event_user_player.get("score_view_step_factor").is_some() {
                                                     query_columns.push_str(", score_view_step_factor");
@@ -196,10 +192,8 @@ pub async fn db_prefill(
                                                     query_columns.push_str(", score_view_step_factor");
                                                     query_values.push_str(", NULL");
                                                 }
-                                                
                                                 query_columns.push(')');
                                                 query_values.push(';');
-                                                
                                                 let query_and_params_vec = QueryAndParams {
                                                     query: format!("INSERT INTO event_user_player {query_columns}{query_values}"),
                                                     params,

@@ -1,11 +1,11 @@
-use serde_json::Value;
 use chrono::DateTime;
+use serde_json::Value;
 
-use crate::model::{
-    IntStat, LineScore, PlayerJsonResponse, ScoreDisplay, Scores, 
-    Statistic, StringStat, take_a_char_off
-};
 use crate::controller::espn::client::get_json_from_espn;
+use crate::model::{
+    IntStat, LineScore, PlayerJsonResponse, ScoreDisplay, Scores, Statistic, StringStat,
+    take_a_char_off,
+};
 
 pub async fn go_get_espn_data(
     scores: Vec<Scores>,
@@ -120,17 +120,13 @@ pub async fn go_get_espn_data(
             let display_value = round.get("displayValue").and_then(Value::as_str);
             let display_value = display_value.unwrap_or("");
 
-            golfer_score.rounds.push(IntStat {
-                val: i as i32,
-            });
+            golfer_score.rounds.push(IntStat { val: i as i32 });
 
             let score = display_value
                 .trim_start_matches('+')
                 .parse::<i32>()
                 .unwrap_or(0);
-            golfer_score.round_scores.push(IntStat {
-                val: score,
-            });
+            golfer_score.round_scores.push(IntStat { val: score });
 
             let tee_time = round.get("teeTime").and_then(Value::as_str).unwrap_or("");
             let mut_tee_time = if tee_time.ends_with("Z") {
@@ -192,16 +188,14 @@ pub async fn go_get_espn_data(
                         ),
                     )) as Box<dyn std::error::Error>
                 })
-                .map(|active_golfer| {
-                    Scores {
-                        eup_id: statistic.eup_id,
-                        golfer_name: active_golfer.golfer_name.clone(),
-                        detailed_statistics: statistic.clone(),
-                        bettor_name: active_golfer.bettor_name.clone(),
-                        group: active_golfer.group,
-                        espn_id: active_golfer.espn_id,
-                        score_view_step_factor: active_golfer.score_view_step_factor,
-                    }
+                .map(|active_golfer| Scores {
+                    eup_id: statistic.eup_id,
+                    golfer_name: active_golfer.golfer_name.clone(),
+                    detailed_statistics: statistic.clone(),
+                    bettor_name: active_golfer.bettor_name.clone(),
+                    group: active_golfer.group,
+                    espn_id: active_golfer.espn_id,
+                    score_view_step_factor: active_golfer.score_view_step_factor,
                 })
         })
         .collect::<Result<Vec<Scores>, Box<dyn std::error::Error>>>();

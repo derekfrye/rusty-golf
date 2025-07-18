@@ -1,7 +1,7 @@
-use maud::{html, Markup};
 use crate::model::take_a_char_off;
 use crate::view::score::types::{BettorData, RefreshData};
-use crate::view::score::utils::{short_golfer_name, score_with_shape};
+use crate::view::score::utils::{score_with_shape, short_golfer_name};
+use maud::{Markup, html};
 
 pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshData) -> Markup {
     html! {

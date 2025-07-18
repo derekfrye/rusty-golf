@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use maud::{html, Markup};
 use crate::model::{ScoreDisplay, ScoresAndLastRefresh};
 use crate::view::score::types::{BettorData, GolferData};
+use maud::{Markup, html};
+use std::collections::HashMap;
 
 pub fn short_golfer_name(golfer_name: &str) -> String {
     let parts: Vec<&str> = golfer_name.split_whitespace().collect();
-    
+
     if parts.len() >= 2 {
         let first_initial = parts[0].chars().next().unwrap_or(' ');
         let last_name = parts[parts.len() - 1];

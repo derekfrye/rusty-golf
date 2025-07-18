@@ -1,10 +1,8 @@
 use sql_middleware::middleware::{
     ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection,
 };
-use sql_middleware::{
-    convert_sql_params, SqlMiddlewareDbError, SqliteParamsExecute,
-};
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
+use sql_middleware::{SqlMiddlewareDbError, SqliteParamsExecute, convert_sql_params};
 
 use crate::model::types::Scores;
 
@@ -34,12 +32,10 @@ pub async fn store_scores_in_db(
                 SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}"))
             })?;
 
-            let tee_times_json = serde_json::to_string(
-                score.detailed_statistics.tee_times.as_slice(),
-            )
-            .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}"))
-            })?;
+            let tee_times_json =
+                serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).map_err(
+                    |e| SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}")),
+                )?;
 
             let holes_completed_json = serde_json::to_string(
                 score
@@ -123,14 +119,11 @@ pub async fn event_and_scores_already_in_db(
     event_id: i32,
     cache_max_age: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
-    use crate::model::event::get_event_details;
     use crate::model::database::execute_query;
+    use crate::model::event::get_event_details;
     use sql_middleware::middleware::RowValues as RowValues2;
 
-    if get_event_details(config_and_pool, event_id)
-        .await
-        .is_err()
-    {
+    if get_event_details(config_and_pool, event_id).await.is_err() {
         return Ok(false);
     }
 

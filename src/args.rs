@@ -118,9 +118,7 @@ impl CleanArgs {
                         full_script.push('\n');
                     }
                     Err(e) => {
-                        eprintln!(
-                            "Warning: Failed to read SQL startup script '{file}': {e}"
-                        );
+                        eprintln!("Warning: Failed to read SQL startup script '{file}': {e}");
                         // Continue with other files rather than failing completely
                     }
                 }
@@ -156,9 +154,7 @@ fn check_readable_file(file: &str) -> Result<String, String> {
         //     eprintln!("Failed to get current directory");
         // }
         if !path.is_file() || fs::metadata(&path).is_err() {
-            return Err(format!(
-                "The sql startup script '{file}' is not readable."
-            ));
+            return Err(format!("The sql startup script '{file}' is not readable."));
         } else {
             results.push(path.to_str().unwrap().to_string());
         }

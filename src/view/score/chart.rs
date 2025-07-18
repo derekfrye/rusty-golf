@@ -1,8 +1,10 @@
-use std::collections::BTreeMap;
-use maud::{html, Markup};
+use maud::{Markup, html};
 use sql_middleware::middleware::ConfigAndPool;
+use std::collections::BTreeMap;
 
-use crate::model::{AllBettorScoresByRound, DetailedScore, SummaryDetailedScores, get_event_details};
+use crate::model::{
+    AllBettorScoresByRound, DetailedScore, SummaryDetailedScores, get_event_details,
+};
 use crate::view::score::types::{Bar, Direction, GolferBars};
 use crate::view::score::utils::short_golfer_name;
 
@@ -10,19 +12,16 @@ pub async fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &[DetailedScore],
     config_and_pool: &ConfigAndPool,
-    event_id: i32
+    event_id: i32,
 ) -> Result<BTreeMap<String, Vec<GolferBars>>, Box<dyn std::error::Error>> {
     let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
 
-    let global_step_factor = get_event_details(
-        config_and_pool,
-        event_id
-    ).await?.score_view_step_factor;
+    let global_step_factor = get_event_details(config_and_pool, event_id)
+        .await?
+        .score_view_step_factor;
 
-    let player_step_factors = crate::model::get_player_step_factors(
-        config_and_pool,
-        event_id
-    ).await?;
+    let player_step_factors =
+        crate::model::get_player_step_factors(config_and_pool, event_id).await?;
 
     for summary_score in summary_scores_x.summary_scores.iter() {
         let mut golfers: Vec<GolferBars> = detailed_scores
@@ -31,17 +30,12 @@ pub async fn preprocess_golfer_data(
             .enumerate()
             .map(|(golfer_idx, golfer)| {
                 let short_name = short_golfer_name(&golfer.golfer_name);
-                let total_score: isize = golfer.scores
-                    .iter()
-                    .map(|&x| x as isize)
-                    .sum();
+                let total_score: isize = golfer.scores.iter().map(|&x| x as isize).sum();
 
                 let mut found_step_factor = None;
 
-                if
-                    let Some(value) = player_step_factors.get(
-                        &(golfer.golfer_espn_id, golfer.bettor_name.clone())
-                    )
+                if let Some(value) =
+                    player_step_factors.get(&(golfer.golfer_espn_id, golfer.bettor_name.clone()))
                 {
                     found_step_factor = Some(*value);
                 }
@@ -52,12 +46,17 @@ pub async fn preprocess_golfer_data(
                 let mut cumulative_left = 0.0;
                 let mut cumulative_right = 0.0;
 
-                let total_width: f32 = golfer.scores
+                let total_width: f32 = golfer
+                    .scores
                     .iter()
                     .map(|&score| (score.abs() as f32) * step_factor)
                     .sum();
 
-                let scaling_factor = if total_width > 100.0 { 100.0 / total_width } else { 1.0 };
+                let scaling_factor = if total_width > 100.0 {
+                    100.0 / total_width
+                } else {
+                    1.0
+                };
 
                 for (round_idx, &score) in golfer.scores.iter().enumerate() {
                     let width = (score.abs() as f32) * step_factor * scaling_factor;
@@ -103,14 +102,15 @@ pub async fn render_drop_down_bar(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &SummaryDetailedScores,
     config_and_pool: &ConfigAndPool,
-    event_id: i32
+    event_id: i32,
 ) -> Result<Markup, Box<dyn std::error::Error>> {
     let preprocessed_data = preprocess_golfer_data(
         summary_scores_x,
         &detailed_scores.detailed_scores,
         config_and_pool,
-        event_id
-    ).await?;
+        event_id,
+    )
+    .await?;
 
     Ok(html! {
         h3 class="playerbars" { "Score by Player" }

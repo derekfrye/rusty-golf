@@ -1,13 +1,11 @@
-use std::collections::HashMap;
-use sql_middleware::middleware::{
-    ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection,
-};
-use sql_middleware::{SqlMiddlewareDbError};
+use sql_middleware::SqlMiddlewareDbError;
 use sql_middleware::middleware::RowValues as RowValues2;
+use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
+use std::collections::HashMap;
 
-use crate::model::types::Scores;
-use crate::model::score::Statistic;
 use crate::model::database::execute_query;
+use crate::model::score::Statistic;
+use crate::model::types::Scores;
 
 pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,
@@ -35,7 +33,7 @@ pub async fn get_golfers_from_db(
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!("../admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
-        } 
+        }
     };
 
     let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
@@ -71,11 +69,11 @@ pub async fn get_player_step_factors(
 ) -> Result<HashMap<(i64, String), f32>, SqlMiddlewareDbError> {
     let pool = config_and_pool.pool.get().await?;
     let conn = MiddlewarePool::get_connection(pool).await?;
-    
+
     let query = include_str!("../admin/model/sql/functions/sqlite/03_sp_get_scores.sql");
-    
+
     let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
-    
+
     let step_factors: HashMap<(i64, String), f32> = query_result
         .results
         .iter()
@@ -84,20 +82,17 @@ pub async fn get_player_step_factors(
                 .get("golfer_espn_id")
                 .and_then(|v| v.as_int())
                 .copied()?;
-                
-            let bettor_name = row
-                .get("bettorname")
-                .and_then(|v| v.as_text())?
-                .to_string();
-                
+
+            let bettor_name = row.get("bettorname").and_then(|v| v.as_text())?.to_string();
+
             let step_factor = row
                 .get("score_view_step_factor")
                 .and_then(|v| v.as_float())
                 .map(|v| v as f32)?;
-                
+
             Some(((golfer_espn_id, bettor_name), step_factor))
         })
         .collect();
-        
+
     Ok(step_factors)
 }
