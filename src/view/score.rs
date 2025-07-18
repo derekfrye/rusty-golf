@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::get_event_details;
+use crate::model::get_event_details;
 use crate::model::{
     AllBettorScoresByRound,
     DetailedScore,
