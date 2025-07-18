@@ -197,8 +197,7 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
                 Ok(val) => val,
                 Err(_) => {
                     eprintln!(
-                        "Warning: Failed to convert round index {} to isize",
-                        round_idx
+                        "Warning: Failed to convert round index {round_idx} to isize"
                     );
                     0
                 }

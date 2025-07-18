@@ -15,45 +15,43 @@ pub fn format_time_ago_for_score_view(td: ChronoDuration) -> String {
         if years == 1.0 {
             "1 year".to_string()
         } else {
-            format!("{:.2} years", years)
+            format!("{years:.2} years")
         }
     } else if secs >= MONTH {
         let months = (secs as f64) / (MONTH as f64);
-        format!("{:.2} months", months)
+        format!("{months:.2} months")
     } else if secs >= WEEK {
         let weeks = secs / WEEK;
         if weeks == 1 {
             "1 week".to_string()
         } else {
-            format!("{} weeks", weeks)
+            format!("{weeks} weeks")
         }
     } else if secs >= DAY {
         let days = secs / DAY;
         if days == 1 {
             "1 day".to_string()
         } else {
-            format!("{} days", days)
+            format!("{days} days")
         }
     } else if secs >= HOUR {
         let hours = secs / HOUR;
         if hours == 1 {
             "1 hour".to_string()
         } else {
-            format!("{} hours", hours)
+            format!("{hours} hours")
         }
     } else if secs >= MINUTE {
         let minutes = secs / MINUTE;
         if minutes == 1 {
             "1 minute".to_string()
         } else {
-            format!("{} minutes", minutes)
+            format!("{minutes} minutes")
         }
+    } else if secs == 1 {
+        "1 second".to_string()
     } else {
-        if secs == 1 {
-            "1 second".to_string()
-        } else {
-            format!("{} seconds", secs)
-        }
+        format!("{secs} seconds")
     }
 }
 

@@ -24,21 +24,21 @@ pub async fn store_scores_in_db(
 
             let rounds_json = serde_json::to_string(score.detailed_statistics.rounds.as_slice())
                 .map_err(|e| {
-                    SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {}", e))
+                    SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {e}"))
                 })?;
 
             let round_scores_json = serde_json::to_string(
                 score.detailed_statistics.round_scores.as_slice(),
             )
             .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {}", e))
+                SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}"))
             })?;
 
             let tee_times_json = serde_json::to_string(
                 score.detailed_statistics.tee_times.as_slice(),
             )
             .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {}", e))
+                SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}"))
             })?;
 
             let holes_completed_json = serde_json::to_string(
@@ -48,14 +48,14 @@ pub async fn store_scores_in_db(
                     .as_slice(),
             )
             .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {}", e))
+                SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {e}"))
             })?;
 
             let line_scores_json = serde_json::to_string(
                 score.detailed_statistics.line_scores.as_slice(),
             )
             .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {}", e))
+                SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}"))
             })?;
 
             let param = vec![
@@ -165,8 +165,7 @@ pub async fn event_and_scores_already_in_db(
                 #[allow(unused_variables)]
                 let pass = diff_days >= cache_max_age;
                 println!(
-                    "Now: {}, Last Refresh: {}, Diff: {} days, Pass: {}",
-                    now_human_readable_fmt, z_human_readable_fmt, diff_days, pass
+                    "Now: {now_human_readable_fmt}, Last Refresh: {z_human_readable_fmt}, Diff: {diff_days} days, Pass: {pass}"
                 );
             }
 

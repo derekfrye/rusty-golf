@@ -201,7 +201,7 @@ pub async fn db_prefill(
                                                 query_values.push(';');
                                                 
                                                 let query_and_params_vec = QueryAndParams {
-                                                    query: format!("INSERT INTO event_user_player {}{}", query_columns, query_values),
+                                                    query: format!("INSERT INTO event_user_player {query_columns}{query_values}"),
                                                     params,
                                                 };
                                                 let converted_params =
@@ -236,7 +236,7 @@ pub async fn db_prefill(
                                             datum["event"].as_i64().unwrap(),
                                             datum["year"].as_i64().unwrap()
                                         );
-                                        println!("{}", x);
+                                        println!("{x}");
                                     }
                                 }
                             }

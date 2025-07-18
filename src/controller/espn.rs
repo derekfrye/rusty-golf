@@ -128,7 +128,7 @@ async fn go_get_espn_data(
                 match get_json_from_espn(&player_group_clone, year, event_id).await {
                     Ok(response) => Some(response),
                     Err(err) => {
-                        eprintln!("Failed to get ESPN data: {}", err);
+                        eprintln!("Failed to get ESPN data: {err}");
                         None
                     }
                 }
@@ -254,7 +254,7 @@ async fn go_get_espn_data(
             let tee_time = round.get("teeTime").and_then(Value::as_str).unwrap_or("");
             // Format time string properly using format! macro instead of manual concatenation
             let mut_tee_time = if tee_time.ends_with("Z") {
-                format!("{}+0000", tee_time)
+                format!("{tee_time}+0000")
             } else {
                 tee_time.to_owned()
             };

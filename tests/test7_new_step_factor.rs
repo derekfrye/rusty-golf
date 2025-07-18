@@ -216,15 +216,15 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
         ).await?;
         
         // Save output for debugging
-        let debug_dir_path = format!("tests/test7/debug_{}", event_id);
+        let debug_dir_path = format!("tests/test7/debug_{event_id}");
         let debug_dir = Path::new(&debug_dir_path);
         std::fs::create_dir_all(debug_dir)?;
         let debug_file = debug_dir.join("actual_output.html");
         let mut file = std::fs::File::create(&debug_file)?;
-        writeln!(file, "{}", html_output)?;
+        writeln!(file, "{html_output}")?;
         
         // STEP 4: Read the reference HTML file containing expected output
-        let reference_path_str = format!("tests/test7/reference_html_{}.html", event_id);
+        let reference_path_str = format!("tests/test7/reference_html_{event_id}.html");
         let reference_path = Path::new(&reference_path_str);
         assert!(reference_path.exists(), "Reference file not found at: {}", reference_path.display());
         let _reference_html = std::fs::read_to_string(reference_path)?;

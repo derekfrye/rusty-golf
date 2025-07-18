@@ -76,7 +76,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         } // Result::<(), String>::Ok(())
     }?;
 
-    assert!(res.is_ok(), "Error executing query: {:?}", res);
+    assert!(res.is_ok(), "Error executing query: {res:?}");
 
     let ddl = [
         include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
@@ -144,7 +144,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         } // Result::<(), String>::Ok(())
     }?;
 
-    assert!(res.is_ok(), "Error executing query: {:?}", res);
+    assert!(res.is_ok(), "Error executing query: {res:?}");
 
     // let res = sql_db
     //     .exec_general_query(vec![query_and_params], false)
@@ -196,7 +196,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
             // );
 
             if status != actix_web::http::StatusCode::OK {
-                println!("Failed with status: {}", status);
+                println!("Failed with status: {status}");
             }
 
             // Step 10: Parse the response body as JSON
@@ -206,7 +206,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
             // println!("{}", serde_json::to_string_pretty(&body).unwrap());
             let z = serde_json::to_string_pretty(&body).unwrap();
             if cfg!(debug_assertions) {
-                println!("{}", z);
+                println!("{z}");
             }
 
             // Step 11: Assert the JSON structure

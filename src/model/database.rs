@@ -1,9 +1,8 @@
-use chrono::NaiveDateTime;
 use sql_middleware::middleware::{
     ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection, ResultSet,
 };
 use sql_middleware::{
-    convert_sql_params, SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
+    convert_sql_params, SqlMiddlewareDbError, SqliteParamsQuery,
 };
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
 
@@ -23,7 +22,7 @@ where
         .unwrap_or_default();
 
     serde_json::from_str(json_text).map_err(|e| {
-        SqlMiddlewareDbError::Other(format!("Failed to parse {} field: {}", field_name, e))
+        SqlMiddlewareDbError::Other(format!("Failed to parse {field_name} field: {e}"))
     })
 }
 

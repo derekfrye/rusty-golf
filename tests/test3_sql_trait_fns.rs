@@ -106,7 +106,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
         .unwrap()
         .as_i64()
         .unwrap() as i32;
-    println!("{}", left);
+    println!("{left}");
     let right = bryson_espn_entry
         .detailed_statistics
         .line_scores
@@ -114,7 +114,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
         .find(|s| s.hole == 13 && s.round == 2)
         .unwrap()
         .score;
-    println!("{}", right);
+    println!("{right}");
 
     assert_eq!(left, right);
     assert_eq!(left, 3); // line 6824 in test3_espn_json_responses.json

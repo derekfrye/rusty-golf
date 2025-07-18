@@ -120,12 +120,12 @@ async fn index(
             match get_event_details(&config_and_pool, id).await {
                 Ok(event_config) => event_config.event_name,
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    eprintln!("Error: {e}");
                     "Scoreboard".to_string()
                 }
             }
         Err(e) => {
-            eprintln!("Error: {}", e);
+            eprintln!("Error: {e}");
             "Scoreboard".to_string()
         }
     };

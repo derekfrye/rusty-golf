@@ -57,7 +57,7 @@ pub async fn get_event_details(
         ))),
     })?;
 
-    let final_results = res?
+    res?
         .results
         .iter()
         .map(|row| {
@@ -84,7 +84,5 @@ pub async fn get_event_details(
             })
         })
         .next_back()
-        .unwrap_or_else(|| Err(SqlMiddlewareDbError::Other("No results found".to_string())));
-
-    final_results
+        .unwrap_or_else(|| Err(SqlMiddlewareDbError::Other("No results found".to_string())))
 }

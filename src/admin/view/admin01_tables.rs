@@ -154,8 +154,7 @@ impl CreateTableReturn {
         Ok(html! {
             @if detailed_output {
                 @for dbresult in &all_objs_not_setup {
-                    @let message = format!("missing table name: {}"
-                        , dbresult
+                    @let message = format!("missing table name: {dbresult}"
 
                     );
                     p { (message) }
@@ -245,7 +244,7 @@ impl CreateTableReturn {
         let times_run_from_json = match Self::parse_into_times_run(&times_run) {
             Some(d) => d,
             None => {
-                let str = format!("Invalid times_run data: {}", times_run);
+                let str = format!("Invalid times_run data: {times_run}");
                 result.html = html! {
                 p { (str) }};
                 return Ok(result);
@@ -261,14 +260,14 @@ impl CreateTableReturn {
 
         let message: String = match actual_table_creation {
             Ok(_x) => "Tables created successfully".to_string(),
-            Err(e) => format!("Error creating tables: {:?}", e),
+            Err(e) => format!("Error creating tables: {e:?}"),
         };
 
         let actual_constraint_creation =
             create_tables(&self.config_and_pool, &CheckType::Constraint).await;
         let message2: String = match actual_constraint_creation {
             Ok(_x) => "Table constraints created successfully".to_string(),
-            Err(e) => format!("Error creating tables: {:?}", e),
+            Err(e) => format!("Error creating tables: {e:?}"),
         };
 
         result.html = html! {

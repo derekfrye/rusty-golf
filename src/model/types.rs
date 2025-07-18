@@ -68,7 +68,7 @@ impl fmt::Display for RefreshSource {
             RefreshSource::Db => "database",
             RefreshSource::Espn => "ESPN",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 

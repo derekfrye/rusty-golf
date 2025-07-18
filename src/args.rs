@@ -119,8 +119,7 @@ impl CleanArgs {
                     }
                     Err(e) => {
                         eprintln!(
-                            "Warning: Failed to read SQL startup script '{}': {}",
-                            file, e
+                            "Warning: Failed to read SQL startup script '{file}': {e}"
                         );
                         // Continue with other files rather than failing completely
                     }
@@ -158,8 +157,7 @@ fn check_readable_file(file: &str) -> Result<String, String> {
         // }
         if !path.is_file() || fs::metadata(&path).is_err() {
             return Err(format!(
-                "The sql startup script '{}' is not readable.",
-                file
+                "The sql startup script '{file}' is not readable."
             ));
         } else {
             results.push(path.to_str().unwrap().to_string());
@@ -171,7 +169,7 @@ fn check_readable_file(file: &str) -> Result<String, String> {
 fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
     let path = PathBuf::from(file);
     if !path.is_file() || fs::metadata(&path).is_err() {
-        return Err(format!("The json file '{}' is not readable.", file));
+        return Err(format!("The json file '{file}' is not readable."));
     }
     let contents = fs::read_to_string(&path).unwrap();
     let json: Value = serde_json::from_str(&contents).unwrap();
@@ -203,8 +201,7 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
         for key in element.as_object().unwrap().keys() {
             if !expected_keys.contains(&key.as_str()) {
                 return Err(format!(
-                    "The json file is not in the correct format. Expected keys: {:?}",
-                    expected_keys
+                    "The json file is not in the correct format. Expected keys: {expected_keys:?}"
                 ));
             }
             let event = &element["event"];
@@ -245,8 +242,7 @@ fn validate_json_format(json: &Value) -> Result<(), String> {
             for (key, _) in data.as_object().unwrap() {
                 if !expected_keys.contains(&key.as_str()) {
                     return Err(format!(
-                        "The json key data_to_fill_if_event_and_year_missing is not in the correct format. Expected keys: {:?}",
-                        expected_keys
+                        "The json key data_to_fill_if_event_and_year_missing is not in the correct format. Expected keys: {expected_keys:?}"
                     ));
                 }
             }

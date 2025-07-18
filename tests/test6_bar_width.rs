@@ -249,7 +249,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(debug_dir)?;
     let debug_file = debug_dir.join("actual_output.html");
     let mut file = std::fs::File::create(&debug_file)?;
-    writeln!(file, "{}", html_output)?;
+    writeln!(file, "{html_output}")?;
     
     // STEP 4: Read the reference HTML file containing expected output
     let reference_path = Path::new("tests/test6/test6_ref_html.html");
@@ -293,7 +293,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|s| if s.len() > 5 { &s[0..5] } else { s })
                 .unwrap_or("");
             
-            format!("{}. {}", golfer_first_initial, golfer_last_abbr)
+            format!("{golfer_first_initial}. {golfer_last_abbr}")
         };
         
         let _total_score: i32 = detailed_score.scores.iter().sum();
@@ -362,8 +362,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
                                                 let diff = (width_val - expected_width).abs();
                                                 assert!(
                                                     diff < 0.01, 
-                                                    "Bar width should be {}% but found {}% for score {} (diff: {})",
-                                                    expected_width, width_val, score, diff
+                                                    "Bar width should be {expected_width}% but found {width_val}% for score {score} (diff: {diff})"
                                                 );
                                             }
                                         }
