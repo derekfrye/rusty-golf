@@ -28,11 +28,11 @@ pub async fn db_prefill(
 
                         let data = json.as_array().unwrap();
                         let tx = sql_conn.transaction()?;
-                        
+
                         for datum in data {
                             let espn_id = datum["event"].as_i64().unwrap();
                             let year = datum["year"].as_i64().unwrap();
-                            
+
                             // Check if event already exists
                             let query_and_params = QueryAndParams {
                                 query: "SELECT * FROM event WHERE espn_id = ?1 AND year = ?2;".to_string(),
@@ -44,7 +44,7 @@ pub async fn db_prefill(
                             )?;
                             let mut stmt = tx.prepare(&query_and_params.query)?;
                             let result_set = sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?;
-                            
+
                             if result_set.results.is_empty() {
                                 // Insert new event
                                 let query_and_params = QueryAndParams {
@@ -62,7 +62,7 @@ pub async fn db_prefill(
                                 )?;
                                 let mut stmt = tx.prepare(&query_and_params.query)?;
                                 stmt.execute(converted_params.0)?;
-                                
+
                                 // Process associated data
                                 let data_to_fill = datum["data_to_fill_if_event_and_year_missing"].as_array().unwrap();
                                 for data in data_to_fill {
@@ -79,8 +79,8 @@ pub async fn db_prefill(
                                         let mut stmt = tx.prepare(&query_and_params.query)?;
                                         stmt.execute(converted_params.0)?;
                                     }
-                                    
-                                    // Insert golfers  
+
+                                    // Insert golfers
                                     for golfer in data["golfers"].as_array().unwrap() {
                                         let query_and_params = QueryAndParams {
                                             query: "INSERT INTO golfer (name, espn_id) SELECT ?1, ?2 WHERE NOT EXISTS (SELECT 1 from golfer where espn_id = ?2);".to_string(),
@@ -96,7 +96,7 @@ pub async fn db_prefill(
                                         let mut stmt = tx.prepare(&query_and_params.query)?;
                                         stmt.execute(converted_params.0)?;
                                     }
-                                    
+
                                     // Insert event_user_player entries
                                     for event_user_player in data["event_user_player"].as_array().unwrap() {
                                         let mut params = vec![
@@ -104,12 +104,12 @@ pub async fn db_prefill(
                                             RowValues::Text(event_user_player["bettor"].as_str().unwrap().to_string()),
                                             RowValues::Int(event_user_player["golfer_espn_id"].as_i64().unwrap())
                                         ];
-                                        
+
                                         let mut query_columns = "(event_id, user_id, golfer_id".to_string();
                                         let mut query_values = " select (select event_id from event where espn_id = ?1),".to_string();
                                         query_values.push_str("(select user_id from bettor where name = ?2),");
                                         query_values.push_str("(select golfer_id from golfer where espn_id = ?3)");
-                                        
+
                                         if event_user_player.get("score_view_step_factor").is_some() {
                                             query_columns.push_str(", score_view_step_factor");
                                             query_values.push_str(", ?4");
@@ -118,18 +118,18 @@ pub async fn db_prefill(
                                             query_columns.push_str(", score_view_step_factor");
                                             query_values.push_str(", NULL");
                                         }
-                                        
+
                                         query_columns.push(')');
                                         query_values.push(';');
-                                        
+
                                         let query = format!("INSERT INTO event_user_player {query_columns}{query_values}");
                                         let query_and_params = QueryAndParams { query, params };
-                                        
+
                                         let converted_params = convert_sql_params::<SqliteParamsExecute>(
                                             &query_and_params.params,
                                             ConversionMode::Execute
                                         )?;
-                                        
+
                                         let mut stmt = tx.prepare(&query_and_params.query)?;
                                         match stmt.execute(converted_params.0) {
                                             Ok(_) => {},
@@ -137,7 +137,7 @@ pub async fn db_prefill(
                                                 println!(
                                                     "event_id {:?}, user_id {:?}, golfer_id {:?}, qry: {:?}, err {:?}",
                                                     query_and_params.params[0],
-                                                    query_and_params.params[1], 
+                                                    query_and_params.params[1],
                                                     query_and_params.params[2],
                                                     stmt.expanded_sql(),
                                                     e
@@ -153,7 +153,7 @@ pub async fn db_prefill(
                                 );
                             }
                         }
-                        
+
                         tx.commit()?;
                         Ok::<_, SqlMiddlewareDbError>(())
                     }
