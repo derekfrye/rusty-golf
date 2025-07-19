@@ -149,8 +149,7 @@ pub async fn db_prefill(
                                 }
                             } else {
                                 println!(
-                                    "Event {} and year {} already exist in the db. Skipping db prefill.",
-                                    espn_id, year
+                                    "Event {espn_id} and year {year} already exist in the db. Skipping db prefill."
                                 );
                             }
                         }
