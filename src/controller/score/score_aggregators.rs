@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
+use super::sort_utils::sort_scores;
 use crate::model::{
     AllBettorScoresByRound, BettorScoreByRound, DetailedScore, Scores, SummaryDetailedScores,
 };
-use super::sort_utils::sort_scores;
 
 pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
     let mut grouped_scores: HashMap<usize, Vec<Scores>> = HashMap::new();

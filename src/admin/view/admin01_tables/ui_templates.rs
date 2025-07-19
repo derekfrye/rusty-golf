@@ -1,10 +1,10 @@
+use super::db_operations::get_missing_db_objects;
+use super::types::CreateTableReturn;
+use super::utils::get_check_type_data;
 use crate::HTMX_PATH;
 use crate::model::CheckType;
-use maud::{html, Markup};
+use maud::{Markup, html};
 use serde_json::json;
-use super::db_operations::get_missing_db_objects;
-use super::utils::get_check_type_data;
-use super::types::CreateTableReturn;
 use sql_middleware::middleware::ConfigAndPool;
 
 impl CreateTableReturn {
@@ -58,7 +58,8 @@ impl CreateTableReturn {
         detailed_output: bool,
         check_type: CheckType,
     ) -> Result<Markup, Box<dyn std::error::Error>> {
-        let (all_objs_not_setup, json_data) = get_missing_db_objects(&self.config_and_pool, &check_type).await?;
+        let (all_objs_not_setup, json_data) =
+            get_missing_db_objects(&self.config_and_pool, &check_type).await?;
 
         let data = get_check_type_data(&check_type);
 

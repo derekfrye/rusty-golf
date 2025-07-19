@@ -1,6 +1,6 @@
-use futures::future::join_all;
 use crate::controller::espn::client::get_json_from_espn;
 use crate::model::{PlayerJsonResponse, Scores};
+use futures::future::join_all;
 
 pub async fn get_espn_data_parallel(
     scores: &[Scores],
@@ -8,7 +8,8 @@ pub async fn get_espn_data_parallel(
     event_id: i32,
 ) -> Result<PlayerJsonResponse, Box<dyn std::error::Error>> {
     if cfg!(debug_assertions) {
-        return get_json_from_espn(scores, year, event_id).await
+        return get_json_from_espn(scores, year, event_id)
+            .await
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error>);
     }
 

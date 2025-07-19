@@ -1,10 +1,7 @@
-use serde_json::Value;
 use crate::model::{IntStat, LineScore, ScoreDisplay};
+use serde_json::Value;
 
-pub fn process_line_scores(
-    line_scores_json: &[Value],
-    round_index: usize,
-) -> Vec<LineScore> {
+pub fn process_line_scores(line_scores_json: &[Value], round_index: usize) -> Vec<LineScore> {
     let mut line_scores = Vec::new();
 
     for (idx, ln_score) in line_scores_json.iter().enumerate() {

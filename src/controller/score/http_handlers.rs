@@ -4,9 +4,9 @@ use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
 
+use super::data_service::get_data_for_scores_page;
 use crate::model::get_event_details;
 use crate::view::score::render_scores_template;
-use super::data_service::get_data_for_scores_page;
 
 pub async fn scores(
     query: web::Query<HashMap<String, String>>,

@@ -1,6 +1,6 @@
+use super::types::CheckTypeData;
 use crate::admin::model::admin_model::TimesRun;
 use crate::model::CheckType;
-use super::types::CheckTypeData;
 
 pub fn parse_into_times_run(input: &str) -> Option<TimesRun> {
     match serde_json::from_str::<TimesRun>(input) {

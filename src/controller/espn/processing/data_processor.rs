@@ -1,7 +1,7 @@
-use serde_json::Value;
-use crate::model::{IntStat, PlayerJsonResponse, Scores, Statistic};
-use super::score_calculator::{process_line_scores, process_round_score, calculate_total_score};
+use super::score_calculator::{calculate_total_score, process_line_scores, process_round_score};
 use super::time_processor::process_tee_time;
+use crate::model::{IntStat, PlayerJsonResponse, Scores, Statistic};
+use serde_json::Value;
 
 pub fn process_json_to_statistics(
     json_responses: &PlayerJsonResponse,
@@ -38,7 +38,9 @@ pub fn process_json_to_statistics(
             let display_value = display_value.unwrap_or("");
 
             golfer_score.rounds.push(IntStat { val: i as i32 });
-            golfer_score.round_scores.push(process_round_score(display_value, i));
+            golfer_score
+                .round_scores
+                .push(process_round_score(display_value, i));
 
             let tee_time = round.get("teeTime").and_then(Value::as_str).unwrap_or("");
             if let Some(processed_tee_time) = process_tee_time(tee_time) {

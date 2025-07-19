@@ -1,5 +1,5 @@
-use chrono::DateTime;
 use crate::model::{StringStat, take_a_char_off};
+use chrono::DateTime;
 
 pub fn process_tee_time(tee_time: &str) -> Option<StringStat> {
     let mut_tee_time = if tee_time.ends_with("Z") {
@@ -18,17 +18,14 @@ pub fn process_tee_time(tee_time: &str) -> Option<StringStat> {
         }
     };
 
-    let central_timezone =
-        chrono::offset::FixedOffset::east_opt(-5 * 3600).unwrap_or_else(|| {
-            chrono::offset::FixedOffset::east_opt(0)
-                .expect("UTC timezone offset is always valid")
-        });
+    let central_timezone = chrono::offset::FixedOffset::east_opt(-5 * 3600).unwrap_or_else(|| {
+        chrono::offset::FixedOffset::east_opt(0).expect("UTC timezone offset is always valid")
+    });
 
     let parsed_time_in_central = parsed_time.with_timezone(&central_timezone);
 
     let special_format_time =
-        take_a_char_off(&parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string())
-            .to_string();
+        take_a_char_off(&parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string()).to_string();
 
     if !failed_to_parse {
         Some(StringStat {

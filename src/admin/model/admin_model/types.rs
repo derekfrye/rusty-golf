@@ -1,8 +1,8 @@
 use serde::Deserialize;
+use serde::Deserializer;
+use serde::de;
 use serde_json::Value;
 use std::str::FromStr;
-use serde::de;
-use serde::Deserializer;
 
 #[derive(Debug, Clone)]
 pub struct Player {

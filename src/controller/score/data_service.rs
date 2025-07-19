@@ -2,9 +2,7 @@ use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
 
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model::{
-    format_time_ago_for_score_view, get_golfers_from_db, Bettors, ScoreData,
-};
+use crate::model::{Bettors, ScoreData, format_time_ago_for_score_view, get_golfers_from_db};
 
 pub async fn get_data_for_scores_page(
     event_id: i32,

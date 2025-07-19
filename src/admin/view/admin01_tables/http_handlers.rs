@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use actix_web::{HttpResponse, web};
-use crate::admin::model::admin_model::create_tables;
-use crate::model::CheckType;
-use maud::html;
-use serde_json::json;
 use super::types::CreateTableReturn;
 use super::utils::parse_into_times_run;
+use crate::admin::model::admin_model::create_tables;
+use crate::model::CheckType;
+use actix_web::{HttpResponse, web};
+use maud::html;
+use serde_json::json;
+use std::collections::HashMap;
 
 impl CreateTableReturn {
     /// Return bit of html indicating if tables created, plus some headers to trigger htmx

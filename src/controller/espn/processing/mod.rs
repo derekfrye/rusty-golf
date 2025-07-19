@@ -5,7 +5,7 @@ pub mod time_processor;
 
 use crate::model::Scores;
 use api_client::get_espn_data_parallel;
-use data_processor::{process_json_to_statistics, merge_statistics_with_scores};
+use data_processor::{merge_statistics_with_scores, process_json_to_statistics};
 
 pub use score_calculator::*;
 pub use time_processor::*;
