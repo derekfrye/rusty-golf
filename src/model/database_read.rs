@@ -87,35 +87,8 @@ pub async fn get_scores_from_db(
             include_str!("../admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
         }
     };
-    let query_and_params = QueryAndParams2 {
-        query: query.to_string(),
-        params: vec![RowValues2::Int(event_id as i64)],
-    };
-
-    let res = (match &conn {
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
-            sqlite_conn
-                .interact(move |db_conn| {
-                    let converted_params = convert_sql_params::<SqliteParamsQuery>(
-                        &query_and_params.params,
-                        ConversionMode::Query,
-                    )?;
-                    let tx = db_conn.transaction()?;
-
-                    let result_set = {
-                        let mut stmt = tx.prepare(&query_and_params.query)?;
-
-                        sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
-                    };
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(result_set)
-                })
-                .await
-        }
-        _ => Ok(Err(SqlMiddlewareDbError::Other(
-            "Database type not supported for this operation".to_string(),
-        ))),
-    })??;
+    let params = vec![RowValues2::Int(event_id as i64)];
+    let res = execute_query(&conn, query, params).await?;
 
     let last_time_updated = get_last_timestamp(&res.results);
 

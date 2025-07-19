@@ -112,30 +112,7 @@ pub async fn create_tables(
         }
     };
 
-    let query_and_params = QueryAndParams {
-        query: query.to_string(),
-        params: vec![],
-    };
-
-    match sconn {
-        MiddlewarePoolConnection::Postgres(mut xx) => {
-            let tx = xx.transaction().await?;
-
-            tx.batch_execute(&query_and_params.query).await?;
-            tx.commit().await?;
-            Ok::<_, SqlMiddlewareDbError>(())
-        }
-        MiddlewarePoolConnection::Sqlite(xx) => {
-            xx.interact(move |xxx| {
-                let tx = xxx.transaction()?;
-                tx.execute_batch(&query_and_params.query)?;
-
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(())
-            })
-            .await?
-        } // MiddlewarePoolConnection::Mssql(_) => todo!()
-    }?;
+    crate::model::execute_batch_sql(config_and_pool, &query).await?;
 
     Ok(())
 }

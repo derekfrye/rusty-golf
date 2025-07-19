@@ -1,6 +1,7 @@
 use crate::admin::model::admin_model::{AdminPage, AlphaNum14};
+use crate::model::CheckType;
 
-use actix_web::{HttpResponse, web};
+use actix_web::{web, HttpResponse};
 use maud::PreEscaped;
 use sql_middleware::middleware::ConfigAndPool;
 use std::{collections::HashMap, env};
@@ -110,10 +111,14 @@ impl AdminRouter {
                 return Ok(cr.http_response_for_create_tables(query).await?);
             } else if query.contains_key("from_landing_page_tables") {
                 // we're on the main landing page, and checking if the db tables exist
-                returned_html_content = cr.check_if_tables_exist().await?;
+                returned_html_content = cr
+                    .check_if_db_objects_exist(false, CheckType::Table)
+                    .await?;
             } else if query.contains_key("from_landing_page_constraints") {
                 // we're on the main landing page, and checking if the db constraints exist
-                returned_html_content = cr.check_if_constraints_exist().await?;
+                returned_html_content = cr
+                    .check_if_db_objects_exist(false, CheckType::Constraint)
+                    .await?;
             } else {
                 // admin01_missing_tables is populated by js when user already on this page
                 // so if empty it means we need to render default page

@@ -5,13 +5,12 @@ use rusty_golf::args;
 use rusty_golf::controller::{db_prefill, score::scores};
 use rusty_golf::model::get_event_details;
 use sql_middleware::middleware::{
-    ConfigAndPool, DatabaseType, MiddlewarePool, MiddlewarePoolConnection, QueryAndParams,
+    ConfigAndPool, DatabaseType,
 };
 
 use actix_files::Files;
 use actix_web::web::Data;
 use actix_web::{App, HttpResponse, HttpServer, Responder, web};
-use sql_middleware::SqlMiddlewareDbError;
 use std::collections::HashMap;
 
 #[actix_web::main]
@@ -58,35 +57,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if args.db_startup_script.is_some() {
-        // let db = Db::new(dbcn.clone()).unwrap();
         let script = args.combined_sql_script;
-        // db.execute(&script).await.unwrap();
-        let query_and_params = QueryAndParams {
-            query: script,
-            params: vec![],
-        };
-
-        let pool = config_and_pool.pool.get().await?;
-        let sconn = MiddlewarePool::get_connection(pool).await?;
-        (match sconn {
-            MiddlewarePoolConnection::Postgres(mut xx) => {
-                let tx = xx.transaction().await?;
-
-                tx.batch_execute(&query_and_params.query).await?;
-                tx.commit().await?;
-                Ok::<_, SqlMiddlewareDbError>(())
-            }
-            MiddlewarePoolConnection::Sqlite(xx) => {
-                xx.interact(move |xxx| {
-                    let tx = xxx.transaction()?;
-                    tx.execute_batch(&query_and_params.query)?;
-
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(())
-                })
-                .await?
-            } // MiddlewarePoolConnection::Mssql(_) => todo!()
-        })?;
+        rusty_golf::model::execute_batch_sql(&config_and_pool, &script).await?;
     }
 
     if let Some(json_path) = &args.db_populate_json {

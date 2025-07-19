@@ -1,8 +1,9 @@
+use crate::model::execute_query;
 use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection,
+    ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection,
 };
-use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
-use sql_middleware::{SqlMiddlewareDbError, SqliteParamsQuery, convert_sql_params};
+use sql_middleware::middleware::{RowValues as RowValues2};
+use sql_middleware::{SqlMiddlewareDbError};
 
 pub struct EventTitleAndScoreViewConf {
     pub event_name: String,
@@ -25,37 +26,10 @@ pub async fn get_event_details(
             include_str!("../admin/model/sql/functions/sqlite/01_sp_get_event_details.sql")
         }
     };
-    let query_and_params = QueryAndParams2 {
-        query: query.to_string(),
-        params: vec![RowValues2::Int(event_id as i64)],
-    };
+    let params = vec![RowValues2::Int(event_id as i64)];
+    let res = execute_query(&conn, query, params).await?;
 
-    let res = (match &conn {
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
-            sqlite_conn
-                .interact(move |db_conn| {
-                    let converted_params = convert_sql_params::<SqliteParamsQuery>(
-                        &query_and_params.params,
-                        ConversionMode::Query,
-                    )?;
-                    let tx = db_conn.transaction()?;
-
-                    let result_set = {
-                        let mut stmt = tx.prepare(&query_and_params.query)?;
-
-                        sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
-                    };
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(result_set)
-                })
-                .await
-        }
-        _ => Ok(Err(SqlMiddlewareDbError::Other(
-            "Database type not supported for this operation".to_string(),
-        ))),
-    })?;
-
-    res?.results
+    res.results
         .iter()
         .map(|row| {
             Ok(EventTitleAndScoreViewConf {

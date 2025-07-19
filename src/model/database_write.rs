@@ -6,6 +6,35 @@ use sql_middleware::{SqlMiddlewareDbError, SqliteParamsExecute, convert_sql_para
 
 use crate::model::types::Scores;
 
+pub async fn execute_batch_sql(
+    config_and_pool: &ConfigAndPool,
+    query: &str,
+) -> Result<(), SqlMiddlewareDbError> {
+    let pool = config_and_pool.pool.get().await?;
+    let sconn = MiddlewarePool::get_connection(pool).await?;
+    let query_and_params = QueryAndParams2 {
+        query: query.to_string(),
+        params: vec![],
+    };
+
+    match sconn {
+        MiddlewarePoolConnection::Postgres(mut xx) => {
+            let tx = xx.transaction().await?;
+            tx.batch_execute(&query_and_params.query).await?;
+            tx.commit().await?;
+            Ok::<_, SqlMiddlewareDbError>(())
+        }
+        MiddlewarePoolConnection::Sqlite(xx) => xx
+            .interact(move |xxx| {
+                let tx = xxx.transaction()?;
+                tx.execute_batch(&query_and_params.query)?;
+                tx.commit()?;
+                Ok::<_, SqlMiddlewareDbError>(())
+            })
+            .await?,
+    }
+}
+
 pub async fn store_scores_in_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
@@ -25,12 +54,10 @@ pub async fn store_scores_in_db(
                     SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {e}"))
                 })?;
 
-            let round_scores_json = serde_json::to_string(
-                score.detailed_statistics.round_scores.as_slice(),
-            )
-            .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}"))
-            })?;
+            let round_scores_json =
+                serde_json::to_string(score.detailed_statistics.round_scores.as_slice()).map_err(
+                    |e| SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}")),
+                )?;
 
             let tee_times_json =
                 serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).map_err(
@@ -47,12 +74,10 @@ pub async fn store_scores_in_db(
                 SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {e}"))
             })?;
 
-            let line_scores_json = serde_json::to_string(
-                score.detailed_statistics.line_scores.as_slice(),
-            )
-            .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}"))
-            })?;
+            let line_scores_json =
+                serde_json::to_string(score.detailed_statistics.line_scores.as_slice()).map_err(
+                    |e| SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}")),
+                )?;
 
             let param = vec![
                 RowValues2::Int(event_id as i64),

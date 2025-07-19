@@ -20,7 +20,9 @@ impl CreateTableReturn {
 
     // Render the main page
     pub async fn render_default_page(&mut self) -> Result<Markup, Box<dyn std::error::Error>> {
-        let do_tables_exist = self.do_tables_exist(true, CheckType::Table).await?;
+        let do_tables_exist = self
+            .check_if_db_objects_exist(true, CheckType::Table)
+            .await?;
 
         Ok(html! {
             (maud::DOCTYPE)
@@ -43,17 +45,7 @@ impl CreateTableReturn {
         })
     }
 
-    pub async fn check_if_tables_exist(&mut self) -> Result<Markup, Box<dyn std::error::Error>> {
-        self.do_tables_exist(false, CheckType::Table).await
-    }
-
-    pub async fn check_if_constraints_exist(
-        &mut self,
-    ) -> Result<Markup, Box<dyn std::error::Error>> {
-        self.do_tables_exist(false, CheckType::Constraint).await
-    }
-
-    async fn do_tables_exist(
+    pub async fn check_if_db_objects_exist(
         &mut self,
         detailed_output: bool,
         check_type: CheckType,

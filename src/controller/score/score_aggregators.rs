@@ -18,76 +18,16 @@ pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
     sort_scores(grouped_scores)
 }
 
-pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRound {
-    let mut rounds_by_bettor_storing_score_val: HashMap<String, Vec<(isize, isize)>> =
-        HashMap::new();
-
-    for score in scores {
-        let bettor_name = &score.bettor_name;
-
-        for (round_idx, round_score) in score.detailed_statistics.round_scores.iter().enumerate() {
-            let a_single_bettors_scores = rounds_by_bettor_storing_score_val
-                .entry(bettor_name.to_string())
-                .or_default();
-            let round_idx_isize = match isize::try_from(round_idx) {
-                Ok(val) => val,
-                Err(_) => {
-                    eprintln!("Warning: Failed to convert round index {round_idx} to isize");
-                    0
-                }
-            };
-            a_single_bettors_scores.push((round_idx_isize, round_score.val as isize));
-        }
-    }
-
-    let mut summary_scores = AllBettorScoresByRound {
-        summary_scores: Vec::new(),
-    };
-    let mut bettor_names: Vec<String> = Vec::new();
-
-    for score in scores {
-        let bettor_name = &score.bettor_name;
-        if rounds_by_bettor_storing_score_val.contains_key(bettor_name)
-            && !bettor_names.contains(bettor_name)
-        {
-            bettor_names.push(bettor_name.clone());
-        }
-    }
-
-    for bettor_name in &bettor_names {
-        if rounds_by_bettor_storing_score_val.contains_key(bettor_name) {
-            let res1 = rounds_by_bettor_storing_score_val
-                .get(bettor_name)
-                .unwrap()
-                .iter();
-
-            let result = res1
-                .fold(BTreeMap::new(), |mut acc, &(k, v)| {
-                    *acc.entry(k).or_insert(0) += v;
-                    acc
-                })
-                .into_iter()
-                .collect::<Vec<(isize, isize)>>();
-
-            let (computed_rounds, new_scores): (Vec<isize>, Vec<isize>) =
-                result.iter().cloned().unzip();
-
-            summary_scores.summary_scores.push(BettorScoreByRound {
-                bettor_name: bettor_name.clone(),
-                computed_rounds,
-                scores_aggregated_by_golf_grp_by_rd: new_scores,
-            });
-        }
-    }
-
-    summary_scores
-}
-
-pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
+fn build_bettor_golfer_maps(
+    scores: &[Scores],
+) -> (
+    HashMap<String, HashMap<String, BTreeMap<i32, i32>>>,
+    HashMap<(String, String), i64>,
+    Vec<String>,
+    HashMap<String, Vec<String>>,
+) {
     let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
-
     let mut espn_id_map: HashMap<(String, String), i64> = HashMap::new();
-
     let mut bettor_order: Vec<String> = Vec::new();
     let mut golfer_order_map: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -116,9 +56,7 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
                 .entry(golfer_name.clone())
                 .or_default()
                 .entry(round_val)
-                .and_modify(|e| {
-                    *e += round_score;
-                })
+                .and_modify(|e| *e += round_score)
                 .or_insert(round_score);
         }
     }
@@ -127,6 +65,44 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
         let mut seen = HashMap::new();
         golfers.retain(|golfer| seen.insert(golfer.clone(), ()).is_none());
     }
+
+    (scores_map, espn_id_map, bettor_order, golfer_order_map)
+}
+
+pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRound {
+    let (scores_map, _, bettor_order, _) = build_bettor_golfer_maps(scores);
+    let mut summary_scores = AllBettorScoresByRound {
+        summary_scores: Vec::new(),
+    };
+
+    for bettor_name in &bettor_order {
+        let mut rounds_by_bettor_storing_score_val: BTreeMap<isize, isize> = BTreeMap::new();
+        if let Some(golfers_map) = scores_map.get(bettor_name) {
+            for rounds_map in golfers_map.values() {
+                for (&round, &score) in rounds_map {
+                    *rounds_by_bettor_storing_score_val
+                        .entry(round as isize - 1)
+                        .or_insert(0) += score as isize;
+                }
+            }
+        }
+
+        let (computed_rounds, new_scores): (Vec<isize>, Vec<isize>) =
+            rounds_by_bettor_storing_score_val.into_iter().unzip();
+
+        summary_scores.summary_scores.push(BettorScoreByRound {
+            bettor_name: bettor_name.clone(),
+            computed_rounds,
+            scores_aggregated_by_golf_grp_by_rd: new_scores,
+        });
+    }
+
+    summary_scores
+}
+
+pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
+    let (scores_map, espn_id_map, bettor_order, golfer_order_map) =
+        build_bettor_golfer_maps(scores);
 
     let mut summary_scores = SummaryDetailedScores {
         detailed_scores: Vec::new(),
