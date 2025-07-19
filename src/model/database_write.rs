@@ -119,7 +119,7 @@ pub async fn event_and_scores_already_in_db(
     event_id: i32,
     cache_max_age: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
-    use crate::model::database::execute_query;
+    use crate::model::database_read::execute_query;
     use crate::model::event::get_event_details;
     use sql_middleware::middleware::RowValues as RowValues2;
 

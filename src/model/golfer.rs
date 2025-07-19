@@ -3,7 +3,7 @@ use sql_middleware::middleware::RowValues as RowValues2;
 use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
 use std::collections::HashMap;
 
-use crate::model::database::execute_query;
+use crate::model::database_read::execute_query;
 use crate::model::score::Statistic;
 use crate::model::types::Scores;
 
