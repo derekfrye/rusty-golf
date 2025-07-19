@@ -1,6 +1,7 @@
 use crate::model::ScoreData;
 use maud::{Markup, html};
 
+#[must_use]
 pub fn render_scoreboard(data: &ScoreData) -> Markup {
     html! {
         @if !data.score_struct.is_empty(){

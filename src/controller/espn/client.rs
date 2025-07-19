@@ -2,6 +2,10 @@ use crate::model::{PlayerJsonResponse, Scores};
 use reqwest::Client;
 use std::collections::HashMap;
 
+
+/// # Errors
+///
+/// Will return `Err` if the espn api call fails
 pub async fn get_json_from_espn(
     scores: &[Scores],
     year: i32,

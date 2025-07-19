@@ -5,6 +5,10 @@ use crate::model::{
 };
 use sql_middleware::middleware::ConfigAndPool;
 
+
+/// # Errors
+///
+/// Will return `Err` if the espn api call fails
 pub async fn fetch_scores_from_espn(
     scores: Vec<Scores>,
     year: i32,
@@ -13,16 +17,12 @@ pub async fn fetch_scores_from_espn(
     use_cache: bool,
     cache_max_age: i64,
 ) -> Result<ScoresAndLastRefresh, Box<dyn std::error::Error>> {
-    let are_we_using_cache: bool = match use_cache {
-        true => {
-            let t = event_and_scores_already_in_db(config_and_pool, event_id, cache_max_age).await;
-            match t {
-                Ok(true) => true,
-                Ok(false) => false,
-                Err(_) => false,
-            }
-        }
-        false => false,
+    let are_we_using_cache: bool = if use_cache {
+        event_and_scores_already_in_db(config_and_pool, event_id, cache_max_age)
+            .await
+            .unwrap_or(false)
+    } else {
+        false
     };
 
     if !are_we_using_cache {

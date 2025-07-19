@@ -7,6 +7,10 @@ pub mod validation;
 
 pub use types::{Args, CleanArgs};
 
+
+/// # Panics
+///
+/// Will panic if the arguments are invalid
 pub fn args_checks() -> CleanArgs {
     let mut xx = Args::parse();
     xx.validate().unwrap();
@@ -14,6 +18,7 @@ pub fn args_checks() -> CleanArgs {
 }
 
 impl CleanArgs {
+    #[must_use]
     pub fn new(args: Args) -> Self {
         let mut combined_sql_script = args.db_startup_script.clone().unwrap_or_default();
         if let Some(db_startup_script) = &args.db_startup_script {

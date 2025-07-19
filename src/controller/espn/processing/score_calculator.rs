@@ -1,6 +1,7 @@
 use crate::model::{IntStat, LineScore, ScoreDisplay};
 use serde_json::Value;
 
+#[must_use]
 pub fn process_line_scores(line_scores_json: &[Value], round_index: usize) -> Vec<LineScore> {
     let mut line_scores = Vec::new();
 
@@ -37,6 +38,7 @@ pub fn process_line_scores(line_scores_json: &[Value], round_index: usize) -> Ve
     line_scores
 }
 
+#[must_use]
 pub fn process_round_score(display_value: &str, _round_index: usize) -> IntStat {
     let score = display_value
         .trim_start_matches('+')
@@ -45,6 +47,7 @@ pub fn process_round_score(display_value: &str, _round_index: usize) -> IntStat 
     IntStat { val: score }
 }
 
+#[must_use]
 pub fn calculate_total_score(round_scores: &[IntStat]) -> i32 {
     round_scores.iter().map(|s| s.val).sum()
 }

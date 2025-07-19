@@ -52,25 +52,26 @@ pub enum ScoreDisplay {
 }
 
 impl ScoreDisplay {
+    #[must_use]
     pub fn from_i32(i: i32) -> Self {
         match i {
-            -5 => ScoreDisplay::DoubleCondor,
-            -4 => ScoreDisplay::Condor,
-            -3 => ScoreDisplay::Albatross,
-            -2 => ScoreDisplay::Eagle,
-            -1 => ScoreDisplay::Birdie,
-            0 => ScoreDisplay::Par,
-            1 => ScoreDisplay::Bogey,
-            2 => ScoreDisplay::DoubleBogey,
-            3 => ScoreDisplay::TripleBogey,
-            4 => ScoreDisplay::QuadrupleBogey,
-            5 => ScoreDisplay::QuintupleBogey,
-            6 => ScoreDisplay::SextupleBogey,
-            7 => ScoreDisplay::SeptupleBogey,
-            8 => ScoreDisplay::OctupleBogey,
-            9 => ScoreDisplay::NonupleBogey,
-            10 => ScoreDisplay::DodecupleBogey,
-            _ => ScoreDisplay::Par,
+            -5 => Self::DoubleCondor,
+            -4 => Self::Condor,
+            -3 => Self::Albatross,
+            -2 => Self::Eagle,
+            -1 => Self::Birdie,
+            0 => Self::Par,
+            1 => Self::Bogey,
+            2 => Self::DoubleBogey,
+            3 => Self::TripleBogey,
+            4 => Self::QuadrupleBogey,
+            5 => Self::QuintupleBogey,
+            6 => Self::SextupleBogey,
+            7 => Self::SeptupleBogey,
+            8 => Self::OctupleBogey,
+            9 => Self::NonupleBogey,
+            10 => Self::DodecupleBogey,
+            _ => Self::Par,
         }
     }
 }

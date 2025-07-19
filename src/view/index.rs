@@ -2,6 +2,7 @@ use maud::{Markup, html};
 
 use crate::HTMX_PATH;
 
+#[must_use]
 pub fn render_index_template(title: String) -> Markup {
     html! {
         (maud::DOCTYPE)

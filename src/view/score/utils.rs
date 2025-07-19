@@ -3,18 +3,19 @@ use crate::view::score::types::{BettorData, GolferData};
 use maud::{Markup, html};
 use std::collections::HashMap;
 
+#[must_use]
 pub fn short_golfer_name(golfer_name: &str) -> String {
     let parts: Vec<&str> = golfer_name.split_whitespace().collect();
 
-    if parts.len() >= 2 {
-        let first_initial = parts[0].chars().next().unwrap_or(' ');
-        let last_name = parts[parts.len() - 1];
+    if let Some(first_initial) = parts.first().and_then(|s| s.chars().next()) {
+        let last_name = parts.last().unwrap_or(&"");
         format!("{first_initial}. {last_name}")
     } else {
         golfer_name.to_string()
     }
 }
 
+#[must_use]
 pub fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
     let (shape, color) = match disp {
         ScoreDisplay::DoubleCondor => ("◆", "double-condor"),
@@ -40,6 +41,7 @@ pub fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
     }
 }
 
+#[must_use]
 pub fn scores_and_last_refresh_to_line_score_tables(
     scores_and_last_refresh: &ScoresAndLastRefresh,
 ) -> Vec<BettorData> {

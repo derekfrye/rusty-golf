@@ -7,6 +7,14 @@ use sql_middleware::{
     },
 };
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
+///
+/// # Panics
+///
+/// Will panic if the json is not in the correct format
 pub async fn db_prefill(
     json1: &Value,
     config_and_pool: &ConfigAndPool,
@@ -131,19 +139,16 @@ pub async fn db_prefill(
                                         )?;
 
                                         let mut stmt = tx.prepare(&query_and_params.query)?;
-                                        match stmt.execute(converted_params.0) {
-                                            Ok(_) => {},
-                                            Err(e) => {
-                                                println!(
-                                                    "event_id {:?}, user_id {:?}, golfer_id {:?}, qry: {:?}, err {:?}",
-                                                    query_and_params.params[0],
-                                                    query_and_params.params[1],
-                                                    query_and_params.params[2],
-                                                    stmt.expanded_sql(),
-                                                    e
-                                                );
-                                                return Err(e.into());
-                                            }
+                                        if let Err(e) = stmt.execute(converted_params.0) {
+                                            println!(
+                                                "event_id {:?}, user_id {:?}, golfer_id {:?}, qry: {:?}, err {:?}",
+                                                query_and_params.params[0],
+                                                query_and_params.params[1],
+                                                query_and_params.params[2],
+                                                stmt.expanded_sql(),
+                                                e
+                                            );
+                                            return Err(e.into());
                                         }
                                     }
                                 }
@@ -157,10 +162,10 @@ pub async fn db_prefill(
                         tx.commit()?;
                         Ok::<_, SqlMiddlewareDbError>(())
                     }
-                    _ => Err(SqlMiddlewareDbError::Other("Unexpected database type".into())),
+                    AnyConnWrapper::Postgres(_) => Err(SqlMiddlewareDbError::Other("Unexpected database type".into())),
                 }
             }).await?
         }
-        _ => unimplemented!(),
+        DatabaseType::Postgres => unimplemented!(),
     }
 }

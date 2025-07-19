@@ -19,6 +19,10 @@ impl CreateTableReturn {
     }
 
     // Render the main page
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the database query fails
     pub async fn render_default_page(&mut self) -> Result<Markup, Box<dyn std::error::Error>> {
         let do_tables_exist = self
             .check_if_db_objects_exist(true, CheckType::Table)
@@ -45,6 +49,9 @@ impl CreateTableReturn {
         })
     }
 
+    /// # Errors
+    ///
+    /// Will return `Err` if the database query fails
     pub async fn check_if_db_objects_exist(
         &mut self,
         detailed_output: bool,

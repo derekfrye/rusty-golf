@@ -3,6 +3,14 @@ use sql_middleware::middleware::DatabaseType;
 
 impl Args {
     /// Validate the secrets based on the mode
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the database configuration is invalid
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the password file is not found
     pub fn validate(&mut self) -> Result<(), String> {
         if self.db_type == DatabaseType::Postgres {
             let secrets_locations = ["/secrets/db_password", "/run/secrets/db_password"];

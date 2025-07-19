@@ -3,6 +3,10 @@ use crate::model::CheckType;
 use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn get_missing_db_objects(
     config_and_pool: &ConfigAndPool,
     check_type: &CheckType,
@@ -12,12 +16,12 @@ pub async fn get_missing_db_objects(
     let all_objs_not_setup: Vec<String> = {
         db_obj_setup_state
             .iter()
-            .filter(|x| !(*x.get("ex").and_then(|v| v.as_bool()).unwrap_or(&false)))
+            .filter(|x| !x.get("ex").and_then(|v| v.as_bool()).unwrap_or(&false))
             .map(|x| {
                 x.get("tbl")
                     .ok_or("No tbl")
                     .and_then(|v| v.as_text().ok_or("Not a string"))
-                    .map(|s| s.to_string())
+                    .map(ToString::to_string)
             })
             .collect::<Result<Vec<String>, &str>>()?
     };

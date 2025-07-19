@@ -5,6 +5,7 @@ use crate::model::{
     AllBettorScoresByRound, BettorScoreByRound, DetailedScore, Scores, SummaryDetailedScores,
 };
 
+#[must_use]
 pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
     let mut grouped_scores: HashMap<usize, Vec<Scores>> = HashMap::new();
 
@@ -18,14 +19,14 @@ pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
     sort_scores(grouped_scores)
 }
 
-fn build_bettor_golfer_maps(
-    scores: &[Scores],
-) -> (
+type BettorGolferMaps = (
     HashMap<String, HashMap<String, BTreeMap<i32, i32>>>,
     HashMap<(String, String), i64>,
     Vec<String>,
     HashMap<String, Vec<String>>,
-) {
+);
+
+fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
     let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
     let mut espn_id_map: HashMap<(String, String), i64> = HashMap::new();
     let mut bettor_order: Vec<String> = Vec::new();
@@ -69,6 +70,7 @@ fn build_bettor_golfer_maps(
     (scores_map, espn_id_map, bettor_order, golfer_order_map)
 }
 
+#[must_use]
 pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRound {
     let (scores_map, _, bettor_order, _) = build_bettor_golfer_maps(scores);
     let mut summary_scores = AllBettorScoresByRound {
@@ -100,7 +102,8 @@ pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRou
     summary_scores
 }
 
-pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScores {
+#[must_use]
+pub fn group_by_bettor_golfer_round(scores: &[Scores]) -> SummaryDetailedScores {
     let (scores_map, espn_id_map, bettor_order, golfer_order_map) =
         build_bettor_golfer_maps(scores);
 
@@ -118,7 +121,7 @@ pub fn group_by_bettor_golfer_round(scores: &Vec<Scores>) -> SummaryDetailedScor
                         rounds.sort_by_key(|&(round, _)| round);
 
                         let (round_numbers, round_scores): (Vec<i32>, Vec<i32>) =
-                            rounds.iter().cloned().unzip();
+                            rounds.iter().copied().unzip();
 
                         let golfer_espn_id = espn_id_map
                             .get(&(bettor_name.clone(), golfer_name.clone()))

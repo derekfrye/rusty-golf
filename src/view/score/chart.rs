@@ -8,6 +8,10 @@ use crate::model::{
 use crate::view::score::types::{Bar, Direction, GolferBars};
 use crate::view::score::utils::short_golfer_name;
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn preprocess_golfer_data(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &[DetailedScore],
@@ -98,6 +102,9 @@ pub async fn preprocess_golfer_data(
     Ok(bettor_golfers_map)
 }
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn render_drop_down_bar(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &SummaryDetailedScores,

@@ -8,6 +8,10 @@ use sql_middleware::{
 
 use crate::model::CheckType;
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn test_is_db_setup(
     config_and_pool: &ConfigAndPool,
     check_type: &CheckType,
@@ -16,23 +20,20 @@ pub async fn test_is_db_setup(
     let sconn = MiddlewarePool::get_connection(pool).await?;
 
     let query = match &sconn {
-        MiddlewarePoolConnection::Postgres(_xx) => match check_type {
-            CheckType::Table => {
+        MiddlewarePoolConnection::Postgres(_xx) => {
+            if let CheckType::Table = check_type {
                 include_str!("../sql/schema/postgres/0x_tables_exist.sql")
-            }
-            _ => {
+            } else {
                 return Ok(vec![]);
             }
-        },
-        MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
-            CheckType::Table => {
+        }
+        MiddlewarePoolConnection::Sqlite(_xx) => {
+            if let CheckType::Table = check_type {
                 include_str!("../sql/schema/sqlite/0x_tables_exist.sql")
-            }
-            _ => {
+            } else {
                 return Ok(vec![]);
             }
-        },
-        // &MiddlewarePoolConnection::Mssql(_) => todo!(),
+        }
     };
 
     let query_and_params = QueryAndParams {
@@ -64,12 +65,15 @@ pub async fn test_is_db_setup(
                 Ok::<_, SqlMiddlewareDbError>(result_set)
             })
             .await?
-        } // MiddlewarePoolConnection::Mssql(_) => todo!()
+        }
     }?;
 
     Ok(res.results)
 }
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn create_tables(
     config_and_pool: &ConfigAndPool,
     check_type: &CheckType,
@@ -77,39 +81,39 @@ pub async fn create_tables(
     let pool = config_and_pool.pool.get().await?;
     let sconn = MiddlewarePool::get_connection(pool).await?;
 
-    let query = match *check_type {
-        CheckType::Table => match &sconn {
-            MiddlewarePoolConnection::Postgres(_xx) => match check_type {
-                CheckType::Table => [
-                    include_str!("../sql/schema/postgres/00_event.sql"),
-                    include_str!("../sql/schema/postgres/02_golfer.sql"),
-                    include_str!("../sql/schema/postgres/03_bettor.sql"),
-                    include_str!("../sql/schema/postgres/04_event_user_player.sql"),
-                    include_str!("../sql/schema/postgres/05_eup_statistic.sql"),
-                ]
-                .join("\n"),
-                _ => {
+    let query = if let CheckType::Table = *check_type {
+        match &sconn {
+            MiddlewarePoolConnection::Postgres(_xx) => {
+                if let CheckType::Table = check_type {
+                    [
+                        include_str!("../sql/schema/postgres/00_event.sql"),
+                        include_str!("../sql/schema/postgres/02_golfer.sql"),
+                        include_str!("../sql/schema/postgres/03_bettor.sql"),
+                        include_str!("../sql/schema/postgres/04_event_user_player.sql"),
+                        include_str!("../sql/schema/postgres/05_eup_statistic.sql"),
+                    ]
+                    .join("\n")
+                } else {
                     return Ok(());
                 }
-            },
-            MiddlewarePoolConnection::Sqlite(_xx) => match check_type {
-                CheckType::Table => [
-                    include_str!("../sql/schema/sqlite/00_event.sql"),
-                    include_str!("../sql/schema/sqlite/02_golfer.sql"),
-                    include_str!("../sql/schema/sqlite/03_bettor.sql"),
-                    include_str!("../sql/schema/sqlite/04_event_user_player.sql"),
-                    include_str!("../sql/schema/sqlite/05_eup_statistic.sql"),
-                ]
-                .join("\n"),
-                _ => {
+            }
+            MiddlewarePoolConnection::Sqlite(_xx) => {
+                if let CheckType::Table = check_type {
+                    [
+                        include_str!("../sql/schema/sqlite/00_event.sql"),
+                        include_str!("../sql/schema/sqlite/02_golfer.sql"),
+                        include_str!("../sql/schema/sqlite/03_bettor.sql"),
+                        include_str!("../sql/schema/sqlite/04_event_user_player.sql"),
+                        include_str!("../sql/schema/sqlite/05_eup_statistic.sql"),
+                    ]
+                    .join("\n")
+                } else {
                     return Ok(());
                 }
-            },
-            // &MiddlewarePoolConnection::Mssql(_) => todo!(),
-        },
-        CheckType::Constraint => {
-            return Ok(());
+            }
         }
+    } else {
+        return Ok(());
     };
 
     crate::model::execute_batch_sql(config_and_pool, &query).await?;

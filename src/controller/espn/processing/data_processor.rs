@@ -3,6 +3,10 @@ use super::time_processor::process_tee_time;
 use crate::model::{IntStat, PlayerJsonResponse, Scores, Statistic};
 use serde_json::Value;
 
+
+/// # Errors
+///
+/// Will return `Err` if the json processing fails
 pub fn process_json_to_statistics(
     json_responses: &PlayerJsonResponse,
 ) -> Result<Vec<Statistic>, Box<dyn std::error::Error>> {
@@ -60,6 +64,9 @@ pub fn process_json_to_statistics(
     Ok(golfer_scores)
 }
 
+/// # Errors
+///
+/// Will return `Err` if there is a mismatch between statistics and scores
 pub fn merge_statistics_with_scores(
     statistics: Vec<Statistic>,
     scores: &[Scores],

@@ -2,6 +2,10 @@ use crate::controller::espn::client::get_json_from_espn;
 use crate::model::{PlayerJsonResponse, Scores};
 use futures::future::join_all;
 
+
+/// # Errors
+///
+/// Will return `Err` if the espn api call fails
 pub async fn get_espn_data_parallel(
     scores: &[Scores],
     year: i32,

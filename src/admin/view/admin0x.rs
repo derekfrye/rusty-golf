@@ -8,6 +8,7 @@ use maud::{Markup, html};
 use std::collections::HashMap;
 
 // Render the main page
+#[must_use]
 pub async fn render_default_page() -> Markup {
     let players = Player::test_data();
     let bettors = Bettor::test_data();
@@ -67,6 +68,7 @@ pub async fn render_default_page() -> Markup {
     }
 }
 
+#[must_use]
 pub fn render_received_data(query: web::Query<HashMap<String, String>>) -> Markup {
     let players = Player::test_data();
     let bettors = Bettor::test_data();

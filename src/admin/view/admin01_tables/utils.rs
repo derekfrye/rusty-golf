@@ -2,6 +2,7 @@ use super::types::CheckTypeData;
 use crate::admin::model::admin_model::TimesRun;
 use crate::model::CheckType;
 
+#[must_use]
 pub fn parse_into_times_run(input: &str) -> Option<TimesRun> {
     match serde_json::from_str::<TimesRun>(input) {
         Ok(single_run) => Some(single_run),
@@ -22,6 +23,7 @@ pub fn parse_into_times_run(input: &str) -> Option<TimesRun> {
     }
 }
 
+#[must_use]
 pub fn get_check_type_data(check_type: &CheckType) -> CheckTypeData {
     match check_type {
         CheckType::Table => CheckTypeData {

@@ -3,6 +3,7 @@ use crate::view::score::types::{BettorData, RefreshData};
 use crate::view::score::utils::{score_with_shape, short_golfer_name};
 use maud::{Markup, html};
 
+#[must_use]
 pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshData) -> Markup {
     html! {
         h3 class="playerbars" { "Score by Golfer" }

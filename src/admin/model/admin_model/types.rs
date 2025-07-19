@@ -17,13 +17,14 @@ pub struct Bettor {
 }
 
 impl Player {
+    #[must_use]
     pub fn test_data() -> Vec<Self> {
         vec![
-            Player {
+            Self {
                 id: 1,
                 name: "Player1".to_string(),
             },
-            Player {
+            Self {
                 id: 2,
                 name: "Player2".to_string(),
             },
@@ -32,13 +33,14 @@ impl Player {
 }
 
 impl Bettor {
+    #[must_use]
     pub fn test_data() -> Vec<Self> {
         vec![
-            Bettor {
+            Self {
                 uid: 1,
                 name: "Bettor1".to_string(),
             },
-            Bettor {
+            Self {
                 uid: 2,
                 name: "Bettor2".to_string(),
             },
@@ -77,6 +79,10 @@ pub struct MissingDbObjects {
     pub missing_object: String,
 }
 
+
+/// # Errors
+///
+/// Will return `Err` if the deserialization fails
 pub fn deserialize_int_or_string<'de, D>(deserializer: D) -> Result<i32, D::Error>
 where
     D: Deserializer<'de>,

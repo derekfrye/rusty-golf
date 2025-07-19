@@ -1,21 +1,29 @@
 use serde_json::Value;
 use std::{fs, path::PathBuf};
 
+
+/// # Errors
+///
+/// Will return `Err` if the file is not readable
 pub fn check_readable_file(file: &str) -> Result<String, String> {
     // split by semi-colon
     let files = file.split(';');
-    let mut results = vec![];
     for file in files {
         let path = PathBuf::from(file);
         if !path.is_file() || fs::metadata(&path).is_err() {
             return Err(format!("The sql startup script '{file}' is not readable."));
-        } else {
-            results.push(path.to_str().unwrap().to_string());
         }
     }
     Ok(file.to_string())
 }
 
+/// # Errors
+///
+/// Will return `Err` if the file is not readable or is not valid json
+///
+/// # Panics
+///
+/// Will panic if the file is not found or the json is not in the correct format
 pub fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
     let path = PathBuf::from(file);
     if !path.is_file() || fs::metadata(&path).is_err() {
@@ -34,6 +42,14 @@ pub fn check_readable_file_and_json(file: &str) -> Result<Value, String> {
 /// , "golfers": [{"name": "Firstname Lastname", "espn_id": <int>}, {"name": "Firstname Lastname", "espn_id": <int>}, ...]
 /// , "event_user_player": [{"bettor": "PlayerName", "golfer_espn_id": <int>}, {"bettor": "PlayerName", "golfer_espn_id": <int>}, ...]
 /// }]}]
+///
+/// # Errors
+///
+/// Will return `Err` if the json is not in the correct format
+///
+/// # Panics
+///
+/// Will panic if the json is not in the correct format
 fn validate_json_format(json: &Value) -> Result<(), String> {
     if !json.is_array() {
         return Err("The json file is not in the correct format.".to_string());

@@ -10,6 +10,10 @@ use data_processor::{merge_statistics_with_scores, process_json_to_statistics};
 pub use score_calculator::*;
 pub use time_processor::*;
 
+
+/// # Errors
+///
+/// Will return `Err` if the espn api call fails
 pub async fn go_get_espn_data(
     scores: Vec<Scores>,
     year: i32,

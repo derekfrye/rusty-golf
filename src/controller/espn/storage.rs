@@ -3,6 +3,10 @@ use crate::model::{
 };
 use sql_middleware::middleware::ConfigAndPool;
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn store_espn_results(
     scores: &[Scores],
     event_id: i32,

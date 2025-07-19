@@ -1,5 +1,6 @@
 use chrono::Duration as ChronoDuration;
 
+#[must_use]
 pub fn format_time_ago_for_score_view(td: ChronoDuration) -> String {
     let secs = td.num_seconds();
 
@@ -11,14 +12,14 @@ pub fn format_time_ago_for_score_view(td: ChronoDuration) -> String {
     const YEAR: i64 = 365 * DAY;
 
     if secs >= YEAR {
-        let years = (secs as f64) / (YEAR as f64);
-        if years == 1.0 {
+        let years = secs as f64 / YEAR as f64;
+        if (years - 1.0).abs() < f64::EPSILON {
             "1 year".to_string()
         } else {
             format!("{years:.2} years")
         }
     } else if secs >= MONTH {
-        let months = (secs as f64) / (MONTH as f64);
+        let months = secs as f64 / MONTH as f64;
         format!("{months:.2} months")
     } else if secs >= WEEK {
         let weeks = secs / WEEK;
@@ -55,6 +56,7 @@ pub fn format_time_ago_for_score_view(td: ChronoDuration) -> String {
     }
 }
 
+#[must_use]
 pub fn take_a_char_off(s: &str) -> String {
     let mut result = s.to_string();
     result.pop();

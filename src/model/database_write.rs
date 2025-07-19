@@ -6,6 +6,10 @@ use sql_middleware::{SqlMiddlewareDbError, SqliteParamsExecute, convert_sql_para
 
 use crate::model::types::Scores;
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn execute_batch_sql(
     config_and_pool: &ConfigAndPool,
     query: &str,
@@ -24,17 +28,22 @@ pub async fn execute_batch_sql(
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
-        MiddlewarePoolConnection::Sqlite(xx) => xx
-            .interact(move |xxx| {
+        MiddlewarePoolConnection::Sqlite(xx) => {
+            xx.interact(|xxx| {
                 let tx = xxx.transaction()?;
                 tx.execute_batch(&query_and_params.query)?;
                 tx.commit()?;
                 Ok::<_, SqlMiddlewareDbError>(())
             })
-            .await?,
+            .await??;
+            Ok(())
+        }
     }
 }
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn store_scores_in_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
@@ -49,38 +58,37 @@ pub async fn store_scores_in_db(
             let insert_stmt =
                 include_str!("../admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
 
-            let rounds_json = serde_json::to_string(score.detailed_statistics.rounds.as_slice())
+            let rounds_json = serde_json::to_string(&score.detailed_statistics.rounds)
                 .map_err(|e| {
                     SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {e}"))
                 })?;
 
             let round_scores_json =
-                serde_json::to_string(score.detailed_statistics.round_scores.as_slice()).map_err(
+                serde_json::to_string(&score.detailed_statistics.round_scores).map_err(
                     |e| SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}")),
                 )?;
 
             let tee_times_json =
-                serde_json::to_string(score.detailed_statistics.tee_times.as_slice()).map_err(
+                serde_json::to_string(&score.detailed_statistics.tee_times).map_err(
                     |e| SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}")),
                 )?;
 
             let holes_completed_json = serde_json::to_string(
-                score
+                &score
                     .detailed_statistics
-                    .holes_completed_by_round
-                    .as_slice(),
+                    .holes_completed_by_round,
             )
             .map_err(|e| {
                 SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {e}"))
             })?;
 
             let line_scores_json =
-                serde_json::to_string(score.detailed_statistics.line_scores.as_slice()).map_err(
+                serde_json::to_string(&score.detailed_statistics.line_scores).map_err(
                     |e| SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}")),
                 )?;
 
             let param = vec![
-                RowValues2::Int(event_id as i64),
+                RowValues2::Int(i64::from(event_id)),
                 RowValues2::Int(score.espn_id),
                 RowValues2::Int(score.eup_id),
                 RowValues2::Int(score.group),
@@ -89,7 +97,7 @@ pub async fn store_scores_in_db(
                 RowValues2::Text(tee_times_json),
                 RowValues2::Text(holes_completed_json),
                 RowValues2::Text(line_scores_json),
-                RowValues2::Int(score.detailed_statistics.total_score as i64),
+                RowValues2::Int(i64::from(score.detailed_statistics.total_score)),
             ];
             queries.push(QueryAndParams2 {
                 query: insert_stmt.to_string(),
@@ -129,7 +137,7 @@ pub async fn store_scores_in_db(
                     })
                     .await??;
             }
-            _ => {
+            MiddlewarePoolConnection::Postgres(_) => {
                 return Err(SqlMiddlewareDbError::Other(
                     "Database type not supported for this operation".to_string(),
                 ));
@@ -139,6 +147,9 @@ pub async fn store_scores_in_db(
     Ok(())
 }
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn event_and_scores_already_in_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
@@ -165,7 +176,7 @@ pub async fn event_and_scores_already_in_db(
         }
     };
 
-    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
+    let query_result = execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     if let Some(results) = query_result.results.first() {
         let now = chrono::Utc::now().naive_utc();

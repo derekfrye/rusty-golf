@@ -9,6 +9,10 @@ use std::collections::HashMap;
 
 impl CreateTableReturn {
     /// Return bit of html indicating if tables created, plus some headers to trigger htmx
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the database query fails
     pub async fn http_response_for_create_tables(
         &mut self,
         query: web::Query<HashMap<String, String>>,
@@ -33,6 +37,10 @@ impl CreateTableReturn {
     }
 
     /// try creating the tables and return small bit of html via htmx for outcome
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the database query fails
     async fn create_tables(
         &mut self,
         times_run: String,

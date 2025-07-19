@@ -8,6 +8,10 @@ use crate::view::score::{
     scores_and_last_refresh_to_line_score_tables,
 };
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn render_scores_template(
     data: &ScoreData,
     expanded: bool,

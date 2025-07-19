@@ -1,5 +1,5 @@
 use sql_middleware::SqlMiddlewareDbError;
-use sql_middleware::middleware::RowValues as RowValues2;
+use sql_middleware::middleware::{RowValues as RowValues2};
 use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
 use std::collections::HashMap;
 
@@ -7,6 +7,10 @@ use crate::model::database_read::execute_query;
 use crate::model::score::Statistic;
 use crate::model::types::Scores;
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn get_golfers_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
@@ -14,8 +18,7 @@ pub async fn get_golfers_from_db(
     fn get_int(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> i64 {
         row.get(field)
             .and_then(|v| v.as_int())
-            .copied()
-            .unwrap_or_default()
+            .map_or(0, |&v| v)
     }
 
     fn get_string(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> String {
@@ -36,7 +39,7 @@ pub async fn get_golfers_from_db(
         }
     };
 
-    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
+    let query_result = execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let scores = query_result
         .results
@@ -63,6 +66,9 @@ pub async fn get_golfers_from_db(
     Ok(scores)
 }
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn get_player_step_factors(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
@@ -72,7 +78,7 @@ pub async fn get_player_step_factors(
 
     let query = include_str!("../admin/model/sql/functions/sqlite/03_sp_get_scores.sql");
 
-    let query_result = execute_query(&conn, query, vec![RowValues2::Int(event_id as i64)]).await?;
+    let query_result = execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let step_factors: HashMap<(i64, String), f32> = query_result
         .results
@@ -88,7 +94,7 @@ pub async fn get_player_step_factors(
             let step_factor = row
                 .get("score_view_step_factor")
                 .and_then(|v| v.as_float())
-                .map(|v| v as f32)?;
+                .map(|v| *v as f32)?;
 
             Some(((golfer_espn_id, bettor_name), step_factor))
         })

@@ -25,6 +25,10 @@ impl std::fmt::Display for AlphaNum14 {
 }
 
 impl AlphaNum14 {
+    /// # Panics
+    ///
+    /// Will panic if the regex is invalid
+    #[must_use]
     pub fn new(input: &str) -> Option<Self> {
         // Using a static regex for better performance and safety
         use std::sync::OnceLock;
@@ -41,10 +45,14 @@ impl AlphaNum14 {
         }
     }
 
+    #[must_use]
     pub fn value(&self) -> &str {
         &self.0
     }
 
+    /// # Errors
+    ///
+    /// Will return `Err` if the input is not a 14 character alphanumeric string
     pub fn parse(input: &str) -> Result<Self, String> {
         Self::try_from(input).map_err(|_| "Invalid input".to_string())
     }

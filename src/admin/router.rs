@@ -19,7 +19,7 @@ impl Default for AdminRouter {
 }
 
 impl AdminRouter {
-    const UNAUTHORIZED_BODY: &str = r#"
+    const UNAUTHORIZED_BODY: &str = r"
     <!DOCTYPE html>
     <html>
     <head>
@@ -34,9 +34,9 @@ impl AdminRouter {
         <h1>401 Unauthorized</h1>
     </body>
     </html>
-    "#;
+    ";
 
-    const INVALID_ADMIN_BODY: &str = r#"
+    const INVALID_ADMIN_BODY: &str = r"
     <!DOCTYPE html>
     <html>
     <head>
@@ -52,12 +52,16 @@ impl AdminRouter {
         <p>Check your <pre>p</pre> parameter.</p>
     </body>
     </html>
-    "#;
+    ";
+    #[must_use]
     pub fn new() -> Self {
         Self {
             // create_table_return: CreateTableReturn::new(db),
         }
     }
+    /// # Errors
+    ///
+    /// Will return `Err` if the database query fails
     pub async fn router(
         &mut self,
         query: web::Query<HashMap<String, String>>,

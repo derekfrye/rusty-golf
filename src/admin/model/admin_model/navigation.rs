@@ -9,20 +9,22 @@ pub enum AdminPage {
 
 impl AdminPage {
     /// Defaults to the landing page
+    #[must_use]
     pub fn parse(input: &str) -> Self {
         match input {
-            "00" => AdminPage::Landing,
-            "01" => AdminPage::TablesAndConstraints,
-            "0x" => AdminPage::ZeroX,
-            _ => AdminPage::Landing,
+            "00" => Self::Landing,
+            "01" => Self::TablesAndConstraints,
+            "0x" => Self::ZeroX,
+            _ => Self::Landing,
         }
     }
 
+    #[must_use]
     pub fn get_page_number(&self) -> &str {
         match self {
-            AdminPage::Landing => "00",
-            AdminPage::TablesAndConstraints => "01",
-            AdminPage::ZeroX => "0x",
+            Self::Landing => "00",
+            Self::TablesAndConstraints => "01",
+            Self::ZeroX => "0x",
         }
     }
 }

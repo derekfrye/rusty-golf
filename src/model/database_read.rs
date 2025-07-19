@@ -7,6 +7,10 @@ use sql_middleware::{SqlMiddlewareDbError, SqliteParamsQuery, convert_sql_params
 use crate::model::score::Statistic;
 use crate::model::types::{RefreshSource, Scores, ScoresAndLastRefresh};
 
+
+/// # Errors
+///
+/// Will return `Err` if `field_name` is not a valid json
 pub fn parse_json_field<T>(
     row: &sql_middleware::middleware::CustomDbRow,
     field_name: &str,
@@ -24,16 +28,21 @@ where
     })
 }
 
+#[must_use]
 pub fn get_last_timestamp(
     results: &[sql_middleware::middleware::CustomDbRow],
 ) -> chrono::NaiveDateTime {
     results
         .iter()
-        .filter_map(|row| row.get("ins_ts").and_then(|v| v.as_timestamp()))
+        .filter_map(|row| row.get("ins_ts"))
+        .filter_map(sql_middleware::middleware::DbValue::as_timestamp)
         .next_back()
-        .unwrap_or_else(|| chrono::Utc::now().naive_utc())
+        .unwrap_or_else(chrono::Utc::now)
 }
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn execute_query(
     conn: &MiddlewarePoolConnection,
     query: &str,
@@ -66,12 +75,15 @@ pub async fn execute_query(
 
             Ok(result)
         }
-        _ => Err(SqlMiddlewareDbError::Other(
+        MiddlewarePoolConnection::Postgres(_) => Err(SqlMiddlewareDbError::Other(
             "Database type not supported for this operation".to_string(),
         )),
     }
 }
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn get_scores_from_db(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
@@ -87,7 +99,7 @@ pub async fn get_scores_from_db(
             include_str!("../admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
         }
     };
-    let params = vec![RowValues2::Int(event_id as i64)];
+    let params = vec![RowValues2::Int(i64::from(event_id))];
     let res = execute_query(&conn, query, params).await?;
 
     let last_time_updated = get_last_timestamp(&res.results);
@@ -140,7 +152,7 @@ pub async fn get_scores_from_db(
                     total_score: row
                         .get("total_score")
                         .and_then(|v| v.as_int())
-                        .map(|v| *v as i32)
+                        .map(|&v| v as i32)
                         .unwrap_or_default(),
                 },
                 score_view_step_factor: row

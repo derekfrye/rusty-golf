@@ -38,15 +38,11 @@ pub async fn scores(
 
     // Helper function to get a query parameter with a default value
     fn get_param_str<'a>(query: &'a HashMap<String, String>, key: &str) -> &'a str {
-        query.get(key).map(|s| s.as_str()).unwrap_or("")
+        query.get(key).map_or("", |s| s.as_str())
     }
 
     // Parse the boolean parameters
-    let cache = match get_param_str(&query, "cache") {
-        "1" => true,
-        "0" => false,
-        _ => true, // Default to true
-    };
+    let cache = !matches!(get_param_str(&query, "cache"), "0");
 
     let json = match get_param_str(&query, "json") {
         "1" => true,

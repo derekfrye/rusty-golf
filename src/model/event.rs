@@ -1,6 +1,6 @@
 use crate::model::execute_query;
 use sql_middleware::middleware::{
-    ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection,
+    ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection
 };
 use sql_middleware::middleware::{RowValues as RowValues2};
 use sql_middleware::{SqlMiddlewareDbError};
@@ -11,6 +11,10 @@ pub struct EventTitleAndScoreViewConf {
     pub refresh_from_espn: i64,
 }
 
+
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn get_event_details(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
@@ -26,7 +30,7 @@ pub async fn get_event_details(
             include_str!("../admin/model/sql/functions/sqlite/01_sp_get_event_details.sql")
         }
     };
-    let params = vec![RowValues2::Int(event_id as i64)];
+    let params = vec![RowValues2::Int(i64::from(event_id))];
     let res = execute_query(&conn, query, params).await?;
 
     res.results
@@ -36,7 +40,7 @@ pub async fn get_event_details(
                 event_name: row
                     .get("eventname")
                     .and_then(|v| v.as_text())
-                    .map(|v| v.to_string())
+                    .map(ToString::to_string)
                     .ok_or(SqlMiddlewareDbError::Other("Name not found".to_string()))?,
                 score_view_step_factor: row
                     .get("score_view_step_factor")
@@ -55,5 +59,5 @@ pub async fn get_event_details(
             })
         })
         .next_back()
-        .unwrap_or_else(|| Err(SqlMiddlewareDbError::Other("No results found".to_string())))
+        .unwrap_or(Err(SqlMiddlewareDbError::Other("No results found".to_string())))
 }
