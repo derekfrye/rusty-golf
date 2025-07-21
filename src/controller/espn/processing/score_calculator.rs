@@ -16,7 +16,9 @@ pub fn process_line_scores(line_scores_json: &[Value], round_index: usize) -> Ve
             .parse::<i64>()
             .unwrap_or(0);
 
-        let score_diff = if let Ok(val) = i32::try_from(par - score) { val } else {
+        let score_diff = if let Ok(val) = i32::try_from(par - score) {
+            val
+        } else {
             eprintln!("Warning: Failed to convert score difference to i32");
             0
         };

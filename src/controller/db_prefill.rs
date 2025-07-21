@@ -1,11 +1,10 @@
 use serde_json::Value;
 use sql_middleware::{
-    convert_sql_params,
+    SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery, convert_sql_params,
     middleware::{
         AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, MiddlewarePool,
         QueryAndParams, RowValues,
     },
-    SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
 };
 
 /// # Errors
@@ -93,10 +92,7 @@ fn event_exists(
     Ok(!result_set.results.is_empty())
 }
 
-fn insert_event(
-    tx: &rusqlite::Transaction,
-    datum: &Value,
-) -> Result<(), SqlMiddlewareDbError> {
+fn insert_event(tx: &rusqlite::Transaction, datum: &Value) -> Result<(), SqlMiddlewareDbError> {
     let query_and_params = QueryAndParams {
         query:
             "INSERT INTO event (name, espn_id, year, score_view_step_factor) VALUES(?1, ?2, ?3, ?4);"
@@ -171,8 +167,8 @@ fn insert_event_user_players(
         ];
 
         let mut query_columns = "(event_id, user_id, golfer_id".to_string();
-        let mut query_values = " select (select event_id from event where espn_id = ?1),"
-            .to_string();
+        let mut query_values =
+            " select (select event_id from event where espn_id = ?1),".to_string();
         query_values.push_str("(select user_id from bettor where name = ?2),");
         query_values.push_str("(select golfer_id from golfer where espn_id = ?3)");
 

@@ -104,4 +104,3 @@ async fn index(
         .content_type("text/html")
         .body(markup.into_string())
 }
-

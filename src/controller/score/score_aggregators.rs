@@ -29,8 +29,11 @@ type BettorGolferMaps = (
 );
 
 fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
-    let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>, RandomState>, RandomState> =
-        HashMap::with_hasher(RandomState::new());
+    let mut scores_map: HashMap<
+        String,
+        HashMap<String, BTreeMap<i32, i32>, RandomState>,
+        RandomState,
+    > = HashMap::with_hasher(RandomState::new());
     let mut espn_id_map: HashMap<(String, String), i64, RandomState> =
         HashMap::with_hasher(RandomState::new());
     let mut bettor_order: Vec<String> = Vec::new();
@@ -74,7 +77,6 @@ fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
 
     (scores_map, espn_id_map, bettor_order, golfer_order_map)
 }
-
 
 #[must_use]
 pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRound {

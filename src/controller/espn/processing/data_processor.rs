@@ -40,7 +40,9 @@ pub fn process_json_to_statistics(
             let display_value = round.get("displayValue").and_then(Value::as_str);
             let display_value = display_value.unwrap_or("");
 
-            golfer_score.rounds.push(IntStat { val: i32::try_from(i).unwrap_or(0) });
+            golfer_score.rounds.push(IntStat {
+                val: i32::try_from(i).unwrap_or(0),
+            });
             golfer_score
                 .round_scores
                 .push(process_round_score(display_value, i));

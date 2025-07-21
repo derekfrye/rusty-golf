@@ -54,8 +54,7 @@ pub async fn store_scores_in_db(
     ) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
         let mut queries = vec![];
         for score in scores {
-            let insert_stmt =
-                include_str!("../sql/functions/sqlite/04_sp_set_eup_statistic.sql");
+            let insert_stmt = include_str!("../sql/functions/sqlite/04_sp_set_eup_statistic.sql");
 
             let rounds_json =
                 serde_json::to_string(&score.detailed_statistics.rounds).map_err(|e| {
@@ -168,9 +167,7 @@ pub async fn event_and_scores_already_in_db(
             "SELECT min(ins_ts) as ins_ts FROM eup_statistic WHERE event_espn_id = $1;"
         }
         MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!(
-                "../sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
-            )
+            include_str!("../sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql")
         }
     };
 
@@ -179,7 +176,9 @@ pub async fn event_and_scores_already_in_db(
 
     if let Some(results) = query_result.results.first() {
         let now = chrono::Utc::now().naive_utc();
-        let val = results.get("ins_ts").and_then(sql_middleware::RowValues::as_timestamp);
+        let val = results
+            .get("ins_ts")
+            .and_then(sql_middleware::RowValues::as_timestamp);
         if let Some(final_val) = val {
             if cfg!(debug_assertions) {
                 let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();

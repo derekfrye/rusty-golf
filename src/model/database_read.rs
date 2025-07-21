@@ -155,7 +155,7 @@ pub async fn get_scores_from_db(
                         .unwrap_or_default(),
                 },
                 #[allow(clippy::cast_possible_truncation)]
-                                score_view_step_factor: row
+                score_view_step_factor: row
                     .get("score_view_step_factor")
                     .and_then(sql_middleware::RowValues::as_float)
                     .map(|v| v as f32),

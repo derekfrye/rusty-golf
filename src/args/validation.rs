@@ -87,28 +87,26 @@ fn validate_element_values(element: &Value) -> Result<(), String> {
     let event = &element["event"];
     if !event.is_number() {
         return Err(
-            "The json key event is not in the correct format. Expected a number."
-                .to_string(),
+            "The json key event is not in the correct format. Expected a number.".to_string(),
         );
     }
     let year = &element["year"];
     if !year.is_number() {
         return Err(
-            "The json key year is not in the correct format. Expected a number."
-                .to_string(),
+            "The json key year is not in the correct format. Expected a number.".to_string(),
         );
     }
     let name = &element["name"];
     if !name.is_string() {
         return Err(
-            "The json key name is not in the correct format. Expected a string."
-                .to_string(),
+            "The json key name is not in the correct format. Expected a string.".to_string(),
         );
     }
     let score_view_step_factor = &element["score_view_step_factor"];
     if !score_view_step_factor.is_number() {
         return Err(
-            "The json key score_view_step_factor is not in the correct format. Expected a number.".to_string()
+            "The json key score_view_step_factor is not in the correct format. Expected a number."
+                .to_string(),
         );
     }
     Ok(())
@@ -118,15 +116,15 @@ fn validate_data_to_fill(element: &Value) -> Result<(), String> {
     let data_to_fill = element["data_to_fill_if_event_and_year_missing"]
         .as_array()
         .unwrap();
-    
+
     for data in data_to_fill {
         validate_data_to_fill_keys(data)?;
     }
-    
+
     validate_bettors(data_to_fill)?;
     validate_golfers(data_to_fill)?;
     validate_event_user_player(data_to_fill)?;
-    
+
     Ok(())
 }
 
@@ -147,12 +145,11 @@ fn validate_bettors(data_to_fill: &[Value]) -> Result<(), String> {
         .iter()
         .flat_map(|x| x["bettors"].as_array().unwrap())
         .collect::<Vec<_>>();
-    
+
     for bettor in bettors_check {
         if !bettor.is_string() {
             return Err(
-                "The json key bettors is not in the correct format. Expected strings."
-                    .to_string(),
+                "The json key bettors is not in the correct format. Expected strings.".to_string(),
             );
         }
     }
@@ -164,12 +161,11 @@ fn validate_golfers(data_to_fill: &[Value]) -> Result<(), String> {
         .iter()
         .flat_map(|x| x["golfers"].as_array().unwrap())
         .collect::<Vec<_>>();
-    
+
     for golfer in golfers_check {
         if !golfer.is_object() {
             return Err(
-                "The json key golfers is not in the correct format. Expected objects."
-                    .to_string(),
+                "The json key golfers is not in the correct format. Expected objects.".to_string(),
             );
         }
         if !golfer["name"].is_string() || !golfer["espn_id"].is_number() {
@@ -186,11 +182,12 @@ fn validate_event_user_player(data_to_fill: &[Value]) -> Result<(), String> {
         .iter()
         .flat_map(|x| x["event_user_player"].as_array().unwrap())
         .collect::<Vec<_>>();
-    
+
     for event_user_player in event_user_player_check {
         if !event_user_player.is_object() {
             return Err(
-                "The json key event_user_player is not in the correct format. Expected objects.".to_string()
+                "The json key event_user_player is not in the correct format. Expected objects."
+                    .to_string(),
             );
         }
         if !event_user_player["bettor"].is_string()

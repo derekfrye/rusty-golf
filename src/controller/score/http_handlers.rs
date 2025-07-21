@@ -64,7 +64,7 @@ pub async fn scores(
     let cache_max_age: i64 = match get_event_details(&config_and_pool, event_id).await {
         Ok(event_details) => match event_details.refresh_from_espn {
             1 => 99, // Refresh from ESPN requested, set cache age to 99 (which means only read from db once 99 days has passed)
-            _ => 0, // Any other value, default to not refreshing (cache age 0)
+            _ => 0,  // Any other value, default to not refreshing (cache age 0)
         },
         Err(_) => 0, // If error fetching details, default to not refreshing (cache age 0)
     };
