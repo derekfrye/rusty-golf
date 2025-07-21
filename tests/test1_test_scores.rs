@@ -43,7 +43,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     let config_and_pool = ConfigAndPool::new_sqlite(x).await.unwrap();
     // let sql_db = Db::new(sqlite_configandpool.clone()).unwrap();
 
-    let setup_queries = include_str!("../src/admin/model/sql/schema/sqlite/00_table_drop.sql");
+    let setup_queries = include_str!("../src/sql/schema/sqlite/00_table_drop.sql");
     let query_and_params = QueryAndParams {
         query: setup_queries.to_string(),
         params: vec![],
@@ -79,11 +79,11 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     assert!(res.is_ok(), "Error executing query: {res:?}");
 
     let ddl = [
-        include_str!("../src/admin/model/sql/schema/sqlite/00_event.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/02_golfer.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/03_bettor.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/04_event_user_player.sql"),
-        include_str!("../src/admin/model/sql/schema/sqlite/05_eup_statistic.sql"),
+        include_str!("../src/sql/schema/sqlite/00_event.sql"),
+        include_str!("../src/sql/schema/sqlite/02_golfer.sql"),
+        include_str!("../src/sql/schema/sqlite/03_bettor.sql"),
+        include_str!("../src/sql/schema/sqlite/04_event_user_player.sql"),
+        include_str!("../src/sql/schema/sqlite/05_eup_statistic.sql"),
     ];
 
     let query_and_params = QueryAndParams {

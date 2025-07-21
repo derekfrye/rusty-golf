@@ -8,6 +8,9 @@ use sql_middleware::{
     SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery,
 };
 
+/// # Errors
+///
+/// Will return `Err` if the database query fails
 pub async fn db_prefill(
     json: &Value,
     config_and_pool: &ConfigAndPool,
@@ -51,14 +54,16 @@ async fn prefill_sqlite(
     .await?
 }
 
-fn process_event_datum<T: ConnectionTrait>(
-    tx: &T,
+fn process_event_datum(
+    tx: &rusqlite::Transaction,
     datum: &Value,
 ) -> Result<(), SqlMiddlewareDbError> {
     let espn_id = datum["event"].as_i64().unwrap();
     let year = datum["year"].as_i64().unwrap();
 
-    if !event_exists(tx, espn_id, year)? {
+    if event_exists(tx, espn_id, year)? {
+        println!("Event {espn_id} and year {year} already exist in the db. Skipping db prefill.");
+    } else {
         insert_event(tx, datum)?;
         let data_to_fill = datum["data_to_fill_if_event_and_year_missing"]
             .as_array()
@@ -68,24 +73,12 @@ fn process_event_datum<T: ConnectionTrait>(
             insert_golfers(tx, data["golfers"].as_array().unwrap())?;
             insert_event_user_players(tx, data["event_user_player"].as_array().unwrap(), datum)?;
         }
-    } else {
-        println!("Event {espn_id} and year {year} already exist in the db. Skipping db prefill.");
     }
     Ok(())
 }
 
-trait ConnectionTrait {
-    fn prepare(&self, sql: &str) -> Result<rusqlite::Statement, rusqlite::Error>;
-}
-
-impl ConnectionTrait for rusqlite::Transaction<'_> {
-    fn prepare(&self, sql: &str) -> Result<rusqlite::Statement, rusqlite::Error> {
-        self.prepare(sql)
-    }
-}
-
-fn event_exists<T: ConnectionTrait>(
-    tx: &T,
+fn event_exists(
+    tx: &rusqlite::Transaction,
     espn_id: i64,
     year: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
@@ -100,8 +93,8 @@ fn event_exists<T: ConnectionTrait>(
     Ok(!result_set.results.is_empty())
 }
 
-fn insert_event<T: ConnectionTrait>(
-    tx: &T,
+fn insert_event(
+    tx: &rusqlite::Transaction,
     datum: &Value,
 ) -> Result<(), SqlMiddlewareDbError> {
     let query_and_params = QueryAndParams {
@@ -124,8 +117,8 @@ fn insert_event<T: ConnectionTrait>(
     Ok(())
 }
 
-fn insert_bettors<T: ConnectionTrait>(
-    tx: &T,
+fn insert_bettors(
+    tx: &rusqlite::Transaction,
     bettors: &[Value],
 ) -> Result<(), SqlMiddlewareDbError> {
     for bettor in bettors {
@@ -143,8 +136,8 @@ fn insert_bettors<T: ConnectionTrait>(
     Ok(())
 }
 
-fn insert_golfers<T: ConnectionTrait>(
-    tx: &T,
+fn insert_golfers(
+    tx: &rusqlite::Transaction,
     golfers: &[Value],
 ) -> Result<(), SqlMiddlewareDbError> {
     for golfer in golfers {
@@ -165,8 +158,8 @@ fn insert_golfers<T: ConnectionTrait>(
     Ok(())
 }
 
-fn insert_event_user_players<T: ConnectionTrait>(
-    tx: &T,
+fn insert_event_user_players(
+    tx: &rusqlite::Transaction,
     event_user_players: &[Value],
     datum: &Value,
 ) -> Result<(), SqlMiddlewareDbError> {
@@ -222,4 +215,3 @@ fn insert_event_user_players<T: ConnectionTrait>(
     }
     Ok(())
 }
-
