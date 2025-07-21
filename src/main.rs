@@ -99,7 +99,7 @@ async fn index(
         }
     };
 
-    let markup = rusty_golf::view::index::render_index_template(title);
+    let markup = rusty_golf::view::index::render_index_template(&title);
     HttpResponse::Ok()
         .content_type("text/html")
         .body(markup.into_string())

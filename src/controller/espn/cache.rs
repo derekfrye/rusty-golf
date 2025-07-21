@@ -24,11 +24,11 @@ pub async fn fetch_scores_from_espn(
         false
     };
 
-    if !are_we_using_cache {
+    if are_we_using_cache {
+        Ok(get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?)
+    } else {
         let x = go_get_espn_data(scores, year, event_id).await?;
         let z = store_espn_results(&x, event_id, config_and_pool).await?;
         Ok(z)
-    } else {
-        Ok(get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?)
     }
 }

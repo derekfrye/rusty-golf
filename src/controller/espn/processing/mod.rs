@@ -20,5 +20,5 @@ pub async fn go_get_espn_data(
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
     let json_responses = get_espn_data_parallel(&scores, year, event_id).await?;
     let statistics = process_json_to_statistics(&json_responses)?;
-    merge_statistics_with_scores(statistics, &scores)
+    merge_statistics_with_scores(&statistics, &scores)
 }

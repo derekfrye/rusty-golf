@@ -26,7 +26,7 @@ pub async fn preprocess_golfer_data(
     let player_step_factors =
         crate::model::get_player_step_factors(config_and_pool, event_id).await?;
 
-    for summary_score in summary_scores_x.summary_scores.iter() {
+    for summary_score in &summary_scores_x.summary_scores {
         let mut golfers: Vec<GolferBars> = detailed_scores
             .iter()
             .filter(|golfer| golfer.bettor_name == summary_score.bettor_name)
@@ -49,6 +49,7 @@ pub async fn preprocess_golfer_data(
                 let mut cumulative_left = 0.0;
                 let mut cumulative_right = 0.0;
 
+                #[allow(clippy::cast_precision_loss)]
                 let total_width: f32 = golfer
                     .scores
                     .iter()
@@ -62,26 +63,33 @@ pub async fn preprocess_golfer_data(
                 };
 
                 for (round_idx, &score) in golfer.scores.iter().enumerate() {
+                    #[allow(clippy::cast_precision_loss)]
                     let width = (score.abs() as f32) * step_factor * scaling_factor;
 
-                    if score < 0 {
-                        bars.push(Bar {
-                            score,
-                            direction: Direction::Left,
-                            start_position: 50.0 - cumulative_left - width,
-                            width,
-                            round: (round_idx + 1) as i32,
-                        });
-                        cumulative_left += width;
-                    } else if score > 0 {
-                        bars.push(Bar {
-                            score,
-                            direction: Direction::Right,
-                            start_position: 50.0 + cumulative_right,
-                            width,
-                            round: (round_idx + 1) as i32,
-                        });
-                        cumulative_right += width;
+                    match score.cmp(&0) {
+                        std::cmp::Ordering::Less => {
+                            bars.push(Bar {
+                                score,
+                                direction: Direction::Left,
+                                start_position: 50.0 - cumulative_left - width,
+                                width,
+                                round: i32::try_from(round_idx + 1).unwrap_or(1),
+                            });
+                            cumulative_left += width;
+                        }
+                        std::cmp::Ordering::Greater => {
+                            bars.push(Bar {
+                                score,
+                                direction: Direction::Right,
+                                start_position: 50.0 + cumulative_right,
+                                width,
+                                round: i32::try_from(round_idx + 1).unwrap_or(1),
+                            });
+                            cumulative_right += width;
+                        }
+                        std::cmp::Ordering::Equal => {
+                            // score == 0, do nothing
+                        }
                     }
                 }
 

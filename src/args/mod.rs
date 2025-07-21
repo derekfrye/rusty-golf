@@ -10,6 +10,7 @@ pub use types::{Args, CleanArgs};
 /// # Panics
 ///
 /// Will panic if the arguments are invalid
+#[must_use]
 pub fn args_checks() -> CleanArgs {
     let mut xx = Args::parse();
     xx.validate().unwrap();

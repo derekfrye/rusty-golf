@@ -6,7 +6,7 @@ use chrono::DateTime;
 /// Will panic if the timezone is invalid
 #[must_use]
 pub fn process_tee_time(tee_time: &str) -> Option<StringStat> {
-    let mut_tee_time = if tee_time.ends_with("Z") {
+    let mut_tee_time = if tee_time.ends_with('Z') {
         format!("{tee_time}+0000")
     } else {
         tee_time.to_owned()
@@ -31,11 +31,11 @@ pub fn process_tee_time(tee_time: &str) -> Option<StringStat> {
     let special_format_time =
         take_a_char_off(&parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string()).to_string();
 
-    if !failed_to_parse {
+    if failed_to_parse {
+        None
+    } else {
         Some(StringStat {
             val: special_format_time,
         })
-    } else {
-        None
     }
 }

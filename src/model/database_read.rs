@@ -34,7 +34,7 @@ pub fn get_last_timestamp(
     results
         .iter()
         .filter_map(|row| row.get("ins_ts"))
-        .filter_map(|v| v.as_timestamp())
+        .filter_map(sql_middleware::RowValues::as_timestamp)
         .next_back()
         .unwrap_or_else(|| chrono::Utc::now().naive_utc())
 }
@@ -151,12 +151,13 @@ pub async fn get_scores_from_db(
                     total_score: row
                         .get("total_score")
                         .and_then(|v| v.as_int())
-                        .map(|&v| v as i32)
+                        .map(|&v| i32::try_from(v).unwrap_or(0))
                         .unwrap_or_default(),
                 },
-                score_view_step_factor: row
+                #[allow(clippy::cast_possible_truncation)]
+                                score_view_step_factor: row
                     .get("score_view_step_factor")
-                    .and_then(|v| v.as_float())
+                    .and_then(sql_middleware::RowValues::as_float)
                     .map(|v| v as f32),
             })
         })

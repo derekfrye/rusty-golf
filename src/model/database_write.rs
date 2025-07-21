@@ -179,18 +179,14 @@ pub async fn event_and_scores_already_in_db(
 
     if let Some(results) = query_result.results.first() {
         let now = chrono::Utc::now().naive_utc();
-        let val = results.get("ins_ts").and_then(|v| v.as_timestamp());
+        let val = results.get("ins_ts").and_then(sql_middleware::RowValues::as_timestamp);
         if let Some(final_val) = val {
             if cfg!(debug_assertions) {
-                #[allow(unused_variables)]
                 let now_human_readable_fmt = now.format("%Y-%m-%d %H:%M:%S").to_string();
                 let z_clone = final_val;
-                #[allow(unused_variables)]
                 let z_human_readable_fmt = z_clone.format("%Y-%m-%d %H:%M:%S").to_string();
                 let diff = now.signed_duration_since(z_clone);
-                #[allow(unused_variables)]
                 let diff_days = diff.num_days();
-                #[allow(unused_variables)]
                 let pass = diff_days >= cache_max_age;
                 println!(
                     "Now: {now_human_readable_fmt}, Last Refresh: {z_human_readable_fmt}, Diff: {diff_days} days, Pass: {pass}"

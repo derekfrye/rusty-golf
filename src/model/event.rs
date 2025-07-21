@@ -39,9 +39,10 @@ pub async fn get_event_details(
                     .and_then(|v| v.as_text())
                     .map(ToString::to_string)
                     .ok_or(SqlMiddlewareDbError::Other("Name not found".to_string()))?,
+                #[allow(clippy::cast_possible_truncation)]
                 score_view_step_factor: row
                     .get("score_view_step_factor")
-                    .and_then(|v| v.as_float())
+                    .and_then(sql_middleware::RowValues::as_float)
                     .map(|v| v as f32)
                     .ok_or(SqlMiddlewareDbError::Other(
                         "Score view step factor not found".to_string(),

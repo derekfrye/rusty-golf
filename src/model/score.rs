@@ -60,7 +60,6 @@ impl ScoreDisplay {
             -3 => Self::Albatross,
             -2 => Self::Eagle,
             -1 => Self::Birdie,
-            0 => Self::Par,
             1 => Self::Bogey,
             2 => Self::DoubleBogey,
             3 => Self::TripleBogey,

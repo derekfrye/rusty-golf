@@ -39,6 +39,6 @@ pub async fn render_scores_template(
             (render_summary_scores(&summary_scores_x))
         }
         (render_drop_down_bar(&summary_scores_x, &detailed_scores, config_and_pool, event_id).await?)
-        (render_line_score_tables(&bettor_struct, refresh_data))
+        (render_line_score_tables(&bettor_struct, &refresh_data))
     })
 }

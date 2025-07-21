@@ -8,6 +8,15 @@ use super::data_service::get_data_for_scores_page;
 use crate::model::get_event_details;
 use crate::view::score::render_scores_template;
 
+// Helper function to get a query parameter with a default value
+fn get_param_str<'a>(query: &'a HashMap<String, String>, key: &str) -> &'a str {
+    query.get(key).map_or("", |s| s.as_str())
+}
+
+// The `implicit_hasher` lint is allowed here because the `HashMap` is created by `actix-web`
+// as part of the query string parsing. We cannot control the hasher used in this case,
+// and the performance impact is negligible for a small number of query parameters.
+#[allow(clippy::implicit_hasher)]
 pub async fn scores(
     query: web::Query<HashMap<String, String>>,
     abc: Data<ConfigAndPool>,
@@ -36,11 +45,6 @@ pub async fn scores(
         }
     };
 
-    // Helper function to get a query parameter with a default value
-    fn get_param_str<'a>(query: &'a HashMap<String, String>, key: &str) -> &'a str {
-        query.get(key).map_or("", |s| s.as_str())
-    }
-
     // Parse the boolean parameters
     let cache = !matches!(get_param_str(&query, "cache"), "0");
 
@@ -60,7 +64,6 @@ pub async fn scores(
     let cache_max_age: i64 = match get_event_details(&config_and_pool, event_id).await {
         Ok(event_details) => match event_details.refresh_from_espn {
             1 => 99, // Refresh from ESPN requested, set cache age to 99 (which means only read from db once 99 days has passed)
-            0 => 0, // Do not refresh from ESPN, set cache age to 0 (which menas always read from db)
             _ => 0, // Any other value, default to not refreshing (cache age 0)
         },
         Err(_) => 0, // If error fetching details, default to not refreshing (cache age 0)

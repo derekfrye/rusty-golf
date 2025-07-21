@@ -90,9 +90,10 @@ pub async fn get_player_step_factors(
 
             let bettor_name = row.get("bettorname").and_then(|v| v.as_text())?.to_string();
 
+            #[allow(clippy::cast_possible_truncation)]
             let step_factor = row
                 .get("score_view_step_factor")
-                .and_then(|v| v.as_float())
+                .and_then(sql_middleware::RowValues::as_float)
                 .map(|v| v as f32)?;
 
             Some(((golfer_espn_id, bettor_name), step_factor))

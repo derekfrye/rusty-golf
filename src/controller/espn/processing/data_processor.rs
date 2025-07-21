@@ -40,7 +40,7 @@ pub fn process_json_to_statistics(
             let display_value = round.get("displayValue").and_then(Value::as_str);
             let display_value = display_value.unwrap_or("");
 
-            golfer_score.rounds.push(IntStat { val: i as i32 });
+            golfer_score.rounds.push(IntStat { val: i32::try_from(i).unwrap_or(0) });
             golfer_score
                 .round_scores
                 .push(process_round_score(display_value, i));
@@ -52,7 +52,7 @@ pub fn process_json_to_statistics(
 
             let holes_completed = golfer_score.line_scores.len();
             golfer_score.holes_completed_by_round.push(IntStat {
-                val: holes_completed as i32,
+                val: i32::try_from(holes_completed).unwrap_or(0),
             });
         }
 
@@ -67,7 +67,7 @@ pub fn process_json_to_statistics(
 ///
 /// Will return `Err` if there is a mismatch between statistics and scores
 pub fn merge_statistics_with_scores(
-    statistics: Vec<Statistic>,
+    statistics: &[Statistic],
     scores: &[Scores],
 ) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
     let result: Result<Vec<_>, _> = statistics

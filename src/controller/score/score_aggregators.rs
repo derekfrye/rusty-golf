@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, HashMap};
+use ahash::RandomState;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::sort_utils::sort_scores;
 use crate::model::{
@@ -7,11 +8,12 @@ use crate::model::{
 
 #[must_use]
 pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
-    let mut grouped_scores: HashMap<usize, Vec<Scores>> = HashMap::new();
+    let mut grouped_scores: HashMap<usize, Vec<Scores>, RandomState> =
+        HashMap::with_hasher(RandomState::new());
 
     for score in scores {
         grouped_scores
-            .entry(score.group as usize)
+            .entry(usize::try_from(score.group).unwrap_or(0))
             .or_default()
             .push(score);
     }
@@ -20,17 +22,20 @@ pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
 }
 
 type BettorGolferMaps = (
-    HashMap<String, HashMap<String, BTreeMap<i32, i32>>>,
-    HashMap<(String, String), i64>,
+    HashMap<String, HashMap<String, BTreeMap<i32, i32>, RandomState>, RandomState>,
+    HashMap<(String, String), i64, RandomState>,
     Vec<String>,
-    HashMap<String, Vec<String>>,
+    HashMap<String, Vec<String>, RandomState>,
 );
 
 fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
-    let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
-    let mut espn_id_map: HashMap<(String, String), i64> = HashMap::new();
+    let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>, RandomState>, RandomState> =
+        HashMap::with_hasher(RandomState::new());
+    let mut espn_id_map: HashMap<(String, String), i64, RandomState> =
+        HashMap::with_hasher(RandomState::new());
     let mut bettor_order: Vec<String> = Vec::new();
-    let mut golfer_order_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut golfer_order_map: HashMap<String, Vec<String>, RandomState> =
+        HashMap::with_hasher(RandomState::new());
 
     for score in scores {
         let bettor_name = &score.bettor_name;
@@ -48,12 +53,12 @@ fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
         espn_id_map.insert((bettor_name.clone(), golfer_name.clone()), score.espn_id);
 
         for (round_idx, score) in score.detailed_statistics.round_scores.iter().enumerate() {
-            let round_val = (round_idx as i32) + 1;
+            let round_val = i32::try_from(round_idx).unwrap_or(0) + 1;
             let round_score = score.val;
 
             scores_map
                 .entry(bettor_name.clone())
-                .or_default()
+                .or_insert_with(|| HashMap::with_hasher(RandomState::new()))
                 .entry(golfer_name.clone())
                 .or_default()
                 .entry(round_val)
@@ -63,12 +68,13 @@ fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
     }
 
     for golfers in golfer_order_map.values_mut() {
-        let mut seen = HashMap::new();
-        golfers.retain(|golfer| seen.insert(golfer.clone(), ()).is_none());
+        let mut seen = HashSet::new();
+        golfers.retain(|golfer| seen.insert(golfer.clone()));
     }
 
     (scores_map, espn_id_map, bettor_order, golfer_order_map)
 }
+
 
 #[must_use]
 pub fn group_by_bettor_name_and_round(scores: &[Scores]) -> AllBettorScoresByRound {

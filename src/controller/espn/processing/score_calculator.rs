@@ -16,21 +16,18 @@ pub fn process_line_scores(line_scores_json: &[Value], round_index: usize) -> Ve
             .parse::<i64>()
             .unwrap_or(0);
 
-        let score_diff = match i32::try_from(par - score) {
-            Ok(val) => val,
-            Err(_) => {
-                eprintln!("Warning: Failed to convert score difference to i32");
-                0
-            }
+        let score_diff = if let Ok(val) = i32::try_from(par - score) { val } else {
+            eprintln!("Warning: Failed to convert score difference to i32");
+            0
         };
         let score_display = ScoreDisplay::from(score_diff);
 
         let line_score_tmp = LineScore {
-            hole: (idx as i32) + 1,
-            score: score as i32,
-            par: par as i32,
+            hole: i32::try_from(idx).unwrap_or(0) + 1,
+            score: i32::try_from(score).unwrap_or(0),
+            par: i32::try_from(par).unwrap_or(0),
             score_display,
-            round: round_index as i32,
+            round: i32::try_from(round_index).unwrap_or(0),
         };
         line_scores.push(line_score_tmp);
     }

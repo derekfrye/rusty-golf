@@ -4,7 +4,7 @@ use crate::view::score::utils::{score_with_shape, short_golfer_name};
 use maud::{Markup, html};
 
 #[must_use]
-pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshData) -> Markup {
+pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: &RefreshData) -> Markup {
     html! {
         h3 class="playerbars" { "Score by Golfer" }
 
@@ -81,7 +81,7 @@ pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshDat
                             };
 
                             @for ls in all_scores.iter() {
-                                @let is_latest_round = ls.round + 1 == *unique_rounds.last().unwrap_or(&0) as i32;;
+                                @let is_latest_round = ls.round + 1 == i32::try_from(*unique_rounds.last().unwrap_or(&0)).unwrap_or(0);
                                 @let row_class = if is_latest_round { "linescore-row" } else { "linescore-row hidden" };
 
                                 tr class=(row_class) data-round=(ls.round + 1) {
@@ -94,7 +94,7 @@ pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: RefreshDat
                             @for (round, _total_score) in unique_rounds.iter().enumerate() {
                                 @let total_for_round: i32 = all_scores
                                     .iter()
-                                    .filter(|ls| ls.round == round as i32)
+                                    .filter(|ls| ls.round == i32::try_from(round).unwrap_or(0))
                                     .map(|ls| ls.score)
                                     .sum();
 

@@ -22,6 +22,7 @@ sql-middleware = "0"
 clap = { version = "4", features = ["derive"] }
 futures = "0"
 scraper = "0"
+ahash = "0.8.12"
 
 [dependencies.tokio-util]
 version = "0.7"
