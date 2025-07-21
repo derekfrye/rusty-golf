@@ -3,7 +3,6 @@ use crate::model::CheckType;
 use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 
-
 /// # Errors
 ///
 /// Will return `Err` if the database query fails

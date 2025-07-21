@@ -1,12 +1,11 @@
 use sql_middleware::SqlMiddlewareDbError;
-use sql_middleware::middleware::{RowValues as RowValues2};
+use sql_middleware::middleware::RowValues as RowValues2;
 use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
 use std::collections::HashMap;
 
 use crate::model::database_read::execute_query;
 use crate::model::score::Statistic;
 use crate::model::types::Scores;
-
 
 /// # Errors
 ///
@@ -16,9 +15,7 @@ pub async fn get_golfers_from_db(
     event_id: i32,
 ) -> Result<Vec<Scores>, SqlMiddlewareDbError> {
     fn get_int(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> i64 {
-        row.get(field)
-            .and_then(|v| v.as_int())
-            .map_or(0, |&v| v)
+        row.get(field).and_then(|v| v.as_int()).map_or(0, |&v| v)
     }
 
     fn get_string(row: &sql_middleware::middleware::CustomDbRow, field: &str) -> String {
@@ -39,7 +36,8 @@ pub async fn get_golfers_from_db(
         }
     };
 
-    let query_result = execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
+    let query_result =
+        execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let scores = query_result
         .results
@@ -78,7 +76,8 @@ pub async fn get_player_step_factors(
 
     let query = include_str!("../admin/model/sql/functions/sqlite/03_sp_get_scores.sql");
 
-    let query_result = execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
+    let query_result =
+        execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let step_factors: HashMap<(i64, String), f32> = query_result
         .results
@@ -94,7 +93,7 @@ pub async fn get_player_step_factors(
             let step_factor = row
                 .get("score_view_step_factor")
                 .and_then(|v| v.as_float())
-                .map(|v| *v as f32)?;
+                .map(|v| v as f32)?;
 
             Some(((golfer_espn_id, bettor_name), step_factor))
         })

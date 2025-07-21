@@ -1,7 +1,6 @@
 use crate::model::{StringStat, take_a_char_off};
 use chrono::DateTime;
 
-
 /// # Panics
 ///
 /// Will panic if the timezone is invalid

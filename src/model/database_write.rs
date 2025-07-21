@@ -6,7 +6,6 @@ use sql_middleware::{SqlMiddlewareDbError, SqliteParamsExecute, convert_sql_para
 
 use crate::model::types::Scores;
 
-
 /// # Errors
 ///
 /// Will return `Err` if the database query fails
@@ -29,7 +28,7 @@ pub async fn execute_batch_sql(
             Ok::<_, SqlMiddlewareDbError>(())
         }
         MiddlewarePoolConnection::Sqlite(xx) => {
-            xx.interact(|xxx| {
+            xx.interact(move |xxx| {
                 let tx = xxx.transaction()?;
                 tx.execute_batch(&query_and_params.query)?;
                 tx.commit()?;
@@ -58,34 +57,33 @@ pub async fn store_scores_in_db(
             let insert_stmt =
                 include_str!("../admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
 
-            let rounds_json = serde_json::to_string(&score.detailed_statistics.rounds)
-                .map_err(|e| {
+            let rounds_json =
+                serde_json::to_string(&score.detailed_statistics.rounds).map_err(|e| {
                     SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {e}"))
                 })?;
 
-            let round_scores_json =
-                serde_json::to_string(&score.detailed_statistics.round_scores).map_err(
-                    |e| SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}")),
-                )?;
+            let round_scores_json = serde_json::to_string(&score.detailed_statistics.round_scores)
+                .map_err(|e| {
+                    SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}"))
+                })?;
 
-            let tee_times_json =
-                serde_json::to_string(&score.detailed_statistics.tee_times).map_err(
-                    |e| SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}")),
-                )?;
+            let tee_times_json = serde_json::to_string(&score.detailed_statistics.tee_times)
+                .map_err(|e| {
+                    SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}"))
+                })?;
 
-            let holes_completed_json = serde_json::to_string(
-                &score
-                    .detailed_statistics
-                    .holes_completed_by_round,
-            )
-            .map_err(|e| {
-                SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {e}"))
-            })?;
+            let holes_completed_json =
+                serde_json::to_string(&score.detailed_statistics.holes_completed_by_round)
+                    .map_err(|e| {
+                        SqlMiddlewareDbError::Other(format!(
+                            "Failed to serialize holes completed: {e}"
+                        ))
+                    })?;
 
-            let line_scores_json =
-                serde_json::to_string(&score.detailed_statistics.line_scores).map_err(
-                    |e| SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}")),
-                )?;
+            let line_scores_json = serde_json::to_string(&score.detailed_statistics.line_scores)
+                .map_err(|e| {
+                    SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}"))
+                })?;
 
             let param = vec![
                 RowValues2::Int(i64::from(event_id)),
@@ -176,7 +174,8 @@ pub async fn event_and_scores_already_in_db(
         }
     };
 
-    let query_result = execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
+    let query_result =
+        execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     if let Some(results) = query_result.results.first() {
         let now = chrono::Utc::now().naive_utc();

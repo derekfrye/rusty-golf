@@ -8,7 +8,6 @@ use sql_middleware::{
 
 use crate::model::CheckType;
 
-
 /// # Errors
 ///
 /// Will return `Err` if the database query fails

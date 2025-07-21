@@ -4,9 +4,7 @@ use rusty_golf::admin::router;
 use rusty_golf::args;
 use rusty_golf::controller::{db_prefill, score::scores};
 use rusty_golf::model::get_event_details;
-use sql_middleware::middleware::{
-    ConfigAndPool, DatabaseType,
-};
+use sql_middleware::middleware::{ConfigAndPool, DatabaseType};
 
 use actix_files::Files;
 use actix_web::web::Data;

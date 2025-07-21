@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use crate::controller::espn::fetch_scores_from_espn;
 use crate::model::{Bettors, ScoreData, format_time_ago_for_score_view, get_golfers_from_db};
 
-
 /// # Errors
 ///
 /// Will return `Err` if the database or espn api call fails

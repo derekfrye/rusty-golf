@@ -7,7 +7,6 @@ use sql_middleware::{
     },
 };
 
-
 /// # Errors
 ///
 /// Will return `Err` if the database query fails

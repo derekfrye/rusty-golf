@@ -3,7 +3,6 @@ use crate::model::{
 };
 use sql_middleware::middleware::ConfigAndPool;
 
-
 /// # Errors
 ///
 /// Will return `Err` if the database query fails

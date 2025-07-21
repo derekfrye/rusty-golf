@@ -7,7 +7,6 @@ use sql_middleware::{SqlMiddlewareDbError, SqliteParamsQuery, convert_sql_params
 use crate::model::score::Statistic;
 use crate::model::types::{RefreshSource, Scores, ScoresAndLastRefresh};
 
-
 /// # Errors
 ///
 /// Will return `Err` if `field_name` is not a valid json
@@ -35,9 +34,9 @@ pub fn get_last_timestamp(
     results
         .iter()
         .filter_map(|row| row.get("ins_ts"))
-        .filter_map(sql_middleware::middleware::DbValue::as_timestamp)
+        .filter_map(|v| v.as_timestamp())
         .next_back()
-        .unwrap_or_else(chrono::Utc::now)
+        .unwrap_or_else(|| chrono::Utc::now().naive_utc())
 }
 
 /// # Errors

@@ -2,7 +2,6 @@ use crate::model::{PlayerJsonResponse, Scores};
 use reqwest::Client;
 use std::collections::HashMap;
 
-
 /// # Errors
 ///
 /// Will return `Err` if the espn api call fails

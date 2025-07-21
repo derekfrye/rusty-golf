@@ -79,7 +79,6 @@ pub struct MissingDbObjects {
     pub missing_object: String,
 }
 
-
 /// # Errors
 ///
 /// Will return `Err` if the deserialization fails

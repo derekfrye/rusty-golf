@@ -3,7 +3,6 @@ use super::time_processor::process_tee_time;
 use crate::model::{IntStat, PlayerJsonResponse, Scores, Statistic};
 use serde_json::Value;
 
-
 /// # Errors
 ///
 /// Will return `Err` if the json processing fails

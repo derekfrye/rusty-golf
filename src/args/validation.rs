@@ -1,7 +1,6 @@
 use serde_json::Value;
 use std::{fs, path::PathBuf};
 
-
 /// # Errors
 ///
 /// Will return `Err` if the file is not readable

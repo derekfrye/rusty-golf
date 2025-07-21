@@ -8,7 +8,6 @@ use crate::model::{
 use crate::view::score::types::{Bar, Direction, GolferBars};
 use crate::view::score::utils::short_golfer_name;
 
-
 /// # Errors
 ///
 /// Will return `Err` if the database query fails

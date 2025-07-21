@@ -7,7 +7,6 @@ pub mod validation;
 
 pub use types::{Args, CleanArgs};
 
-
 /// # Panics
 ///
 /// Will panic if the arguments are invalid

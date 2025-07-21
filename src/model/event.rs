@@ -1,16 +1,13 @@
 use crate::model::execute_query;
-use sql_middleware::middleware::{
-    ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection
-};
-use sql_middleware::middleware::{RowValues as RowValues2};
-use sql_middleware::{SqlMiddlewareDbError};
+use sql_middleware::SqlMiddlewareDbError;
+use sql_middleware::middleware::RowValues as RowValues2;
+use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
 
 pub struct EventTitleAndScoreViewConf {
     pub event_name: String,
     pub score_view_step_factor: f32,
     pub refresh_from_espn: i64,
 }
-
 
 /// # Errors
 ///
@@ -59,5 +56,7 @@ pub async fn get_event_details(
             })
         })
         .next_back()
-        .unwrap_or(Err(SqlMiddlewareDbError::Other("No results found".to_string())))
+        .unwrap_or(Err(SqlMiddlewareDbError::Other(
+            "No results found".to_string(),
+        )))
 }
