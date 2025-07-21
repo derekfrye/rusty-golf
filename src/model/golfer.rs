@@ -32,7 +32,7 @@ pub async fn get_golfers_from_db(
             "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
         }
         MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!("../admin/model/sql/functions/sqlite/02_sp_get_player_names.sql")
+            include_str!("../sql/functions/sqlite/02_sp_get_player_names.sql")
         }
     };
 
@@ -74,7 +74,7 @@ pub async fn get_player_step_factors(
     let pool = config_and_pool.pool.get().await?;
     let conn = MiddlewarePool::get_connection(pool).await?;
 
-    let query = include_str!("../admin/model/sql/functions/sqlite/03_sp_get_scores.sql");
+    let query = include_str!("../sql/functions/sqlite/03_sp_get_scores.sql");
 
     let query_result =
         execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;

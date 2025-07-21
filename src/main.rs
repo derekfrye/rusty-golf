@@ -1,6 +1,5 @@
 // extern crate no longer needed in Rust 2018+
 use deadpool_postgres::{ManagerConfig, RecyclingMethod};
-use rusty_golf::admin::router;
 use rusty_golf::args;
 use rusty_golf::controller::{db_prefill, score::scores};
 use rusty_golf::model::get_event_details;
@@ -69,7 +68,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .app_data(Data::new(args_for_web.clone()))
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
-            .route("/admin", web::get().to(admin))
             .route("/health", web::get().to(HttpResponse::Ok))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
@@ -107,13 +105,3 @@ async fn index(
         .body(markup.into_string())
 }
 
-async fn admin(
-    query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
-) -> Result<HttpResponse, actix_web::Error> {
-    // let db = Db::new(abc.get_ref().clone()).unwrap();
-    let config_and_pool = abc.get_ref().clone();
-    let mut router = router::AdminRouter::new();
-    // let mut db = Db::new(abc.get_ref().clone()).unwrap();
-    router.router(query, config_and_pool).await
-}

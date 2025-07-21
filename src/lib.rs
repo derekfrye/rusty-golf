@@ -1,15 +1,4 @@
 pub mod model;
-pub mod admin {
-    pub mod view {
-        pub mod admin00_landing;
-        pub mod admin01_tables;
-        pub mod admin0x;
-    }
-    pub mod model {
-        pub mod admin_model;
-    }
-    pub mod router;
-}
 pub mod controller {
     pub mod db_prefill;
     pub mod espn;

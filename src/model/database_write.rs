@@ -55,7 +55,7 @@ pub async fn store_scores_in_db(
         let mut queries = vec![];
         for score in scores {
             let insert_stmt =
-                include_str!("../admin/model/sql/functions/sqlite/04_sp_set_eup_statistic.sql");
+                include_str!("../sql/functions/sqlite/04_sp_set_eup_statistic.sql");
 
             let rounds_json =
                 serde_json::to_string(&score.detailed_statistics.rounds).map_err(|e| {
@@ -169,7 +169,7 @@ pub async fn event_and_scores_already_in_db(
         }
         MiddlewarePoolConnection::Sqlite(_) => {
             include_str!(
-                "../admin/model/sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
+                "../sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql"
             )
         }
     };

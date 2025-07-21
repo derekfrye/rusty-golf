@@ -95,7 +95,7 @@ pub async fn get_scores_from_db(
             "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
         }
         MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!("../admin/model/sql/functions/sqlite/03_sp_get_scores.sql")
+            include_str!("../sql/functions/sqlite/03_sp_get_scores.sql")
         }
     };
     let params = vec![RowValues2::Int(i64::from(event_id))];

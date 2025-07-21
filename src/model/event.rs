@@ -24,7 +24,7 @@ pub async fn get_event_details(
             "SELECT EXISTS(SELECT 1 FROM event WHERE event_id = $1)"
         }
         MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!("../admin/model/sql/functions/sqlite/01_sp_get_event_details.sql")
+            include_str!("../sql/functions/sqlite/01_sp_get_event_details.sql")
         }
     };
     let params = vec![RowValues2::Int(i64::from(event_id))];
