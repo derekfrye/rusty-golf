@@ -1,8 +1,18 @@
 # Rusty golf
 
-Rusty golf is web app that displays a single-page scoreboard for your family golf tournaments. It stores configuration in a postgres or sqlite database (the examples here are written assuming you're using sqlite). There's an admin panel to monitor the functionality of the database for this app.
+Rusty golf is web app that displays a single-page scoreboard for your family golf tournaments. It stores configuration in a postgres or sqlite database (the examples here are written assuming you're using sqlite). The current version is 0.1.7 and uses Rust 2024 edition.
 
 ## Getting started
+
+### Build Commands
+- Build: `cargo build`
+- Run: `cargo run` 
+- Check: `cargo clippy`
+- Format: `cargo fmt`
+- Docker: `make build`, `make clean`, `make rebuild`
+
+### Testing
+See [testing documentation](tests.md) for detailed information about the test suite.
 
 ## First setup
 ```shell
@@ -20,7 +30,7 @@ python -m webbrowser http://localhost:9000/?event=401703504&yr=2025
 
 ## Adding a tournament
 
-Wouldn't it be nice of the admin panel automated this?[^1] 😆
+Future versions may automate this process.
 
 1. Go [here](https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=golf&league=pga&region=us&lang=en&contentorigin=espn), get the event ID.
 2. Go here https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/players?region=us&lang=en&event=&lt;eventId&gt;, find all the golfers you want to include.
@@ -42,9 +52,7 @@ TOKEN=<14-character, composed of ascii alphabet characters and/or numbers>
 
 See [htmx documentation](htmx.md) for how we use `htmx`.
 
-[^1]: Well.. *eventually* we'll use the admin interface for configuration. Right now that's just an aspiration.
-
-[^2]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode.
+[^1]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode.
     <pre>
     .
     ├── Cargo.toml
