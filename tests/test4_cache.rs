@@ -83,6 +83,9 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
             get_data_for_scores_page(401580351, 2024, true, &config_and_pool, 0).await
         }
         false => {
+            if cfg!(debug_assertions) {
+        println!("db didn't exist, set data back 11 days");
+    }
             get_data_for_scores_page(401580351, 2024, false, &config_and_pool, 99).await?;
             // now set the data back 11 days
             let query = "update eup_statistic set ins_ts = ?1;";
