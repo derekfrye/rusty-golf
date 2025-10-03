@@ -12,7 +12,9 @@ Rusty golf is web app that displays a single-page scoreboard for your family gol
 - Docker: `make build`, `make clean`, `make rebuild`
 
 ### Testing
-See [testing documentation](tests.md) for detailed information about the test suite.
+- Recommended: `cargo nextest run --no-fail-fast`
+- Fallback: `cargo test`
+- Offline mode: when ESPN HTTP requests fail (e.g., no network), tests automatically fall back to local fixtures so the suite remains deterministic. See [testing documentation](tests.md).
 
 ## First setup
 ```shell

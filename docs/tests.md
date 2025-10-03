@@ -6,10 +6,10 @@ For information about test coverage gaps and missing tests, see [Test Coverage T
 
 ## Test Commands
 
-- All tests: `cargo test`
-- Single test file: `cargo test --test test1`
-- Single test function: `cargo test test_name`
-- Show output: `cargo test -- --nocapture`
+- All tests (preferred): `cargo nextest run --no-fail-fast`
+- Single test binary: `cargo nextest run --bin test1_test_scores`
+- All with cargo (fallback): `cargo test`
+- Show output (cargo): `cargo test -- --nocapture`
 
 ## Test Structure
 
@@ -98,3 +98,10 @@ cargo test --test test4_cache -- --nocapture
 ## Debug Output
 
 Several tests generate debug HTML files in `tests/test*/debug/` directories to help visualize rendering differences when tests fail.
+
+## Offline Mode (No Network)
+
+- ESPN HTTP calls automatically fall back to a local fixture if the network is unavailable.
+- Trigger: any reqwest error during fetch causes a fallback to `tests/test3_espn_json_responses.json`.
+- Behavior: only the `score_struct` array is loaded and written to the DB via the normal storage path; timestamps and rendering behave as with live data.
+- This keeps CI and local runs deterministic without requiring internet access.

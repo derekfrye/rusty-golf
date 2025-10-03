@@ -1,30 +1,18 @@
 use maud::{Markup, html};
-use sql_middleware::middleware::ConfigAndPool;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
-use crate::model::{
-    AllBettorScoresByRound, DetailedScore, SummaryDetailedScores, get_event_details,
-};
+use crate::model::{AllBettorScoresByRound, DetailedScore, SummaryDetailedScores};
 use crate::view::score::types::{Bar, Direction, GolferBars};
 use crate::view::score::utils::short_golfer_name;
 
-/// # Errors
-///
-/// Will return `Err` if the database query fails
-pub async fn preprocess_golfer_data(
+#[must_use]
+pub fn preprocess_golfer_data_pure(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &[DetailedScore],
-    config_and_pool: &ConfigAndPool,
-    event_id: i32,
-) -> Result<BTreeMap<String, Vec<GolferBars>>, Box<dyn std::error::Error>> {
+    global_step_factor: f32,
+    player_step_factors: &HashMap<(i64, String), f32>,
+) -> BTreeMap<String, Vec<GolferBars>> {
     let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
-
-    let global_step_factor = get_event_details(config_and_pool, event_id)
-        .await?
-        .score_view_step_factor;
-
-    let player_step_factors =
-        crate::model::get_player_step_factors(config_and_pool, event_id).await?;
 
     for summary_score in &summary_scores_x.summary_scores {
         let mut golfers: Vec<GolferBars> = detailed_scores
@@ -37,11 +25,9 @@ pub async fn preprocess_golfer_data(
 
                 let mut found_step_factor = None;
 
-                if let Some(value) =
-                    player_step_factors.get(&(golfer.golfer_espn_id, golfer.bettor_name.clone()))
-                {
-                    found_step_factor = Some(*value);
-                }
+                if let Some(value) = player_step_factors
+                    .get(&(golfer.golfer_espn_id, golfer.bettor_name.clone()))
+                { found_step_factor = Some(*value); }
 
                 let step_factor = found_step_factor.unwrap_or(global_step_factor);
 
@@ -106,27 +92,24 @@ pub async fn preprocess_golfer_data(
         bettor_golfers_map.insert(summary_score.bettor_name.clone(), golfers);
     }
 
-    Ok(bettor_golfers_map)
+    bettor_golfers_map
 }
 
-/// # Errors
-///
-/// Will return `Err` if the database query fails
-pub async fn render_drop_down_bar(
+#[must_use]
+pub fn render_drop_down_bar_pure(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &SummaryDetailedScores,
-    config_and_pool: &ConfigAndPool,
-    event_id: i32,
-) -> Result<Markup, Box<dyn std::error::Error>> {
-    let preprocessed_data = preprocess_golfer_data(
+    global_step_factor: f32,
+    player_step_factors: &HashMap<(i64, String), f32>,
+) -> Markup {
+    let preprocessed_data = preprocess_golfer_data_pure(
         summary_scores_x,
         &detailed_scores.detailed_scores,
-        config_and_pool,
-        event_id,
-    )
-    .await?;
+        global_step_factor,
+        player_step_factors,
+    );
 
-    Ok(html! {
+    html! {
         h3 class="playerbars" { "Score by Player" }
         div class="player-bar-container" {
             @for (idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
@@ -170,5 +153,5 @@ pub async fn render_drop_down_bar(
                 }
             }
         }
-    })
+    }
 }

@@ -9,6 +9,11 @@ pub mod view {
     pub mod score;
 }
 
+pub mod mvu {
+    pub mod score;
+    pub mod runtime;
+}
+
 const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
 
 // // Re-export commonly used items for easier access in tests and other modules
