@@ -8,6 +8,8 @@ use crate::model::golfer::get_player_step_factors;
 use crate::model::database_read::get_scores_from_db;
 use crate::view::score::{render_scores_template_pure, scores_and_last_refresh_to_line_score_tables};
 use std::collections::HashMap;
+use super::error::AppError;
+use std::collections::HashMap as StdHashMap;
 
 #[derive(Debug, Clone)]
 pub struct ScoreModel {
@@ -19,7 +21,7 @@ pub struct ScoreModel {
     pub cache_max_age: i64,
     pub data: Option<ScoreData>,
     pub markup: Option<Markup>,
-    pub error: Option<String>,
+    pub error: Option<AppError>,
     pub from_db_scores: Option<ScoresAndLastRefresh>,
     pub global_step_factor: Option<f32>,
     pub player_step_factors: Option<HashMap<(i64, String), f32>>,
@@ -48,25 +50,30 @@ impl ScoreModel {
 pub enum Msg {
     PageLoad,
     ScoresLoaded(ScoreData),
-    ViewDepsLoaded {
-        from_db_scores: ScoresAndLastRefresh,
-        global_step_factor: f32,
-        player_step_factors: HashMap<(i64, String), f32>,
-    },
+    EventConfigLoaded(f32),
+    PlayerFactorsLoaded(HashMap<(i64, String), f32>),
+    DbScoresLoaded(ScoresAndLastRefresh),
     Rendered(Markup),
-    Failed(String),
+    Failed(AppError),
 }
 
 #[derive(Debug, Clone)]
 pub enum Effect {
     LoadScores,
-    LoadViewDeps,
+    LoadEventConfig,
+    LoadPlayerFactors,
+    LoadDbScores,
     RenderTemplate,
 }
 
 pub fn update(model: &mut ScoreModel, msg: Msg) -> Vec<Effect> {
     match msg {
-        Msg::PageLoad => vec![Effect::LoadScores, Effect::LoadViewDeps],
+        Msg::PageLoad => vec![
+            Effect::LoadScores,
+            Effect::LoadEventConfig,
+            Effect::LoadPlayerFactors,
+            Effect::LoadDbScores,
+        ],
         Msg::ScoresLoaded(data) => {
             model.data = Some(data);
             if model.want_json {
@@ -80,11 +87,37 @@ pub fn update(model: &mut ScoreModel, msg: Msg) -> Vec<Effect> {
                 vec![]
             }
         }
-        Msg::ViewDepsLoaded { from_db_scores, global_step_factor, player_step_factors } => {
+        Msg::EventConfigLoaded(step) => {
+            model.global_step_factor = Some(step);
+            if !model.want_json
+                && model.data.is_some()
+                && model.from_db_scores.is_some()
+                && model.player_step_factors.is_some()
+            {
+                vec![Effect::RenderTemplate]
+            } else {
+                vec![]
+            }
+        }
+        Msg::PlayerFactorsLoaded(factors) => {
+            model.player_step_factors = Some(factors);
+            if !model.want_json
+                && model.data.is_some()
+                && model.from_db_scores.is_some()
+                && model.global_step_factor.is_some()
+            {
+                vec![Effect::RenderTemplate]
+            } else {
+                vec![]
+            }
+        }
+        Msg::DbScoresLoaded(from_db_scores) => {
             model.from_db_scores = Some(from_db_scores);
-            model.global_step_factor = Some(global_step_factor);
-            model.player_step_factors = Some(player_step_factors);
-            if !model.want_json && model.data.is_some() {
+            if !model.want_json
+                && model.data.is_some()
+                && model.player_step_factors.is_some()
+                && model.global_step_factor.is_some()
+            {
                 vec![Effect::RenderTemplate]
             } else {
                 vec![]
@@ -119,30 +152,21 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
             .await
             {
                 Ok(data) => Msg::ScoresLoaded(data),
-                Err(e) => Msg::Failed(e.to_string()),
+                Err(e) => Msg::Failed(AppError::from(e.to_string())),
             }
         }
-        Effect::LoadViewDeps => {
-            // Gather all IO needed for a pure render
-            let from_db = get_scores_from_db(deps.config_and_pool, model.event_id, RefreshSource::Db).await;
-            let evt = get_event_details(deps.config_and_pool, model.event_id).await;
-            let player = get_player_step_factors(deps.config_and_pool, model.event_id).await;
-
-            match (from_db, evt, player) {
-                (Ok(from_db_scores), Ok(event_details), Ok(player_step_factors)) => Msg::ViewDepsLoaded {
-                    from_db_scores,
-                    global_step_factor: event_details.score_view_step_factor,
-                    player_step_factors,
-                },
-                (a, b, c) => {
-                    let err = format!(
-                        "view deps error: db={:?} evt={:?} player={:?}",
-                        a.as_ref().err(), b.as_ref().err(), c.as_ref().err()
-                    );
-                    Msg::Failed(err)
-                }
-            }
-        }
+        Effect::LoadEventConfig => match get_event_details(deps.config_and_pool, model.event_id).await {
+            Ok(event_details) => Msg::EventConfigLoaded(event_details.score_view_step_factor),
+            Err(e) => Msg::Failed(AppError::from(e)),
+        },
+        Effect::LoadPlayerFactors => match get_player_step_factors(deps.config_and_pool, model.event_id).await {
+            Ok(factors) => Msg::PlayerFactorsLoaded(factors),
+            Err(e) => Msg::Failed(AppError::from(e)),
+        },
+        Effect::LoadDbScores => match get_scores_from_db(deps.config_and_pool, model.event_id, RefreshSource::Db).await {
+            Ok(from_db_scores) => Msg::DbScoresLoaded(from_db_scores),
+            Err(e) => Msg::Failed(AppError::from(e)),
+        },
         Effect::RenderTemplate => {
             if let (Some(ref data), Some(ref from_db), Some(global_step), Some(ref player_factors)) = (
                 model.data.as_ref(),
@@ -163,8 +187,61 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
                 );
                 Msg::Rendered(markup)
             } else {
-                Msg::Failed("Render requested without deps".into())
+                Msg::Failed(AppError::Other("Render requested without deps".into()))
             }
         }
     }
+}
+
+/// Parse query params into a ScoreModel, computing cache_max_age from event config.
+/// Returns AppError::Other with human-readable messages for missing/invalid params.
+pub async fn decode_request_to_model(
+    query: &StdHashMap<String, String>,
+    config_and_pool: &ConfigAndPool,
+) -> Result<ScoreModel, AppError> {
+    let event_id: i32 = query
+        .get("event")
+        .and_then(|s| s.trim().parse().ok())
+        .ok_or_else(|| AppError::Other("espn event parameter is required".into()))?;
+
+    let year: i32 = query
+        .get("yr")
+        .and_then(|s| s.trim().parse().ok())
+        .ok_or_else(|| AppError::Other("yr (year) parameter is required".into()))?;
+
+    let cache = match query.get("cache").map(|s| s.as_str()) {
+        Some("0") => false,
+        _ => true,
+    };
+
+    let want_json = match query.get("json").map(|s| s.as_str()) {
+        Some("1") => true,
+        Some("0") => false,
+        Some(other) => other.parse().unwrap_or(false),
+        None => false,
+    };
+
+    let expanded = match query.get("expanded").map(|s| s.as_str()) {
+        Some("1") => true,
+        Some("0") => false,
+        Some(other) => other.parse().unwrap_or(false),
+        None => false,
+    };
+
+    let cache_max_age: i64 = match get_event_details(config_and_pool, event_id).await {
+        Ok(event_details) => match event_details.refresh_from_espn {
+            1 => 99,
+            _ => 0,
+        },
+        Err(_) => 0,
+    };
+
+    Ok(ScoreModel::new(
+        event_id,
+        year,
+        cache,
+        expanded,
+        want_json,
+        cache_max_age,
+    ))
 }

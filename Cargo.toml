@@ -4,7 +4,8 @@ version = "0.1.7"
 edition = "2024"
 
 [dependencies]
-# checked mar 2025
+# checked sept 2025
+# `cargo stale`
 # latest version of tokio 1 branch 
 tokio = { version = "1", features = ["full"] }  
 # latest version of serde 1.0 branch 
