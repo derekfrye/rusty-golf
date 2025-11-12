@@ -52,29 +52,19 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
-    let res = match &conn {
+    let res: Result<_, SqlMiddlewareDbError> = match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
-            // let conn = conn.lock().unwrap();
             sconn
-                .interact(move |xxx| {
-                    // let converted_params =
-                    //     sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
-                    let tx = xxx.transaction()?;
-
-                    {
-                        // let mut stmt = tx.prepare(&query_and_params.query)?;
-                        tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
-                    };
+                .with_connection(move |conn| {
+                    let tx = conn.transaction()?;
+                    tx.execute_batch(&query_and_params.query)?;
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(())
                 })
                 .await
-            // .map_err(|e| format!("Error executing query: {:?}", e))
         }
-        _ => {
-            panic!("Only sqlite is supported ");
-        } // Result::<(), String>::Ok(())
-    }?;
+        _ => panic!("Only sqlite is supported "),
+    };
 
     assert!(res.is_ok(), "Error executing query: {res:?}");
 
@@ -99,15 +89,16 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
-        MiddlewarePoolConnection::Sqlite(xx) => {
-            xx.interact(move |xxx| {
-                let tx = xxx.transaction()?;
-                tx.execute_batch(&query_and_params.query)?;
-
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(())
-            })
-            .await?
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+            sqlite_conn
+                .with_connection(move |conn| {
+                    let tx = conn.transaction()?;
+                    tx.execute_batch(&query_and_params.query)?;
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(())
+                })
+                .await?;
+            Ok::<_, SqlMiddlewareDbError>(())
         } // MiddlewarePoolConnection::Mssql(_) => todo!()
     }?;
 
@@ -120,29 +111,19 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
     let pool = config_and_pool.pool.get().await.unwrap();
     let conn = MiddlewarePool::get_connection(pool).await.unwrap();
 
-    let res = match &conn {
+    let res: Result<_, SqlMiddlewareDbError> = match &conn {
         MiddlewarePoolConnection::Sqlite(sconn) => {
-            // let conn = conn.lock().unwrap();
             sconn
-                .interact(move |xxx| {
-                    // let converted_params =
-                    //     sqlx_middleware::sqlite_convert_params(&query_and_params.params)?;
-                    let tx = xxx.transaction()?;
-
-                    {
-                        // let mut stmt = tx.prepare(&query_and_params.query)?;
-                        tx.execute_batch(&query_and_params.query)?; //.map_err(SqlMiddlewareDbError::from)?;
-                    };
+                .with_connection(move |conn| {
+                    let tx = conn.transaction()?;
+                    tx.execute_batch(&query_and_params.query)?;
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(())
                 })
                 .await
-            // .map_err(|e| format!("Error executing query: {:?}", e))
         }
-        _ => {
-            panic!("Only sqlite is supported ");
-        } // Result::<(), String>::Ok(())
-    }?;
+        _ => panic!("Only sqlite is supported "),
+    };
 
     assert!(res.is_ok(), "Error executing query: {res:?}");
 

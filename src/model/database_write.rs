@@ -27,16 +27,14 @@ pub async fn execute_batch_sql(
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
-        MiddlewarePoolConnection::Sqlite(xx) => {
-            xx.interact(move |xxx| {
-                let tx = xxx.transaction()?;
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => sqlite_conn
+            .with_connection(move |conn| {
+                let tx = conn.transaction()?;
                 tx.execute_batch(&query_and_params.query)?;
                 tx.commit()?;
                 Ok::<_, SqlMiddlewareDbError>(())
             })
-            .await??;
-            Ok(())
-        }
+            .await,
     }
 }
 
@@ -112,7 +110,7 @@ pub async fn store_scores_in_db(
         match &conn {
             MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
                 sqlite_conn
-                    .interact(move |db_conn| {
+                    .with_connection(move |db_conn| {
                         let tx = db_conn.transaction()?;
                         {
                             let mut stmt = tx.prepare(&queries[0].query)?;
@@ -132,7 +130,7 @@ pub async fn store_scores_in_db(
                         tx.commit()?;
                         Ok::<_, SqlMiddlewareDbError>(())
                     })
-                    .await??;
+                    .await?;
             }
             MiddlewarePoolConnection::Postgres(_) => {
                 return Err(SqlMiddlewareDbError::Other(

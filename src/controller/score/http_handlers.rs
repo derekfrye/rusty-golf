@@ -4,7 +4,6 @@ use serde_json::json;
 use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
 
-use crate::model::get_event_details;
 use crate::mvu::score as mvu_score;
 use crate::mvu::runtime::run_score;
 use crate::view::score::{
@@ -12,11 +11,6 @@ use crate::view::score::{
 };
 use crate::view::score::chart::render_drop_down_bar_pure;
 use crate::view::score::types::RefreshData;
-
-// Helper function to get a query parameter with a default value
-fn get_param_str<'a>(query: &'a HashMap<String, String>, key: &str) -> &'a str {
-    query.get(key).map_or("", |s| s.as_str())
-}
 
 // The `implicit_hasher` lint is allowed here because the `HashMap` is created by `actix-web`
 // as part of the query string parsing. We cannot control the hasher used in this case,
