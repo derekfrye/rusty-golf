@@ -1,7 +1,7 @@
 use crate::model::{ScoreDisplay, ScoresAndLastRefresh};
 use crate::view::score::types::{BettorData, GolferData};
 use maud::{Markup, html};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[must_use]
 pub fn short_golfer_name(golfer_name: &str) -> String {
@@ -17,27 +17,30 @@ pub fn short_golfer_name(golfer_name: &str) -> String {
 
 #[must_use]
 pub fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
-    let (shape, color) = match disp {
-        ScoreDisplay::DoubleCondor => ("◆", "double-condor"),
-        ScoreDisplay::Condor => ("◆", "condor"),
-        ScoreDisplay::Albatross => ("◆", "albatross"),
-        ScoreDisplay::Eagle => ("◆", "eagle"),
-        ScoreDisplay::Birdie => ("●", "birdie"),
-        ScoreDisplay::Par => ("●", "par"),
-        ScoreDisplay::Bogey => ("▲", "bogey"),
-        ScoreDisplay::DoubleBogey => ("▲", "double-bogey"),
-        ScoreDisplay::TripleBogey => ("▲", "triple-bogey"),
-        ScoreDisplay::QuadrupleBogey => ("▲", "quadruple-bogey"),
-        ScoreDisplay::QuintupleBogey => ("▲", "quintuple-bogey"),
-        ScoreDisplay::SextupleBogey => ("▲", "sextuple-bogey"),
-        ScoreDisplay::SeptupleBogey => ("▲", "septuple-bogey"),
-        ScoreDisplay::OctupleBogey => ("▲", "octuple-bogey"),
-        ScoreDisplay::NonupleBogey => ("▲", "nonuple-bogey"),
-        ScoreDisplay::DodecupleBogey => ("▲", "dodecuple-bogey"),
+    // Provide both legacy score-shape-* classes and newer semantic classes, with glyphs
+    let (shape, new_class, legacy_class) = match disp {
+        ScoreDisplay::DoubleCondor => ("◆", "double-condor", "score-shape-doublecondor"),
+        ScoreDisplay::Condor => ("◆", "condor", "score-shape-condor"),
+        ScoreDisplay::Albatross => ("◆", "albatross", "score-shape-albatross"),
+        ScoreDisplay::Eagle => ("◆", "eagle", "score-shape-eagle"),
+        ScoreDisplay::Birdie => ("●", "birdie", "score-shape-birdie"),
+        ScoreDisplay::Par => ("●", "par", "score-shape-par"),
+        ScoreDisplay::Bogey => ("▲", "bogey", "score-shape-bogey"),
+        ScoreDisplay::DoubleBogey => ("▲", "double-bogey", "score-shape-doublebogey"),
+        ScoreDisplay::TripleBogey => ("▲", "triple-bogey", "score-shape-triplebogey"),
+        ScoreDisplay::QuadrupleBogey => ("▲", "quadruple-bogey", "score-shape-quadruplebogey"),
+        ScoreDisplay::QuintupleBogey => ("▲", "quintuple-bogey", "score-shape-quintuplebogey"),
+        ScoreDisplay::SextupleBogey => ("▲", "sextuple-bogey", "score-shape-sextuplebogey"),
+        ScoreDisplay::SeptupleBogey => ("▲", "septuple-bogey", "score-shape-septuplebogey"),
+        ScoreDisplay::OctupleBogey => ("▲", "octuple-bogey", "score-shape-octuplebogey"),
+        ScoreDisplay::NonupleBogey => ("▲", "nonuple-bogey", "score-shape-nonuplebogey"),
+        ScoreDisplay::DodecupleBogey => ("▲", "dodecuple-bogey", "score-shape-dodecuplebogey"),
     };
 
+    let combined_classes = format!("{} {}", legacy_class, new_class);
+
     html! {
-        span class=(color) { (shape) " " (score) }
+        span class=(combined_classes) { (shape) " " (score) }
     }
 }
 
@@ -45,26 +48,52 @@ pub fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
 pub fn scores_and_last_refresh_to_line_score_tables(
     scores_and_last_refresh: &ScoresAndLastRefresh,
 ) -> Vec<BettorData> {
-    let mut bettor_map: HashMap<String, Vec<GolferData>> = HashMap::new();
+    // Use BTreeMap for deterministic alphabetical ordering and merge per-golfer data
+    type GolferScoreData = (Vec<crate::model::LineScore>, Vec<crate::model::StringStat>);
+    type GolferMap = BTreeMap<String, GolferScoreData>;
+    let mut grouped: BTreeMap<String, GolferMap> = BTreeMap::new();
 
-    for score in &scores_and_last_refresh.score_struct {
-        let golfer_data = GolferData {
-            golfer_name: score.golfer_name.clone(),
-            linescores: score.detailed_statistics.line_scores.clone(),
-            tee_times: score.detailed_statistics.tee_times.clone(),
-        };
+    for s in &scores_and_last_refresh.score_struct {
+        let bettor_name = &s.bettor_name;
+        let golfer_name = &s.golfer_name;
+        let linescores = &s.detailed_statistics.line_scores;
+        let teetimes = &s.detailed_statistics.tee_times;
 
-        bettor_map
-            .entry(score.bettor_name.clone())
+        grouped
+            .entry(bettor_name.clone())
             .or_default()
-            .push(golfer_data);
+            .entry(golfer_name.clone())
+            .or_default()
+            .0
+            .extend(linescores.iter().cloned());
+
+        grouped
+            .entry(bettor_name.clone())
+            .or_default()
+            .entry(golfer_name.clone())
+            .or_default()
+            .1
+            .extend(teetimes.iter().cloned());
     }
 
-    bettor_map
-        .into_iter()
-        .map(|(bettor_name, golfers)| BettorData {
+    let mut bettor_data_vec = Vec::new();
+    for (bettor_name, golfer_map) in grouped {
+        let mut golfer_data_vec = Vec::new();
+        for (golfer_name, (mut linescores, tee_times)) in golfer_map {
+            // Ensure a stable in-table order by (round, hole)
+            linescores.sort_by_key(|ls| (ls.round, ls.hole));
+            golfer_data_vec.push(GolferData {
+                golfer_name,
+                linescores,
+                tee_times,
+            });
+        }
+
+        bettor_data_vec.push(BettorData {
             bettor_name,
-            golfers,
-        })
-        .collect()
+            golfers: golfer_data_vec,
+        });
+    }
+
+    bettor_data_vec
 }

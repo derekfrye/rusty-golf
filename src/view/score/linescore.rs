@@ -91,21 +91,26 @@ pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: &RefreshDa
                                 }
                             }
 
-                            @for (round, _total_score) in unique_rounds.iter().enumerate() {
-                                @let total_for_round: i32 = all_scores
-                                    .iter()
-                                    .filter(|ls| ls.round == i32::try_from(round).unwrap_or(0))
-                                    .map(|ls| ls.score)
-                                    .sum();
+                            // Relative-to-par totals by round with legacy label/copy
+                            @let totals_by_round = {
+                                let mut x = std::collections::BTreeMap::new();
+                                for ls in all_scores.iter() {
+                                    x.entry(ls.round)
+                                        .and_modify(|t| *t += ls.score - ls.par)
+                                        .or_insert(ls.score - ls.par);
+                                }
+                                x
+                            };
 
-                                @let is_round_one = round == 0;
+                            @for (round_zero_based, total_rel) in totals_by_round.iter() {
+                                @let is_round_one = *round_zero_based == 0;
                                 @let row_class = if is_round_one { "linescore-total" } else { "linescore-total hidden" };
 
-                                tr class=(row_class) data-round=(round + 1) {
-                                    td data-round=(round + 1) colspan="2" class="linescore-total-cell" {
-                                        "Total R" (round + 1)
+                                tr class=(row_class) data-round=(round_zero_based + 1) {
+                                    td data-round=(round_zero_based + 1) colspan="2" class="linescore-total-cell" {
+                                        "Total:"
                                     }
-                                    td { (total_for_round) }
+                                    td { (total_rel) }
                                 }
                             }
                         }
