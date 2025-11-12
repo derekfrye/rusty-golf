@@ -47,14 +47,12 @@ pub async fn scores(
         } else {
             HttpResponse::InternalServerError().json(json!({"error": "No data in model"}))
         }
+    } else if let Some(markup) = model.markup {
+        HttpResponse::Ok()
+            .content_type("text/html")
+            .body(markup.into_string())
     } else {
-        if let Some(markup) = model.markup {
-            HttpResponse::Ok()
-                .content_type("text/html")
-                .body(markup.into_string())
-        } else {
-            HttpResponse::InternalServerError().json(json!({"error": "No view produced"}))
-        }
+        HttpResponse::InternalServerError().json(json!({"error": "No view produced"}))
     }
 }
 
@@ -64,6 +62,12 @@ pub async fn scores_summary(
     abc: Data<ConfigAndPool>,
 ) -> impl Responder {
     let config_and_pool = abc.get_ref().clone();
+
+    // Only render when expanded=1 is explicitly requested
+    let expanded = matches!(query.get("expanded").map(|s| s.as_str()), Some("1"));
+    if !expanded {
+        return HttpResponse::NoContent().finish();
+    }
 
     let mut model = match mvu_score::decode_request_to_model(&query, &config_and_pool).await {
         Ok(m) => m,
