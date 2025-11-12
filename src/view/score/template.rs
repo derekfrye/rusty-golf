@@ -1,11 +1,11 @@
 use maud::Markup;
-use std::collections::HashMap;
 use sql_middleware::middleware::ConfigAndPool;
+use std::collections::HashMap;
 
-use crate::model::{ScoreData, RefreshSource};
+use crate::model::database_read::get_scores_from_db;
 use crate::model::event::get_event_details;
 use crate::model::golfer::get_player_step_factors;
-use crate::model::database_read::get_scores_from_db;
+use crate::model::{RefreshSource, ScoreData};
 use crate::view::score::types::RefreshData;
 use crate::view::score::{
     render_drop_down_bar_pure, render_line_score_tables, render_scoreboard, render_summary_scores,

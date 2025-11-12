@@ -10,9 +10,9 @@ pub mod view {
 }
 
 pub mod mvu {
-    pub mod score;
-    pub mod runtime;
     pub mod error;
+    pub mod runtime;
+    pub mod score;
 }
 
 const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";

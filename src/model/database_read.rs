@@ -53,23 +53,25 @@ pub async fn execute_query(
     };
 
     match conn {
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => sqlite_conn
-            .with_connection(move |db_conn| {
-                let converted_params = convert_sql_params::<SqliteParamsQuery>(
-                    &query_and_params.params,
-                    ConversionMode::Query,
-                )?;
-                let tx = db_conn.transaction()?;
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+            sqlite_conn
+                .with_connection(move |db_conn| {
+                    let converted_params = convert_sql_params::<SqliteParamsQuery>(
+                        &query_and_params.params,
+                        ConversionMode::Query,
+                    )?;
+                    let tx = db_conn.transaction()?;
 
-                let result_set = {
-                    let mut stmt = tx.prepare(&query_and_params.query)?;
+                    let result_set = {
+                        let mut stmt = tx.prepare(&query_and_params.query)?;
 
-                    sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
-                };
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(result_set)
-            })
-            .await,
+                        sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
+                    };
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(result_set)
+                })
+                .await
+        }
         MiddlewarePoolConnection::Postgres(_) => Err(SqlMiddlewareDbError::Other(
             "Database type not supported for this operation".to_string(),
         )),

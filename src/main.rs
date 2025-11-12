@@ -68,9 +68,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .app_data(Data::new(args_for_web.clone()))
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
-            .route("/scores/summary", web::get().to(rusty_golf::controller::score::http_handlers::scores_summary))
-            .route("/scores/chart", web::get().to(rusty_golf::controller::score::http_handlers::scores_chart))
-            .route("/scores/linescore", web::get().to(rusty_golf::controller::score::http_handlers::scores_linescore))
+            .route(
+                "/scores/summary",
+                web::get().to(rusty_golf::controller::score::http_handlers::scores_summary),
+            )
+            .route(
+                "/scores/chart",
+                web::get().to(rusty_golf::controller::score::http_handlers::scores_chart),
+            )
+            .route(
+                "/scores/linescore",
+                web::get().to(rusty_golf::controller::score::http_handlers::scores_linescore),
+            )
             .route("/health", web::get().to(HttpResponse::Ok))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })

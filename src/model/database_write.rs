@@ -27,14 +27,16 @@ pub async fn execute_batch_sql(
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => sqlite_conn
-            .with_connection(move |conn| {
-                let tx = conn.transaction()?;
-                tx.execute_batch(&query_and_params.query)?;
-                tx.commit()?;
-                Ok::<_, SqlMiddlewareDbError>(())
-            })
-            .await,
+        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+            sqlite_conn
+                .with_connection(move |conn| {
+                    let tx = conn.transaction()?;
+                    tx.execute_batch(&query_and_params.query)?;
+                    tx.commit()?;
+                    Ok::<_, SqlMiddlewareDbError>(())
+                })
+                .await
+        }
     }
 }
 

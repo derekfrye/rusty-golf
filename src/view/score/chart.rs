@@ -25,9 +25,11 @@ pub fn preprocess_golfer_data_pure(
 
                 let mut found_step_factor = None;
 
-                if let Some(value) = player_step_factors
-                    .get(&(golfer.golfer_espn_id, golfer.bettor_name.clone()))
-                { found_step_factor = Some(*value); }
+                if let Some(value) =
+                    player_step_factors.get(&(golfer.golfer_espn_id, golfer.bettor_name.clone()))
+                {
+                    found_step_factor = Some(*value);
+                }
 
                 let step_factor = found_step_factor.unwrap_or(global_step_factor);
 

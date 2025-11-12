@@ -4,8 +4,8 @@ use crate::model::{
     RefreshSource, Scores, ScoresAndLastRefresh, event_and_scores_already_in_db, get_scores_from_db,
 };
 use serde_json::Value;
-use std::fs;
 use sql_middleware::middleware::ConfigAndPool;
+use std::fs;
 
 /// # Errors
 ///
@@ -43,7 +43,12 @@ pub async fn fetch_scores_from_espn(
                             if let Some(score_struct) = val.get("score_struct") {
                                 match serde_json::from_value::<Vec<Scores>>(score_struct.clone()) {
                                     Ok(scores_vec) => {
-                                        let z = store_espn_results(&scores_vec, event_id, config_and_pool).await?;
+                                        let z = store_espn_results(
+                                            &scores_vec,
+                                            event_id,
+                                            config_and_pool,
+                                        )
+                                        .await?;
                                         Ok(z)
                                     }
                                     Err(err) => Err(Box::new(err) as Box<dyn std::error::Error>),

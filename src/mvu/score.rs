@@ -1,14 +1,16 @@
 use maud::Markup;
 use sql_middleware::middleware::ConfigAndPool;
 
+use super::error::AppError;
 use crate::controller::score::data_service::get_data_for_scores_page;
-use crate::model::{ScoreData, RefreshSource, ScoresAndLastRefresh};
+use crate::model::database_read::get_scores_from_db;
 use crate::model::event::get_event_details;
 use crate::model::golfer::get_player_step_factors;
-use crate::model::database_read::get_scores_from_db;
-use crate::view::score::{render_scores_template_pure, scores_and_last_refresh_to_line_score_tables};
+use crate::model::{RefreshSource, ScoreData, ScoresAndLastRefresh};
+use crate::view::score::{
+    render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
+};
 use std::collections::HashMap;
-use super::error::AppError;
 use std::collections::HashMap as StdHashMap;
 
 #[derive(Debug, Clone)]
@@ -28,7 +30,14 @@ pub struct ScoreModel {
 }
 
 impl ScoreModel {
-    pub fn new(event_id: i32, year: i32, use_cache: bool, expanded: bool, want_json: bool, cache_max_age: i64) -> Self {
+    pub fn new(
+        event_id: i32,
+        year: i32,
+        use_cache: bool,
+        expanded: bool,
+        want_json: bool,
+        cache_max_age: i64,
+    ) -> Self {
         Self {
             event_id,
             year,
@@ -155,20 +164,32 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
                 Err(e) => Msg::Failed(AppError::from(e.to_string())),
             }
         }
-        Effect::LoadEventConfig => match get_event_details(deps.config_and_pool, model.event_id).await {
-            Ok(event_details) => Msg::EventConfigLoaded(event_details.score_view_step_factor),
-            Err(e) => Msg::Failed(AppError::from(e)),
-        },
-        Effect::LoadPlayerFactors => match get_player_step_factors(deps.config_and_pool, model.event_id).await {
-            Ok(factors) => Msg::PlayerFactorsLoaded(factors),
-            Err(e) => Msg::Failed(AppError::from(e)),
-        },
-        Effect::LoadDbScores => match get_scores_from_db(deps.config_and_pool, model.event_id, RefreshSource::Db).await {
-            Ok(from_db_scores) => Msg::DbScoresLoaded(from_db_scores),
-            Err(e) => Msg::Failed(AppError::from(e)),
-        },
+        Effect::LoadEventConfig => {
+            match get_event_details(deps.config_and_pool, model.event_id).await {
+                Ok(event_details) => Msg::EventConfigLoaded(event_details.score_view_step_factor),
+                Err(e) => Msg::Failed(AppError::from(e)),
+            }
+        }
+        Effect::LoadPlayerFactors => {
+            match get_player_step_factors(deps.config_and_pool, model.event_id).await {
+                Ok(factors) => Msg::PlayerFactorsLoaded(factors),
+                Err(e) => Msg::Failed(AppError::from(e)),
+            }
+        }
+        Effect::LoadDbScores => {
+            match get_scores_from_db(deps.config_and_pool, model.event_id, RefreshSource::Db).await
+            {
+                Ok(from_db_scores) => Msg::DbScoresLoaded(from_db_scores),
+                Err(e) => Msg::Failed(AppError::from(e)),
+            }
+        }
         Effect::RenderTemplate => {
-            if let (Some(ref data), Some(ref from_db), Some(global_step), Some(ref player_factors)) = (
+            if let (
+                Some(ref data),
+                Some(ref from_db),
+                Some(global_step),
+                Some(ref player_factors),
+            ) = (
                 model.data.as_ref(),
                 model.from_db_scores.as_ref(),
                 model.global_step_factor,

@@ -1,7 +1,5 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    // Can use http://localhost:8081/?event=401580351&yr=2024&expanded=1 if localhost is fwd'd to open port on dev container (likely 5201)
     "version": "0.2.0",
     "configurations": [
         {
@@ -25,7 +23,6 @@
                 "--db-name=xxx",
                 "--db-startup-script=src/admin/model/sql/schema/sqlite/00_event.sql;src/admin/model/sql/schema/sqlite/02_golfer.sql;src/admin/model/sql/schema/sqlite/03_bettor.sql;src/admin/model/sql/schema/sqlite/04_event_user_player.sql;src/admin/model/sql/schema/sqlite/05_eup_statistic.sql",
                 "--db-populate-json=tests/test5_dbprefill.json",
-                "--dont-poll-espn-after-num-days=10", // 0 means always read from the db, any number over 0 means read from the db if the event is older than that number of days
             ],
             "cwd": "${workspaceFolder}",
         },
