@@ -17,30 +17,30 @@ pub fn short_golfer_name(golfer_name: &str) -> String {
 
 #[must_use]
 pub fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
-    // Provide both legacy score-shape-* classes and newer semantic classes, with glyphs
-    let (shape, new_class, legacy_class) = match disp {
-        ScoreDisplay::DoubleCondor => ("◆", "double-condor", "score-shape-doublecondor"),
-        ScoreDisplay::Condor => ("◆", "condor", "score-shape-condor"),
-        ScoreDisplay::Albatross => ("◆", "albatross", "score-shape-albatross"),
-        ScoreDisplay::Eagle => ("◆", "eagle", "score-shape-eagle"),
-        ScoreDisplay::Birdie => ("●", "birdie", "score-shape-birdie"),
-        ScoreDisplay::Par => ("●", "par", "score-shape-par"),
-        ScoreDisplay::Bogey => ("▲", "bogey", "score-shape-bogey"),
-        ScoreDisplay::DoubleBogey => ("▲", "double-bogey", "score-shape-doublebogey"),
-        ScoreDisplay::TripleBogey => ("▲", "triple-bogey", "score-shape-triplebogey"),
-        ScoreDisplay::QuadrupleBogey => ("▲", "quadruple-bogey", "score-shape-quadruplebogey"),
-        ScoreDisplay::QuintupleBogey => ("▲", "quintuple-bogey", "score-shape-quintuplebogey"),
-        ScoreDisplay::SextupleBogey => ("▲", "sextuple-bogey", "score-shape-sextuplebogey"),
-        ScoreDisplay::SeptupleBogey => ("▲", "septuple-bogey", "score-shape-septuplebogey"),
-        ScoreDisplay::OctupleBogey => ("▲", "octuple-bogey", "score-shape-octuplebogey"),
-        ScoreDisplay::NonupleBogey => ("▲", "nonuple-bogey", "score-shape-nonuplebogey"),
-        ScoreDisplay::DodecupleBogey => ("▲", "dodecuple-bogey", "score-shape-dodecuplebogey"),
+    // Keep both legacy and semantic CSS classes for styling, but omit any glyphs.
+    let (new_class, legacy_class) = match disp {
+        ScoreDisplay::DoubleCondor => ("double-condor", "score-shape-doublecondor"),
+        ScoreDisplay::Condor => ("condor", "score-shape-condor"),
+        ScoreDisplay::Albatross => ("albatross", "score-shape-albatross"),
+        ScoreDisplay::Eagle => ("eagle", "score-shape-eagle"),
+        ScoreDisplay::Birdie => ("birdie", "score-shape-birdie"),
+        ScoreDisplay::Par => ("par", "score-shape-par"),
+        ScoreDisplay::Bogey => ("bogey", "score-shape-bogey"),
+        ScoreDisplay::DoubleBogey => ("double-bogey", "score-shape-doublebogey"),
+        ScoreDisplay::TripleBogey => ("triple-bogey", "score-shape-triplebogey"),
+        ScoreDisplay::QuadrupleBogey => ("quadruple-bogey", "score-shape-quadruplebogey"),
+        ScoreDisplay::QuintupleBogey => ("quintuple-bogey", "score-shape-quintuplebogey"),
+        ScoreDisplay::SextupleBogey => ("sextuple-bogey", "score-shape-sextuplebogey"),
+        ScoreDisplay::SeptupleBogey => ("septuple-bogey", "score-shape-septuplebogey"),
+        ScoreDisplay::OctupleBogey => ("octuple-bogey", "score-shape-octuplebogey"),
+        ScoreDisplay::NonupleBogey => ("nonuple-bogey", "score-shape-nonuplebogey"),
+        ScoreDisplay::DodecupleBogey => ("dodecuple-bogey", "score-shape-dodecuplebogey"),
     };
 
     let combined_classes = format!("{} {}", legacy_class, new_class);
 
     html! {
-        span class=(combined_classes) { (shape) " " (score) }
+        span class=(combined_classes) { (score) }
     }
 }
 
