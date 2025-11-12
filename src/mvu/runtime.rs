@@ -16,7 +16,7 @@ pub async fn run_score(
                 json!({"mvu":"effect_start","effect": format!("{:?}", effect)})
             );
         }
-        let msg = super::score::run_effect(effect, &model, deps).await;
+    let msg = super::score::run_effect(effect, model, deps).await;
         if cfg!(debug_assertions) {
             eprintln!(
                 "{}",

@@ -13,6 +13,7 @@ use crate::view::score::{
 };
 
 #[must_use]
+#[allow(clippy::too_many_arguments)]
 pub fn render_scores_template_pure(
     data: &ScoreData,
     expanded: bool,
@@ -37,10 +38,12 @@ pub fn render_scores_template_pure(
 
     maud::html! {
         (render_scoreboard(data))
-        div id="score-summary"
-            hx-get=(format!("scores/summary?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
-            hx-trigger="load" hx-swap="innerHTML" {
-            @if expanded { (render_summary_scores(&summary_scores_x)) }
+        @if expanded {
+            div id="score-summary"
+                hx-get=(format!("scores/summary?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, "1"))
+                hx-trigger="load" hx-swap="innerHTML" {
+                (render_summary_scores(&summary_scores_x))
+            }
         }
 
         div id="score-chart"

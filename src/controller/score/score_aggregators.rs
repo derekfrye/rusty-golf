@@ -120,30 +120,30 @@ pub fn group_by_bettor_golfer_round(scores: &[Scores]) -> SummaryDetailedScores 
     };
 
     for bettor_name in bettor_order {
-        if let Some(golfers_map) = scores_map.get(&bettor_name) {
-            if let Some(golfers_ordered) = golfer_order_map.get(&bettor_name) {
-                for golfer_name in golfers_ordered {
-                    if let Some(rounds_map) = golfers_map.get(golfer_name) {
-                        let mut rounds: Vec<(i32, i32)> =
-                            rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
-                        rounds.sort_by_key(|&(round, _)| round);
+        if let Some(golfers_map) = scores_map.get(&bettor_name)
+            && let Some(golfers_ordered) = golfer_order_map.get(&bettor_name)
+        {
+            for golfer_name in golfers_ordered {
+                if let Some(rounds_map) = golfers_map.get(golfer_name) {
+                    let mut rounds: Vec<(i32, i32)> =
+                        rounds_map.iter().map(|(&k, &v)| (k, v)).collect();
+                    rounds.sort_by_key(|&(round, _)| round);
 
-                        let (round_numbers, round_scores): (Vec<i32>, Vec<i32>) =
-                            rounds.iter().copied().unzip();
+                    let (round_numbers, round_scores): (Vec<i32>, Vec<i32>) =
+                        rounds.iter().copied().unzip();
 
-                        let golfer_espn_id = espn_id_map
-                            .get(&(bettor_name.clone(), golfer_name.clone()))
-                            .copied()
-                            .unwrap_or(0);
+                    let golfer_espn_id = espn_id_map
+                        .get(&(bettor_name.clone(), golfer_name.clone()))
+                        .copied()
+                        .unwrap_or(0);
 
-                        summary_scores.detailed_scores.push(DetailedScore {
-                            bettor_name: bettor_name.clone(),
-                            golfer_name: golfer_name.clone(),
-                            golfer_espn_id,
-                            rounds: round_numbers,
-                            scores: round_scores,
-                        });
-                    }
+                    summary_scores.detailed_scores.push(DetailedScore {
+                        bettor_name: bettor_name.clone(),
+                        golfer_name: golfer_name.clone(),
+                        golfer_espn_id,
+                        rounds: round_numbers,
+                        scores: round_scores,
+                    });
                 }
             }
         }

@@ -185,10 +185,10 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
         }
         Effect::RenderTemplate => {
             if let (
-                Some(ref data),
-                Some(ref from_db),
+                Some(data),
+                Some(from_db),
                 Some(global_step),
-                Some(ref player_factors),
+                Some(player_factors),
             ) = (
                 model.data.as_ref(),
                 model.from_db_scores.as_ref(),
@@ -230,10 +230,7 @@ pub async fn decode_request_to_model(
         .and_then(|s| s.trim().parse().ok())
         .ok_or_else(|| AppError::Other("yr (year) parameter is required".into()))?;
 
-    let cache = match query.get("cache").map(|s| s.as_str()) {
-        Some("0") => false,
-        _ => true,
-    };
+    let cache = !matches!(query.get("cache").map(|s| s.as_str()), Some("0"));
 
     let want_json = match query.get("json").map(|s| s.as_str()) {
         Some("1") => true,
