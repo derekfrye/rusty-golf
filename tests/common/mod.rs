@@ -72,13 +72,14 @@ async fn execute_batch(
         MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
             let sql_owned = sql.to_owned();
             sqlite_conn
-                .with_connection(move |conn| {
+                .interact(move |conn| {
                     let tx = conn.transaction()?;
                     tx.execute_batch(&sql_owned)?;
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(())
                 })
-                .await
+                .await??;
+            Ok(())
         }
         MiddlewarePoolConnection::Postgres(mut pg_conn) => {
             let tx = pg_conn.transaction().await?;
