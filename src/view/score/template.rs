@@ -22,7 +22,7 @@ pub fn render_scores_template_pure(
     player_step_factors: &HashMap<(i64, String), f32>,
     event_id: i32,
     year: i32,
-    cache: bool,
+    _cache: bool,
 ) -> Markup {
     let summary_scores_x =
         crate::controller::score::group_by_bettor_name_and_round(&data.score_struct);
@@ -34,7 +34,9 @@ pub fn render_scores_template_pure(
         last_refresh_source: data.last_refresh_source.clone(),
     };
 
-    let cache_str = if cache { "1" } else { "0" };
+    // Fragments should always read from the warmed DB snapshot on initial page load
+    // to avoid duplicate concurrent fetches; force cache=1 for hx requests.
+    let cache_str = "1";
 
     maud::html! {
         (render_scoreboard(data))
