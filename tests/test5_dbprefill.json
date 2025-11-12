@@ -601,5 +601,198 @@
                 ]
             }
         ]
+    },
+    {
+        "event": 401703521,
+        "year": 2025,
+        "name": "The Open 2025",
+        "score_view_step_factor": 4.5,
+        "data_to_fill_if_event_and_year_missing": [
+            {
+                "bettors": [
+                    "Player 3",
+                    "Player 4",
+                    "Player 5",
+                    "Player 1",
+                    "Player 2"
+                ],
+                "golfers": [
+                    {
+                        "name": "Brooks Koepka",
+                        "espn_id": 6798
+                    },
+                    {
+                        "name": "Bryson DeChambeau",
+                        "espn_id": 10046
+                    },
+                    {
+                        "name": "Cameron Smith",
+                        "espn_id": 9131
+                    },
+                    {
+                        "name": "Collin Morikawa",
+                        "espn_id": 10592
+                    },
+                    {
+                        "name": "Jason Day",
+                        "espn_id": 1680
+                    },
+                    {
+                        "name": "Justin Thomas",
+                        "espn_id": 4848
+                    },
+                    {
+                        "name": "Ludvig Åberg",
+                        "espn_id": 4375972
+                    },
+                    {
+                        "name": "Matt Fitzpatrick",
+                        "espn_id": 9037
+                    },
+                    {
+                        "name": "Max Homa",
+                        "espn_id": 8973
+                    },
+                    {
+                        "name": "Rory McIlroy",
+                        "espn_id": 3470
+                    },
+                    {
+                        "name": "Russell Henley",
+                        "espn_id": 5409
+                    },
+                    {
+                        "name": "Sahith Theegala",
+                        "espn_id": 10980
+                    },
+                    {
+                        "name": "Scottie Scheffler",
+                        "espn_id": 9478
+                    },
+                    {
+                        "name": "Viktor Hovland",
+                        "espn_id": 4364873
+                    },
+                    {
+                        "name": "Xander Schauffele",
+                        "espn_id": 10140
+                    },
+                    {
+                        "name": "John Rahm",
+                        "espn_id": 9780
+                    },
+                    {
+                        "name": "Viktor Hovland",
+                        "espn_id": 4364873
+                    },
+                    {
+                        "name": "Min Woo Lee",
+                        "espn_id": 4410932
+                    },
+                    {
+                        "name": "Hideki Matsuyama",
+                        "espn_id": 5860
+                    },
+                    {
+                        "name": "Sepp Straka",
+                        "espn_id": 8961
+                    },
+                    {
+                        "name": "Will Zalatoris",
+                        "espn_id": 9877
+                    },
+                    {
+                        "name": "Maverick McNealy",
+                        "espn_id": 9530
+                    },
+                    {
+                        "name": "Cameron Young",
+                        "espn_id": 4425906
+                    },
+                    {
+                        "name": "Ben Griffin",
+                        "espn_id": 4404992
+                    },
+                    {
+                        "name": "Phil Mickelson",
+                        "espn_id": 308
+                    },
+                    {
+                        "name": "Justin Rose",
+                        "espn_id": 569
+                    },
+                    {
+                        "name": "Robert MacIntyre",
+                        "espn_id": 11378
+                    },
+                    {
+                        "name": "Tyrrell Hatton",
+                        "espn_id": 5553
+                    }
+                ],
+                "event_user_player": [
+                    {
+                        "bettor": "Player 3",
+                        "golfer_espn_id": 9478
+                    },
+                    {
+                        "bettor": "Player 2",
+                        "golfer_espn_id": 3470
+                    },
+                    {
+                        "bettor": "Player 4",
+                        "golfer_espn_id": 10046
+                    },
+                    {
+                        "bettor": "Player 1",
+                        "golfer_espn_id": 10140
+                    },
+                    {
+                        "bettor": "Player 5",
+                        "golfer_espn_id": 9780
+                    },
+                    {
+                        "bettor": "Player 5",
+                        "golfer_espn_id": 5539
+                    },
+                    {
+                        "bettor": "Player 1",
+                        "golfer_espn_id": 8961
+                    },
+                    {
+                        "bettor": "Player 4",
+                        "golfer_espn_id": 9037
+                    },
+                    {
+                        "bettor": "Player 2",
+                        "golfer_espn_id": 4587
+                    },
+                    {
+                        "bettor": "Player 3",
+                        "golfer_espn_id": 4375972
+                    },
+                    {
+                        "bettor": "Player 3",
+                        "golfer_espn_id": 9131
+                    },
+                    {
+                        "bettor": "Player 2",
+                        "golfer_espn_id": 569
+                    },
+                    {
+                        "bettor": "Player 4",
+                        "golfer_espn_id": 6798
+                    },
+                    {
+                        "bettor": "Player 1",
+                        "golfer_espn_id": 11378
+                    },
+                    {
+                        "bettor": "Player 5",
+                        "golfer_espn_id": 5553
+                    }
+                ]
+            }
+        ]
     }
 ]

@@ -8,13 +8,18 @@ use sql_middleware::middleware::{
     AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool,
     QueryAndParams, RowValues,
 };
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[tokio::test]
 async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
 
-    let x = "file::memory:?cache=shared".to_string();
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time went backwards")
+        .as_nanos();
+    let x = format!("file:test_db_{}?mode=memory&cache=shared", unique);
     // let x = "zzz".to_string();
     let config_and_pool = ConfigAndPool2::new_sqlite(x).await.unwrap();
 
@@ -56,13 +61,14 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     // now verify that the tables have been populated
     let query = "select * from event ;";
     let res = conn.execute_select(query, &[]).await?;
-    assert_eq!(res.results.len(), 4);
+    // test5_dbprefill.json currently contains 5 events
+    assert_eq!(res.results.len(), 5);
 
     let query = "select * from golfer;";
     let res = conn.execute_select(query, &[]).await?;
-    // The test5_dbprefill.json file has 26 golfers (with some duplicates)
-    // Duplicates are handled by the INSERT statement that uses "WHERE NOT EXISTS"
-    assert_eq!(res.results.len(), 26);
+    // The test5_dbprefill.json file across all events currently lists 33 unique golfers.
+    // Duplicates are handled by the INSERT statement that uses "WHERE NOT EXISTS".
+    assert_eq!(res.results.len(), 33);
     let x = res
         .results
         .iter()
@@ -75,12 +81,19 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
 
     let query = "select * from bettor;";
     let res = conn.execute_select(query, &[]).await?;
-    assert_eq!(res.results.len(), 5);
+    // Two naming styles exist in the fixture: "PlayerN" and "Player N".
+    // This yields 10 distinct bettors total.
+    assert_eq!(res.results.len(), 10);
     let x = res
         .results
         .iter()
         .find(|z| z.get("name").unwrap().as_text().unwrap() == "Player5");
     assert!(x.is_some());
+    let x_spaced = res
+        .results
+        .iter()
+        .find(|z| z.get("name").unwrap().as_text().unwrap() == "Player 5");
+    assert!(x_spaced.is_some());
 
     let mut query = "select b.name as bettor, g.espn_id as golfer_espn_id ".to_string();
     query.push_str("from event_user_player as eup ");

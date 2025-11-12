@@ -44,9 +44,8 @@ pub async fn get_event_details(
                     .get("score_view_step_factor")
                     .and_then(sql_middleware::RowValues::as_float)
                     .map(|v| v as f32)
-                    .ok_or(SqlMiddlewareDbError::Other(
-                        "Score view step factor not found".to_string(),
-                    ))?,
+                    // Fallback to a sensible default if not set in DB
+                    .unwrap_or(3.0),
                 refresh_from_espn: row
                     .get("refresh_from_espn")
                     .and_then(|v| v.as_int())

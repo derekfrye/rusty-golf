@@ -121,13 +121,20 @@ pub fn render_drop_down_bar_pure(
         player_step_factors,
     );
 
+    // Stabilize bettor ordering alphabetically by name for buttons and chart panels
+    let mut sorted_bettors = summary_scores_x
+        .summary_scores
+        .iter()
+        .collect::<Vec<_>>();
+    sorted_bettors.sort_by(|a, b| a.bettor_name.cmp(&b.bettor_name));
+
     html! {
         h3 class="playerbars" { "Score by Player" }
         // Outer container with both old and new class names for CSS compatibility
         div class="drop-down-bar-chart player-bar-container" {
             // Old structure: player-selection for buttons
             div class="player-selection" {
-                @for (idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
+                @for (idx, summary_score) in sorted_bettors.iter().enumerate() {
                     @let button_select = if idx == 0 { " selected" } else { "" };
                     button class=(format!("player-button{}", button_select)) data-player=(summary_score.bettor_name) {
                         (summary_score.bettor_name)
@@ -137,7 +144,7 @@ pub fn render_drop_down_bar_pure(
 
             // Old structure: chart-container wraps visible charts
             div class="chart-container" {
-                @for (idx, summary_score) in summary_scores_x.summary_scores.iter().enumerate() {
+                @for (idx, summary_score) in sorted_bettors.iter().enumerate() {
                     @let chart_visibility = if idx == 0 { " visible" } else { " hidden" };
 
                     div class=(format!("chart{}", chart_visibility)) data-player=(summary_score.bettor_name)  {
