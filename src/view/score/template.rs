@@ -37,20 +37,20 @@ pub fn render_scores_template_pure(
 
     maud::html! {
         (render_scoreboard(data))
-        div id="score-summary" 
-            hx-get=(format!("/scores/summary?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
+        div id="score-summary"
+            hx-get=(format!("scores/summary?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
             hx-trigger="load" hx-swap="innerHTML" {
             @if expanded { (render_summary_scores(&summary_scores_x)) }
         }
 
         div id="score-chart"
-            hx-get=(format!("/scores/chart?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
+            hx-get=(format!("scores/chart?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
             hx-trigger="load" hx-swap="innerHTML" {
             (render_drop_down_bar_pure(&summary_scores_x, &detailed_scores, global_step_factor, player_step_factors))
         }
 
         div id="linescore"
-            hx-get=(format!("/scores/linescore?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
+            hx-get=(format!("scores/linescore?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
             hx-trigger="load" hx-swap="innerHTML" {
             (render_line_score_tables(bettor_struct_for_line_scores, &refresh_data))
         }
