@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/health", web::get().to(HttpResponse::Ok))
             .service(Files::new("/static", "./static").show_files_listing()) // Serve the static files
     })
-    .bind("0.0.0.0:8081")?
+    .bind("0.0.0.0:5201")?
     .run()
     .await?;
     Ok(())
