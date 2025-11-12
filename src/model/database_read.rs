@@ -54,8 +54,8 @@ pub async fn execute_query(
 
     match conn {
         MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
-            let result = sqlite_conn
-                .interact(move |db_conn| {
+            sqlite_conn
+                .with_connection(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(
                         &query_and_params.params,
                         ConversionMode::Query,
@@ -70,9 +70,7 @@ pub async fn execute_query(
                     tx.commit()?;
                     Ok::<_, SqlMiddlewareDbError>(result_set)
                 })
-                .await??;
-
-            Ok(result)
+                .await
         }
         MiddlewarePoolConnection::Postgres(_) => Err(SqlMiddlewareDbError::Other(
             "Database type not supported for this operation".to_string(),
