@@ -1,12 +1,12 @@
 # TODO
 
-## Score view regressions introduced in 9a21400
-- `Score by Player` no longer renders even-par rounds after the async → pure refactor. `preprocess_golfer_data_pure` skips `score == 0`, so neutral rounds (e.g., Rory McIlroy R2/R4 for `event=401580351&yr=2024`) disappear.
-- Golfer order inside each player block now sorts by total score instead of name; the switch from `short_name` sorting to `total_score` changes layout expectations.
-- Markup/class names for the chart DOM changed (`drop-down-bar-chart` → `player-bar-container`, removal of `.bar-text`, etc.), breaking existing CSS.
-- `Score by Golfer` table data now comes straight from a `HashMap`, so golfer tables no longer appear in stable alphabetical order and line/tee data isn’t merged as before.
-- Stroke cells use new glyphs/classes (`▲/◆/●` + `birdie`, `bogey`, etc.) instead of the old `score-shape-*` spans, so styling regressed.
-- Totals row switched from “Total:” per round-delta to “Total Rn” with raw stroke sums, producing different copy and numbers.
+## Score view regressions introduced in 9a21400 (resolved)
+- `Score by Player` even-par rounds disappeared because `preprocess_golfer_data_pure` skipped `score == 0`; fixed by rendering a centered zero-width bar in `66d7116`.
+- Golfer order inside each player block sorted by total score instead of `short_name`; restored alphabetical ordering in `66d7116`.
+- Chart markup/class names (`drop-down-bar-chart`, `.bar-text`, legacy container structure) were restored for CSS compatibility in `66d7116` (with bettor-level ordering tweaks in `1f28c0c`).
+- `Score by Golfer` tables now rebuild via `BTreeMap` for deterministic ordering and merged tee/line data, addressing the HashMap regression in `66d7116`.
+- Stroke cells dropped the `score-shape-*` spans in favor of glyph-only classes; `6a55019` reinstated the legacy classes (without glyph noise) so CSS works again.
+- Totals row reverted to “Total:” with per-round relative-to-par deltas instead of “Total Rn” raw strokes in `66d7116`.
 
 ## Reproduction notes
 - Compared commit `9a21400` (“split up another large file”) against parent `9e92839`.
