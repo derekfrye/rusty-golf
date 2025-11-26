@@ -29,7 +29,7 @@ pub fn process_tee_time(tee_time: &str) -> Option<StringStat> {
     let parsed_time_in_central = parsed_time.with_timezone(&central_timezone);
 
     let special_format_time =
-        take_a_char_off(&parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string()).to_string();
+        take_a_char_off(&parsed_time_in_central.format("%-m/%d %-I:%M%P").to_string());
 
     if failed_to_parse {
         None

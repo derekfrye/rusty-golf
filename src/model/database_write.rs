@@ -1,6 +1,4 @@
-use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, MiddlewarePoolConnection,
-};
+use sql_middleware::middleware::{ConfigAndPool, ConversionMode, MiddlewarePoolConnection};
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
 use sql_middleware::{SqlMiddlewareDbError, SqliteParamsExecute, convert_sql_params};
 
@@ -26,7 +24,9 @@ pub async fn execute_batch_sql(
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
-        MiddlewarePoolConnection::Sqlite { conn: sqlite_conn, .. } => {
+        MiddlewarePoolConnection::Sqlite {
+            conn: sqlite_conn, ..
+        } => {
             sqlite_conn
                 .with_connection(move |conn| {
                     let tx = conn.transaction()?;

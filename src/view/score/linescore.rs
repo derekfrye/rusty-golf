@@ -60,8 +60,8 @@ fn build_round_list(golfer: &GolferData) -> Vec<usize> {
 
 fn render_table_header(golfer: &GolferData, rounds: &[usize]) -> Markup {
     let latest_round = rounds.last().copied().unwrap_or_default();
-    let first_buttons = rounds.iter().cloned().take(2).collect::<Vec<_>>();
-    let remaining_buttons = rounds.iter().cloned().skip(2).collect::<Vec<_>>();
+    let first_buttons = rounds.iter().copied().take(2).collect::<Vec<_>>();
+    let remaining_buttons = rounds.iter().copied().skip(2).collect::<Vec<_>>();
 
     html! {
         tr {
@@ -111,7 +111,7 @@ fn render_tee_time_rows(golfer: &GolferData, rounds: &[usize], latest_round: usi
                 @let friendly_time = if tee_time.ends_with("am") || tee_time.ends_with("pm") {
                     take_a_char_off(tee_time)
                 } else {
-                    tee_time.to_string()
+                    tee_time.clone()
                 };
                 div class=(row_class) data-round=(rd) { "Tee (ct): " br { (friendly_time) }}
             }
@@ -153,7 +153,7 @@ fn render_table_body(golfer: &GolferData, rounds: &[usize]) -> Markup {
 
 fn build_totals(all_scores: &[crate::model::LineScore]) -> std::collections::BTreeMap<i32, i32> {
     let mut totals = std::collections::BTreeMap::new();
-    for ls in all_scores.iter() {
+    for ls in all_scores {
         totals
             .entry(ls.round)
             .and_modify(|t| *t += ls.score - ls.par)

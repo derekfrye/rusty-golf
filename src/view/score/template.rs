@@ -1,6 +1,7 @@
 use maud::Markup;
 use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
+use std::hash::BuildHasher;
 
 use crate::model::database_read::get_scores_from_db;
 use crate::model::event::get_event_details;
@@ -14,12 +15,12 @@ use crate::view::score::{
 
 #[must_use]
 #[allow(clippy::too_many_arguments)]
-pub fn render_scores_template_pure(
+pub fn render_scores_template_pure<S: BuildHasher>(
     data: &ScoreData,
     expanded: bool,
     bettor_struct_for_line_scores: &[crate::view::score::types::BettorData],
     global_step_factor: f32,
-    player_step_factors: &HashMap<(i64, String), f32>,
+    player_step_factors: &HashMap<(i64, String), f32, S>,
     event_id: i32,
     year: i32,
     _cache: bool,

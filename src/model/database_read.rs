@@ -53,7 +53,9 @@ pub async fn execute_query(
     };
 
     match conn {
-        MiddlewarePoolConnection::Sqlite { conn: sqlite_conn, .. } => {
+        MiddlewarePoolConnection::Sqlite {
+            conn: sqlite_conn, ..
+        } => {
             sqlite_conn
                 .with_connection(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(

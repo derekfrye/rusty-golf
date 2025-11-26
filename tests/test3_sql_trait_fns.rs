@@ -5,9 +5,7 @@ use std::vec;
 // use rusty_golf::controller::score;
 use rusty_golf::controller::score::get_data_for_scores_page;
 
-use sql_middleware::middleware::{
-    ConfigAndPool as ConfigAndPool2, QueryAndParams,
-};
+use sql_middleware::middleware::{ConfigAndPool as ConfigAndPool2, QueryAndParams};
 
 #[tokio::test]
 async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,7 +41,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
 
     conn.execute_batch(&query_and_params.query).await?;
 
-    let x = match get_data_for_scores_page(401580351, 2024, false, &config_and_pool, 0).await {
+    let x = match get_data_for_scores_page(401_580_351, 2024, false, &config_and_pool, 0).await {
         Ok(data) => data,
         Err(e) => return Err(e),
     };
@@ -66,7 +64,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
         .find(|s| s.get("golfer_name").unwrap() == "Bryson DeChambeau")
         .unwrap();
     assert_eq!(
-        bryson_espn_entry.detailed_statistics.total_score as i64,
+        i64::from(bryson_espn_entry.detailed_statistics.total_score),
         bryson_reference_entry
             .get("detailed_statistics")
             .unwrap()
@@ -88,23 +86,26 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     // println!("{}", xx); // test3_scoredata.json
     // let a = 1 + 1;
 
-    let left = bryson_reference_entry
-        .get("detailed_statistics")
-        .unwrap()
-        .get("line_scores")
-        .unwrap()
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|s| {
-            s.get("hole").unwrap().as_i64().unwrap() == 13
-                && s.get("round").unwrap().as_i64().unwrap() == 2
-        })
-        .unwrap()
-        .get("score")
-        .unwrap()
-        .as_i64()
-        .unwrap() as i32;
+    let left = i32::try_from(
+        bryson_reference_entry
+            .get("detailed_statistics")
+            .unwrap()
+            .get("line_scores")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|s| {
+                s.get("hole").unwrap().as_i64().unwrap() == 13
+                    && s.get("round").unwrap().as_i64().unwrap() == 2
+            })
+            .unwrap()
+            .get("score")
+            .unwrap()
+            .as_i64()
+            .unwrap(),
+    )
+    .expect("score fits in i32");
     println!("{left}");
     let right = bryson_espn_entry
         .detailed_statistics

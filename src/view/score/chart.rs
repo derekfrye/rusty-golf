@@ -1,5 +1,6 @@
 use maud::{Markup, html};
 use std::collections::{BTreeMap, HashMap};
+use std::hash::BuildHasher;
 
 use crate::model::{
     AllBettorScoresByRound, BettorScoreByRound, DetailedScore, SummaryDetailedScores,
@@ -8,11 +9,11 @@ use crate::view::score::types::{Bar, Direction, GolferBars};
 use crate::view::score::utils::short_golfer_name;
 
 #[must_use]
-pub fn preprocess_golfer_data_pure(
+pub fn preprocess_golfer_data_pure<S: BuildHasher>(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &[DetailedScore],
     global_step_factor: f32,
-    player_step_factors: &HashMap<(i64, String), f32>,
+    player_step_factors: &HashMap<(i64, String), f32, S>,
 ) -> BTreeMap<String, Vec<GolferBars>> {
     let mut bettor_golfers_map: BTreeMap<String, Vec<GolferBars>> = BTreeMap::new();
 
@@ -34,11 +35,11 @@ pub fn preprocess_golfer_data_pure(
     bettor_golfers_map
 }
 
-fn create_golfer_bars(
+fn create_golfer_bars<S: BuildHasher>(
     golfer_idx: usize,
     golfer: &DetailedScore,
     global_step_factor: f32,
-    player_step_factors: &HashMap<(i64, String), f32>,
+    player_step_factors: &HashMap<(i64, String), f32, S>,
 ) -> GolferBars {
     let short_name = short_golfer_name(&golfer.golfer_name);
     let total_score: isize = golfer.scores.iter().map(|&x| x as isize).sum();
@@ -49,14 +50,14 @@ fn create_golfer_bars(
         short_name,
         total_score,
         bars,
-        is_even: golfer_idx % 2 == 0,
+        is_even: golfer_idx.is_multiple_of(2),
     }
 }
 
-fn resolve_step_factor(
+fn resolve_step_factor<S: BuildHasher>(
     golfer: &DetailedScore,
     global_step_factor: f32,
-    player_step_factors: &HashMap<(i64, String), f32>,
+    player_step_factors: &HashMap<(i64, String), f32, S>,
 ) -> f32 {
     player_step_factors
         .get(&(golfer.golfer_espn_id, golfer.bettor_name.clone()))
@@ -125,11 +126,11 @@ fn build_bar_segments(golfer: &DetailedScore, step_factor: f32) -> Vec<Bar> {
 }
 
 #[must_use]
-pub fn render_drop_down_bar_pure(
+pub fn render_drop_down_bar_pure<S: BuildHasher>(
     summary_scores_x: &AllBettorScoresByRound,
     detailed_scores: &SummaryDetailedScores,
     global_step_factor: f32,
-    player_step_factors: &HashMap<(i64, String), f32>,
+    player_step_factors: &HashMap<(i64, String), f32, S>,
 ) -> Markup {
     let preprocessed_data = preprocess_golfer_data_pure(
         summary_scores_x,

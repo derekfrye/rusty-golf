@@ -51,7 +51,7 @@ async fn index(
 ) -> impl Responder {
     // let db = Db::new(abc.get_ref().clone()).unwrap();
     let config_and_pool = abc.get_ref().clone();
-    let event_str = query.get("event").unwrap_or(&String::new()).to_string();
+    let event_str = query.get("event").cloned().unwrap_or_default();
 
     let title = match event_str.parse() {
         Ok(id) => match get_event_details(&config_and_pool, id).await {
@@ -79,10 +79,10 @@ async fn init_config_and_pool(
     if args.db_type == DatabaseType::Postgres {
         let mut postgres_config = deadpool_postgres::Config::new();
         postgres_config.dbname = Some(args.db_name.clone());
-        postgres_config.host = args.db_host.clone();
+        postgres_config.host.clone_from(&args.db_host);
         postgres_config.port = args.db_port;
-        postgres_config.user = args.db_user.clone();
-        postgres_config.password = args.db_password.clone();
+        postgres_config.user.clone_from(&args.db_user);
+        postgres_config.password.clone_from(&args.db_password);
         postgres_config.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
         });

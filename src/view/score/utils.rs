@@ -37,7 +37,7 @@ pub fn score_with_shape(score: &i32, disp: &ScoreDisplay) -> Markup {
         ScoreDisplay::DodecupleBogey => ("dodecuple-bogey", "score-shape-dodecuplebogey"),
     };
 
-    let combined_classes = format!("{} {}", legacy_class, new_class);
+    let combined_classes = format!("{legacy_class} {new_class}");
 
     html! {
         span class=(combined_classes) { (score) }

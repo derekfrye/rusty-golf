@@ -64,7 +64,7 @@ pub async fn scores_summary(
     let config_and_pool = abc.get_ref().clone();
 
     // Only render when expanded=1 is explicitly requested
-    let expanded = matches!(query.get("expanded").map(|s| s.as_str()), Some("1"));
+    let expanded = matches!(query.get("expanded").map(String::as_str), Some("1"));
     if !expanded {
         return HttpResponse::NoContent().finish();
     }

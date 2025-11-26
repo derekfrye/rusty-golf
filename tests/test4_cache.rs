@@ -8,9 +8,7 @@ use std::vec;
 // use rusty_golf::controller::score;
 use rusty_golf::controller::score::get_data_for_scores_page;
 
-use sql_middleware::middleware::{
-    ConfigAndPool as ConfigAndPool2, QueryAndParams, RowValues,
-};
+use sql_middleware::middleware::{ConfigAndPool as ConfigAndPool2, QueryAndParams, RowValues};
 
 #[tokio::test]
 async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>> {
@@ -72,33 +70,29 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
         conn.execute_batch(&query_and_params.query).await?;
     }
 
-    let score_data = (match database_exists {
-        true =>
+    let score_data = if database_exists {
         // cache max age of 0 means always use db, since model.event_and_scores_already_in_db does this:
         // let now = chrono::Utc::now().naive_utc();
         // let diff = now - z?;
         // Ok(diff.num_days() > cache_max_age)
-        {
-            get_data_for_scores_page(401580351, 2024, true, &config_and_pool, 0).await
+        get_data_for_scores_page(401_580_351, 2024, true, &config_and_pool, 0).await
+    } else {
+        if cfg!(debug_assertions) {
+            println!("db didn't exist, set data back 11 days");
         }
-        false => {
-            if cfg!(debug_assertions) {
-                println!("db didn't exist, set data back 11 days");
-            }
-            get_data_for_scores_page(401580351, 2024, false, &config_and_pool, 99).await?;
-            // now set the data back 11 days
-            let query = "update eup_statistic set ins_ts = ?1;";
+        get_data_for_scores_page(401_580_351, 2024, false, &config_and_pool, 99).await?;
+        // now set the data back 11 days
+        let query = "update eup_statistic set ins_ts = ?1;";
 
-            let eleven_days_ago_h = eleven_days_ago.format("%Y-%m-%d %H:%M:%S").to_string();
-            let params = vec![RowValues::Text(eleven_days_ago_h.clone())];
+        let eleven_days_ago_h = eleven_days_ago.format("%Y-%m-%d %H:%M:%S").to_string();
+        let params = vec![RowValues::Text(eleven_days_ago_h.clone())];
 
-            let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
-            let mut conn = config_and_pool.get_connection().await?;
+        let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
+        let mut conn = config_and_pool.get_connection().await?;
 
-            conn.execute_dml(query, &params).await?;
-            get_data_for_scores_page(401580351, 2024, true, &config_and_pool, 0).await
-        }
-    })?;
+        conn.execute_dml(query, &params).await?;
+        get_data_for_scores_page(401_580_351, 2024, true, &config_and_pool, 0).await
+    }?;
 
     if cfg!(debug_assertions) {
         println!("last_refresh: {}", score_data.last_refresh);

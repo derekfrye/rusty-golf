@@ -20,7 +20,7 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
         .duration_since(UNIX_EPOCH)
         .expect("system time went backwards")
         .as_nanos();
-    let x = format!("file:test_db_{}?mode=memory&cache=shared", unique);
+    let x = format!("file:test_db_{unique}?mode=memory&cache=shared");
     // let x = "zzz".to_string();
     let config_and_pool = ConfigAndPool2::new_sqlite(x).await.unwrap();
 
@@ -72,7 +72,7 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     let x = res
         .results
         .iter()
-        .find(|z| *z.get("espn_id").unwrap().as_int().unwrap() == 4375972);
+        .find(|z| *z.get("espn_id").unwrap().as_int().unwrap() == 4_375_972);
     assert!(x.is_some());
     assert_eq!(
         x.unwrap().get("name").unwrap().as_text().unwrap(),
@@ -102,7 +102,7 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     query.push_str("join event as e on e.event_id = eup.event_id ");
     query.push_str("where e.espn_id = ?1;");
     let res = conn
-        .execute_select(&query, &[RowValues::Int(401580351)])
+        .execute_select(&query, &[RowValues::Int(401_580_351)])
         .await?;
 
     assert_eq!(res.results.len(), 15);
@@ -119,13 +119,13 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     query.push_str("join event as e on e.event_id = eup.event_id ");
     query.push_str("where e.espn_id = ?1;");
     let res = conn
-        .execute_select(&query, &[RowValues::Int(401580360)])
+        .execute_select(&query, &[RowValues::Int(401_580_360)])
         .await?;
 
     assert_eq!(res.results.len(), 15);
     let x = res.results.iter().find(|z| {
         z.get("bettor").unwrap().as_text().unwrap() == "Player3"
-            && *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 4364873
+            && *z.get("golfer_espn_id").unwrap().as_int().unwrap() == 4_364_873
     });
     assert!(x.is_some());
 

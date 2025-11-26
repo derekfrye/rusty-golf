@@ -24,7 +24,7 @@ pub async fn setup_test_context(fixture_sql: &str) -> Result<TestContext, SqlMid
     let config_and_pool = ConfigAndPool::new_sqlite(db_name.clone()).await?;
     let args = CleanArgs {
         db_type: DatabaseType::Sqlite,
-        db_name: db_name,
+        db_name,
         db_host: None,
         db_port: None,
         db_user: None,

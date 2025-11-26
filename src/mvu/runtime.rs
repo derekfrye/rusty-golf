@@ -3,6 +3,10 @@ use crate::mvu::score::{Deps, Msg, ScoreModel, update};
 use serde_json::json;
 
 /// Runs the MVU loop for the scores model: seeds with `init_msg` and drains effects.
+///
+/// # Errors
+///
+/// Returns an error if the `update` loop surfaces an `AppError`.
 pub async fn run_score(
     model: &mut ScoreModel,
     init_msg: Msg,
@@ -13,15 +17,12 @@ pub async fn run_score(
         if cfg!(debug_assertions) {
             eprintln!(
                 "{}",
-                json!({"mvu":"effect_start","effect": format!("{:?}", effect)})
+                json!({"mvu":"effect_start","effect": format!("{effect:?}")})
             );
         }
-    let msg = super::score::run_effect(effect, model, deps).await;
+        let msg = super::score::run_effect(effect, model, deps).await;
         if cfg!(debug_assertions) {
-            eprintln!(
-                "{}",
-                json!({"mvu":"effect_done","msg": format!("{:?}", msg)})
-            );
+            eprintln!("{}", json!({"mvu":"effect_done","msg": format!("{msg:?}")}));
         }
         match msg {
             Msg::Failed(e) => {
@@ -33,7 +34,7 @@ pub async fn run_score(
                 if cfg!(debug_assertions) {
                     eprintln!(
                         "{}",
-                        json!({"mvu":"update","queued_effects": next.iter().map(|x| format!("{:?}", x)).collect::<Vec<_>>()})
+                        json!({"mvu":"update","queued_effects": next.iter().map(|x| format!("{x:?}")).collect::<Vec<_>>()})
                     );
                 }
                 effects.extend(next);

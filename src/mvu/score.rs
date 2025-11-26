@@ -11,7 +11,7 @@ use crate::view::score::{
     render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
 };
 use std::collections::HashMap;
-use std::collections::HashMap as StdHashMap;
+use std::hash::BuildHasher;
 
 #[derive(Debug, Clone)]
 pub struct ScoreModel {
@@ -30,6 +30,7 @@ pub struct ScoreModel {
 }
 
 impl ScoreModel {
+    #[must_use]
     pub fn new(
         event_id: i32,
         year: i32,
@@ -184,12 +185,7 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
             }
         }
         Effect::RenderTemplate => {
-            if let (
-                Some(data),
-                Some(from_db),
-                Some(global_step),
-                Some(player_factors),
-            ) = (
+            if let (Some(data), Some(from_db), Some(global_step), Some(player_factors)) = (
                 model.data.as_ref(),
                 model.from_db_scores.as_ref(),
                 model.global_step_factor,
@@ -214,10 +210,13 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
     }
 }
 
-/// Parse query params into a ScoreModel, computing cache_max_age from event config.
-/// Returns AppError::Other with human-readable messages for missing/invalid params.
-pub async fn decode_request_to_model(
-    query: &StdHashMap<String, String>,
+/// Parse query params into a `ScoreModel`, computing `cache_max_age` from event config.
+///
+/// # Errors
+///
+/// Returns `AppError::Other` with human-readable messages for missing or invalid params.
+pub async fn decode_request_to_model<S: BuildHasher>(
+    query: &HashMap<String, String, S>,
     config_and_pool: &ConfigAndPool,
 ) -> Result<ScoreModel, AppError> {
     let event_id: i32 = query
@@ -230,20 +229,18 @@ pub async fn decode_request_to_model(
         .and_then(|s| s.trim().parse().ok())
         .ok_or_else(|| AppError::Other("yr (year) parameter is required".into()))?;
 
-    let cache = !matches!(query.get("cache").map(|s| s.as_str()), Some("0"));
+    let cache = !matches!(query.get("cache").map(String::as_str), Some("0"));
 
-    let want_json = match query.get("json").map(|s| s.as_str()) {
+    let want_json = match query.get("json").map(String::as_str) {
         Some("1") => true,
-        Some("0") => false,
+        Some("0") | None => false,
         Some(other) => other.parse().unwrap_or(false),
-        None => false,
     };
 
-    let expanded = match query.get("expanded").map(|s| s.as_str()) {
+    let expanded = match query.get("expanded").map(String::as_str) {
         Some("1") => true,
-        Some("0") => false,
+        Some("0") | None => false,
         Some(other) => other.parse().unwrap_or(false),
-        None => false,
     };
 
     let cache_max_age: i64 = match get_event_details(config_and_pool, event_id).await {

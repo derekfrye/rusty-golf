@@ -5,9 +5,7 @@ use rusty_golf::model::{AllBettorScoresByRound, DetailedScore, SummaryDetailedSc
 use std::io::Write;
 use std::path::Path;
 
-use sql_middleware::middleware::{
-    ConfigAndPool, DatabaseType, QueryAndParams,
-};
+use sql_middleware::middleware::{ConfigAndPool, DatabaseType, QueryAndParams};
 
 // This function is for testing, accessing the public render function
 async fn test_render_template(
@@ -45,6 +43,7 @@ async fn test_render_template(
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the SQLite in-memory database
     let conn_string = "file::memory:?cache=shared".to_string();
@@ -72,14 +71,14 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
     db_prefill(&json, &config_and_pool, DatabaseType::Sqlite).await?;
 
     // Test the two events: 401580355 and 401703504
-    let event_ids = [401580355, 401703504];
+    let event_ids = [401_580_355, 401_703_504];
 
     for event_id in event_ids {
         // Load test data for this event
         // Load detailed scores from the JSON file
         let detailed_scores_vec: Vec<DetailedScore> = serde_json::from_str(match event_id {
-            401580355 => include_str!("test7/detailed_scores_401580355.json"),
-            401703504 => include_str!("test7/detailed_scores_401703504.json"),
+            401_580_355 => include_str!("test7/detailed_scores_401580355.json"),
+            401_703_504 => include_str!("test7/detailed_scores_401703504.json"),
             _ => panic!("Unexpected event ID"),
         })?;
 
@@ -89,15 +88,15 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
 
         // Load summary scores
         let summary_scores_obj: serde_json::Value = serde_json::from_str(match event_id {
-            401580355 => include_str!("test7/summary_scores_x_401580355.json"),
-            401703504 => include_str!("test7/summary_scores_x_401703504.json"),
+            401_580_355 => include_str!("test7/summary_scores_x_401580355.json"),
+            401_703_504 => include_str!("test7/summary_scores_x_401703504.json"),
             _ => panic!("Unexpected event ID"),
         })?;
 
         let summary_scores_vec = summary_scores_obj["summary_scores"]
             .as_array()
             .expect("Expected summary_scores to be an array")
-            .to_vec();
+            .clone();
 
         let summary_scores_x = AllBettorScoresByRound {
             summary_scores: serde_json::from_value(serde_json::Value::Array(summary_scores_vec))?,
@@ -126,12 +125,17 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
         assert!(!result.results.is_empty(), "No event found in database");
         let _event_step_factor = result.results[0]
             .get("score_view_step_factor")
-            .and_then(|v| v.as_float())
-            .map(|v| v as f32)
+            .and_then(sql_middleware::middleware::RowValues::as_float)
+            .map(|v| {
+                #[allow(clippy::cast_possible_truncation)]
+                {
+                    v as f32
+                }
+            })
             .expect("Could not get score_view_step_factor from database");
 
         // STEP 2: Check if event_user_player entries have step factors for event 401703504
-        if event_id == 401703504 {
+        if event_id == 401_703_504 {
             let query = "SELECT COUNT(*) as count FROM event_user_player 
                         WHERE event_id = (SELECT event_id FROM event WHERE espn_id = ?1) 
                         AND score_view_step_factor IS NOT NULL;";
@@ -258,7 +262,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
         // without errors, after adding the score_view_step_factor to event_user_player.
 
         // STEP 5: For event 401580355
-        if event_id == 401580355 {
+        if event_id == 401_580_355 {
             // Verify the global step factor is 4.5
             let query = "SELECT score_view_step_factor FROM event WHERE espn_id = ?1;";
             let result = conn
@@ -270,12 +274,17 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
 
             let global_step_factor = result.results[0]
                 .get("score_view_step_factor")
-                .and_then(|v| v.as_float())
-                .map(|v| v as f32)
+                .and_then(sql_middleware::middleware::RowValues::as_float)
+                .map(|v| {
+                    #[allow(clippy::cast_possible_truncation)]
+                    {
+                        v as f32
+                    }
+                })
                 .expect("Could not get score_view_step_factor from database");
 
-            assert_eq!(
-                global_step_factor, 4.5,
+            assert!(
+                (global_step_factor - 4.5_f32).abs() < f32::EPSILON,
                 "Expected global step factor to be 4.5 for event 401580355"
             );
 
@@ -304,7 +313,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
             println!("✓ Test passed for event 401580355: correctly uses global step factor");
         }
         // STEP 6: For event 401703504, verify per-player step factors
-        else if event_id == 401703504 {
+        else if event_id == 401_703_504 {
             // Verify that score_view_step_factor is set in event_user_player
             let query = "SELECT COUNT(*) as count FROM event_user_player 
                       WHERE event_id = (SELECT event_id FROM event WHERE espn_id = ?1) 
@@ -349,12 +358,17 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
 
             let step_factor = result.results[0]
                 .get("score_view_step_factor")
-                .and_then(|v| v.as_float())
-                .map(|v| v as f32)
+                .and_then(sql_middleware::middleware::RowValues::as_float)
+                .map(|v| {
+                    #[allow(clippy::cast_possible_truncation)]
+                    {
+                        v as f32
+                    }
+                })
                 .expect("Could not get step_factor value");
 
-            assert_eq!(
-                step_factor, 1.0,
+            assert!(
+                (step_factor - 1.0_f32).abs() < f32::EPSILON,
                 "Expected Player1 to have step_factor 1.0 in event 401703504"
             );
 

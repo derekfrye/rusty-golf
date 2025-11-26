@@ -42,9 +42,8 @@ pub async fn get_event_details(
                 score_view_step_factor: row
                     .get("score_view_step_factor")
                     .and_then(sql_middleware::RowValues::as_float)
-                    .map(|v| v as f32)
                     // Fallback to a sensible default if not set in DB
-                    .unwrap_or(3.0),
+                    .map_or(3.0, |v| v as f32),
                 refresh_from_espn: row
                     .get("refresh_from_espn")
                     .and_then(|v| v.as_int())

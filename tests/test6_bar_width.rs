@@ -8,9 +8,7 @@ use scraper::{Html, Selector};
 use std::io::Write;
 use std::path::Path;
 
-use sql_middleware::middleware::{
-    ConfigAndPool, DatabaseType, QueryAndParams,
-};
+use sql_middleware::middleware::{ConfigAndPool, DatabaseType, QueryAndParams};
 
 // This function is for testing, accessing the public render function
 async fn test_render_template(
@@ -48,6 +46,7 @@ async fn test_render_template(
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the SQLite in-memory database
     let conn_string = "file::memory:?cache=shared".to_string();
@@ -80,105 +79,105 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
             DetailedScore {
                 bettor_name: "Player1".to_string(),
                 golfer_name: "Scottie Scheffler".to_string(),
-                golfer_espn_id: 1234567, // Add a placeholder ESPN ID
+                golfer_espn_id: 1_234_567, // Add a placeholder ESPN ID
                 rounds: vec![0, 1],
                 scores: vec![-3, 0],
             },
             DetailedScore {
                 bettor_name: "Player1".to_string(),
                 golfer_name: "Collin Morikawa".to_string(),
-                golfer_espn_id: 1234568,
+                golfer_espn_id: 1_234_568,
                 rounds: vec![0, 1],
                 scores: vec![-2, 0],
             },
             DetailedScore {
                 bettor_name: "Player1".to_string(),
                 golfer_name: "Min Woo Lee".to_string(),
-                golfer_espn_id: 1234569,
+                golfer_espn_id: 1_234_569,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
             DetailedScore {
                 bettor_name: "Player2".to_string(),
                 golfer_name: "Bryson DeChambeau".to_string(),
-                golfer_espn_id: 1234570,
+                golfer_espn_id: 1_234_570,
                 rounds: vec![0, 1],
                 scores: vec![-1, 0],
             },
             DetailedScore {
                 bettor_name: "Player2".to_string(),
                 golfer_name: "Justin Thomas".to_string(),
-                golfer_espn_id: 1234571,
+                golfer_espn_id: 1_234_571,
                 rounds: vec![0, 1],
                 scores: vec![1, 0],
             },
             DetailedScore {
                 bettor_name: "Player2".to_string(),
                 golfer_name: "Hideki Matsuyama".to_string(),
-                golfer_espn_id: 1234572,
+                golfer_espn_id: 1_234_572,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
             DetailedScore {
                 bettor_name: "Player3".to_string(),
                 golfer_name: "Rory McIlroy".to_string(),
-                golfer_espn_id: 1234573,
+                golfer_espn_id: 1_234_573,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
             DetailedScore {
                 bettor_name: "Player3".to_string(),
                 golfer_name: "Ludvig Åberg".to_string(),
-                golfer_espn_id: 1234574,
+                golfer_espn_id: 1_234_574,
                 rounds: vec![0, 1],
                 scores: vec![1, 0],
             },
             DetailedScore {
                 bettor_name: "Player3".to_string(),
                 golfer_name: "Sepp Straka".to_string(),
-                golfer_espn_id: 1234575,
+                golfer_espn_id: 1_234_575,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
             DetailedScore {
                 bettor_name: "Player4".to_string(),
                 golfer_name: "Brooks Koepka".to_string(),
-                golfer_espn_id: 1234576,
+                golfer_espn_id: 1_234_576,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
             DetailedScore {
                 bettor_name: "Player4".to_string(),
                 golfer_name: "Viktor Hovland".to_string(),
-                golfer_espn_id: 1234577,
+                golfer_espn_id: 1_234_577,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
             DetailedScore {
                 bettor_name: "Player4".to_string(),
                 golfer_name: "Jason Day".to_string(),
-                golfer_espn_id: 1234578,
+                golfer_espn_id: 1_234_578,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
             DetailedScore {
                 bettor_name: "Player5".to_string(),
                 golfer_name: "Xander Schauffele".to_string(),
-                golfer_espn_id: 1234579,
+                golfer_espn_id: 1_234_579,
                 rounds: vec![0, 1],
                 scores: vec![3, 0],
             },
             DetailedScore {
                 bettor_name: "Player5".to_string(),
                 golfer_name: "Jon Rahm".to_string(),
-                golfer_espn_id: 1234580,
+                golfer_espn_id: 1_234_580,
                 rounds: vec![0, 1],
                 scores: vec![1, 0],
             },
             DetailedScore {
                 bettor_name: "Player5".to_string(),
                 golfer_name: "Will Zalatoris".to_string(),
-                golfer_espn_id: 1234581,
+                golfer_espn_id: 1_234_581,
                 rounds: vec![0, 1],
                 scores: vec![0, 0],
             },
@@ -217,7 +216,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Test the Masters 2025 event
-    let event_id = 401703504;
+    let event_id = 401_703_504;
 
     // STEP 1: Verify that the score_view_step_factor is set correctly in the database
     let mut conn = config_and_pool.get_connection().await?;
@@ -242,13 +241,18 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     assert!(!result.results.is_empty(), "No event found in database");
     let score_view_factor = result.results[0]
         .get("score_view_step_factor")
-        .and_then(|v| v.as_float())
-        .map(|v| v as f32)
+        .and_then(sql_middleware::middleware::RowValues::as_float)
+        .map(|v| {
+            #[allow(clippy::cast_possible_truncation)]
+            {
+                v as f32
+            }
+        })
         .expect("Could not get score_view_step_factor from database");
 
     // STEP 2: Verify the step factor is 4.5 as specified in the test5_dbprefill.json file
-    assert_eq!(
-        score_view_factor, 4.5,
+    assert!(
+        (score_view_factor - 4.5_f32).abs() < f32::EPSILON,
         "score_view_step_factor should be 4.5"
     );
 
@@ -282,8 +286,8 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
 
     // STEP 6: Get the factor that should be used by preprocess_golfer_data
     let config = rusty_golf::model::get_event_details(&config_and_pool, event_id).await?;
-    assert_eq!(
-        config.score_view_step_factor, 4.5,
+    assert!(
+        (config.score_view_step_factor - 4.5_f32).abs() < f32::EPSILON,
         "score_view_step_factor should be 4.5"
     );
 
@@ -299,7 +303,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
 
     // For each DetailedScore in our test data, find the corresponding chart-row and verify
     // the width of each bar matches expected calculations
-    for detailed_score in detailed_scores.detailed_scores.iter() {
+    for detailed_score in &detailed_scores.detailed_scores {
         // Find the chart container for this bettor
         let bettor_name = &detailed_score.bettor_name;
 
@@ -313,14 +317,12 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
                 detailed_score.golfer_name.split_whitespace().collect();
             let golfer_first_initial = golfer_name_parts
                 .first()
-                .map(|s| s.chars().next().unwrap_or(' '))
-                .unwrap_or(' ');
+                .map_or(' ', |s| s.chars().next().unwrap_or(' '));
 
             // Last names are shortened to 5 chars in the HTML
             let golfer_last_abbr = golfer_name_parts
                 .last()
-                .map(|s| if s.len() > 5 { &s[0..5] } else { s })
-                .unwrap_or("");
+                .map_or("", |s| if s.len() > 5 { &s[0..5] } else { s });
 
             format!("{golfer_first_initial}. {golfer_last_abbr}")
         };
@@ -336,76 +338,71 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
 
         for chart in document.select(&chart_selector) {
             // Check if this chart is for the bettor we're looking for
-            if let Some(player_attr) = chart.value().attr("data-player") {
-                if player_attr == bettor_name {
-                    // Now look for the specific chart row for this golfer
-                    for chart_row in chart.select(&chart_row_selector) {
-                        // Find the bar label to match with our golfer
-                        if let Some(label_element) = chart_row.select(&bar_label_selector).next() {
-                            let label_text = label_element.text().collect::<String>();
+            if let Some(player_attr) = chart.value().attr("data-player")
+                && player_attr == bettor_name
+            {
+                // Now look for the specific chart row for this golfer
+                for chart_row in chart.select(&chart_row_selector) {
+                    // Find the bar label to match with our golfer
+                    if let Some(label_element) = chart_row.select(&bar_label_selector).next() {
+                        let label_text = label_element.text().collect::<String>();
 
-                            // Check if this is the row for our golfer by matching label prefix and score
-                            if label_text.starts_with(&expected_label_prefix) {
-                                // println!("Found matching row with label: {}", label_text);
-                                found_matching_row = true;
+                        // Check if this is the row for our golfer by matching label prefix and score
+                        if label_text.starts_with(&expected_label_prefix) {
+                            // println!("Found matching row with label: {}", label_text);
+                            found_matching_row = true;
 
-                                // Now check each bar's width to verify it matches the score calculation
-                                let bars: Vec<_> = chart_row.select(&bar_selector).collect();
+                            // Now check each bar's width to verify it matches the score calculation
+                            let bars: Vec<_> = chart_row.select(&bar_selector).collect();
 
-                                // Check that we have the same number of bars as scores
-                                assert_eq!(
-                                    bars.len(),
-                                    detailed_score.scores.len(),
-                                    "Number of bars ({}) should match number of scores ({})",
-                                    bars.len(),
-                                    detailed_score.scores.len()
-                                );
+                            // Check that we have the same number of bars as scores
+                            assert_eq!(
+                                bars.len(),
+                                detailed_score.scores.len(),
+                                "Number of bars ({}) should match number of scores ({})",
+                                bars.len(),
+                                detailed_score.scores.len()
+                            );
 
-                                // Instead of matching scores directly, extract and verify the pattern
-                                for bar in bars.iter() {
-                                    // Get the actual width and score from the bar
-                                    if let Some(style) = bar.value().attr("style") {
-                                        if let Some(width_str) = style
-                                            .split("width:")
-                                            .nth(1)
-                                            .and_then(|s| s.split(';').next())
-                                        {
-                                            let width_str = width_str.trim();
-                                            if width_str.ends_with('%') {
-                                                let width_val: f32 = width_str
-                                                    .trim_end_matches('%')
-                                                    .parse()
-                                                    .unwrap_or(0.0);
+                            // Instead of matching scores directly, extract and verify the pattern
+                            for bar in &bars {
+                                // Get the actual width and score from the bar
+                                if let Some(style) = bar.value().attr("style")
+                                    && let Some(width_str) = style
+                                        .split("width:")
+                                        .nth(1)
+                                        .and_then(|s| s.split(';').next())
+                                {
+                                    let width_str = width_str.trim();
+                                    if width_str.ends_with('%') {
+                                        let width_val: f32 =
+                                            width_str.trim_end_matches('%').parse().unwrap_or(0.0);
 
-                                                // Extract the score from the bar text
-                                                let bar_text: String = bar.text().collect();
-                                                let score_str = bar_text
-                                                    .trim()
-                                                    .replace("R1: ", "")
-                                                    .replace("R2: ", "");
-                                                let score: i32 = score_str.parse().unwrap_or(0);
+                                        // Extract the score from the bar text
+                                        let bar_text: String = bar.text().collect();
+                                        let score_str =
+                                            bar_text.trim().replace("R1: ", "").replace("R2: ", "");
+                                        let score: i32 = score_str.parse().unwrap_or(0);
 
-                                                // Calculate what the width should be based on the extracted score
-                                                let expected_width = if score.abs() > 0 {
-                                                    score.abs() as f32
-                                                        * config.score_view_step_factor
-                                                } else {
-                                                    // For score=0, the width should be the step factor
-                                                    config.score_view_step_factor
-                                                };
+                                        // Calculate what the width should be based on the extracted score
+                                        #[allow(clippy::cast_precision_loss)]
+                                        let expected_width = if score.abs() > 0 {
+                                            score.abs() as f32 * config.score_view_step_factor
+                                        } else {
+                                            // For score=0, the width should be the step factor
+                                            config.score_view_step_factor
+                                        };
 
-                                                // Debug output for test development
-                                                // println!("Bar {}: Score from bar = {}, Expected width = {}%, actual width = {}%",
-                                                //         i, score, expected_width, width_val);
+                                        // Debug output for test development
+                                        // println!("Bar {}: Score from bar = {}, Expected width = {}%, actual width = {}%",
+                                        //         i, score, expected_width, width_val);
 
-                                                // Verify the width matches expectation (with minor float comparison allowance)
-                                                let diff = (width_val - expected_width).abs();
-                                                assert!(
-                                                    diff < 0.01,
-                                                    "Bar width should be {expected_width}% but found {width_val}% for score {score} (diff: {diff})"
-                                                );
-                                            }
-                                        }
+                                        // Verify the width matches expectation (with minor float comparison allowance)
+                                        let diff = (width_val - expected_width).abs();
+                                        assert!(
+                                            diff < 0.01,
+                                            "Bar width should be {expected_width}% but found {width_val}% for score {score} (diff: {diff})"
+                                        );
                                     }
                                 }
                             }

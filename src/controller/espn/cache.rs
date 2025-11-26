@@ -46,9 +46,9 @@ async fn load_offline_scores(
 ) -> Result<ScoresAndLastRefresh, Box<dyn std::error::Error>> {
     let text = fs::read_to_string("tests/test3_espn_json_responses.json")?;
     let val = serde_json::from_str::<Value>(&text)?;
-    let score_struct = val.get("score_struct").ok_or_else(|| {
-        io::Error::new(io::ErrorKind::Other, "offline fixture missing score_struct")
-    })?;
+    let score_struct = val
+        .get("score_struct")
+        .ok_or_else(|| io::Error::other("offline fixture missing score_struct"))?;
     let scores_vec = serde_json::from_value::<Vec<Scores>>(score_struct.clone())?;
     store_espn_results(&scores_vec, event_id, config_and_pool).await
 }
