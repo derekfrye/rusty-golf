@@ -1,3 +1,5 @@
+mod common;
+use crate::common::ConnExt;
 use crate::db_prefill::db_prefill;
 use rusty_golf::controller::db_prefill;
 // `, `use rusty_golf::controller::db_prefill::db_prefill;
@@ -5,8 +7,7 @@ use rusty_golf::controller::db_prefill;
 // use rusty_golf::controller::score;
 
 use sql_middleware::middleware::{
-    AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, DatabaseType, MiddlewarePool,
-    QueryAndParams, RowValues,
+    ConfigAndPool as ConfigAndPool2, DatabaseType, QueryAndParams, RowValues,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -37,8 +38,7 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
         params: vec![],
     };
 
-    let pool = config_and_pool.pool.get().await?;
-    let mut conn = MiddlewarePool::get_connection(pool).await?;
+    let mut conn = config_and_pool.get_connection().await?;
     conn.execute_batch(&query_and_params.query).await?;
 
     // first verify that nothing is in these tables

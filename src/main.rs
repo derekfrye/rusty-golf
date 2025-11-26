@@ -15,52 +15,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = args::args_checks();
     let args_for_web = args.clone();
 
-    let cfg = deadpool_postgres::Config::new();
-    let config_and_pool: ConfigAndPool;
-    let db_type: DatabaseType;
-    // let pth = "file::memory:?cache=shared".to_string();
-    // let cfg2 = ConfigAndPool::new_sqlite(pth).await.unwrap();
-    if args.db_type == DatabaseType::Postgres {
-        let mut postgres_config = cfg;
-        postgres_config.dbname = Some(args.db_name);
-        postgres_config.host = args.db_host;
-        postgres_config.port = args.db_port;
-        postgres_config.user = args.db_user;
-        postgres_config.password = args.db_password;
-        postgres_config.manager = Some(ManagerConfig {
-            recycling_method: RecyclingMethod::Fast,
-        });
-        config_and_pool = ConfigAndPool::new_postgres(postgres_config).await?;
-        db_type = DatabaseType::Postgres;
-    } else {
-        let a = ConfigAndPool::new_sqlite(args.db_name).await;
-        match a {
-            Ok(a) => {
-                config_and_pool = a;
-            }
-            Err(e) => {
-                eprintln!(
-                    "Error: {}\nBacktrace: {:?}",
-                    e,
-                    std::backtrace::Backtrace::capture()
-                );
-                std::process::exit(1);
-            }
-        }
-        // let sqlite_configandpool = ConfigAndPool::new_sqlite(x).await.unwrap();
-        // let pool = sqlite_configandpool.pool.get().await.unwrap();
-        // let conn = MiddlewarePool::get_connection(pool).await.unwrap();
-        db_type = DatabaseType::Sqlite;
-    }
-
-    if args.db_startup_script.is_some() {
-        let script = args.combined_sql_script;
-        rusty_golf::model::execute_batch_sql(&config_and_pool, &script).await?;
-    }
-
-    if let Some(json_path) = &args.db_populate_json {
-        db_prefill::db_prefill(json_path, &config_and_pool, db_type).await?;
-    }
+    let (config_and_pool, db_type) = init_config_and_pool(&args).await?;
+    run_startup_tasks(&args, &config_and_pool, db_type).await?;
 
     HttpServer::new(move || {
         App::new()
@@ -115,4 +71,51 @@ async fn index(
     HttpResponse::Ok()
         .content_type("text/html")
         .body(markup.into_string())
+}
+
+async fn init_config_and_pool(
+    args: &args::CleanArgs,
+) -> Result<(ConfigAndPool, DatabaseType), Box<dyn std::error::Error>> {
+    if args.db_type == DatabaseType::Postgres {
+        let mut postgres_config = deadpool_postgres::Config::new();
+        postgres_config.dbname = Some(args.db_name.clone());
+        postgres_config.host = args.db_host.clone();
+        postgres_config.port = args.db_port;
+        postgres_config.user = args.db_user.clone();
+        postgres_config.password = args.db_password.clone();
+        postgres_config.manager = Some(ManagerConfig {
+            recycling_method: RecyclingMethod::Fast,
+        });
+
+        let pool = ConfigAndPool::new_postgres(postgres_config).await?;
+        Ok((pool, DatabaseType::Postgres))
+    } else {
+        match ConfigAndPool::new_sqlite(args.db_name.clone()).await {
+            Ok(pool) => Ok((pool, DatabaseType::Sqlite)),
+            Err(e) => {
+                eprintln!(
+                    "Error: {}\nBacktrace: {:?}",
+                    e,
+                    std::backtrace::Backtrace::capture()
+                );
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
+async fn run_startup_tasks(
+    args: &args::CleanArgs,
+    config_and_pool: &ConfigAndPool,
+    db_type: DatabaseType,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if args.db_startup_script.is_some() {
+        rusty_golf::model::execute_batch_sql(config_and_pool, &args.combined_sql_script).await?;
+    }
+
+    if let Some(json_data) = &args.db_populate_json {
+        db_prefill::db_prefill(json_data, config_and_pool, db_type).await?;
+    }
+
+    Ok(())
 }

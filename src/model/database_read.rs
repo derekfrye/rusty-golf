@@ -1,5 +1,5 @@
 use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection, ResultSet,
+    ConfigAndPool, ConversionMode, CustomDbRow, MiddlewarePoolConnection, ResultSet,
 };
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
 use sql_middleware::{SqlMiddlewareDbError, SqliteParamsQuery, convert_sql_params};
@@ -53,7 +53,7 @@ pub async fn execute_query(
     };
 
     match conn {
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+        MiddlewarePoolConnection::Sqlite { conn: sqlite_conn, .. } => {
             sqlite_conn
                 .with_connection(move |db_conn| {
                     let converted_params = convert_sql_params::<SqliteParamsQuery>(
@@ -72,7 +72,7 @@ pub async fn execute_query(
                 })
                 .await
         }
-        MiddlewarePoolConnection::Postgres(_) => Err(SqlMiddlewareDbError::Other(
+        MiddlewarePoolConnection::Postgres { .. } => Err(SqlMiddlewareDbError::Other(
             "Database type not supported for this operation".to_string(),
         )),
     }
@@ -86,18 +86,13 @@ pub async fn get_scores_from_db(
     event_id: i32,
     refresh_source: RefreshSource,
 ) -> Result<ScoresAndLastRefresh, SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
-    let query = match &conn {
-        MiddlewarePoolConnection::Postgres(_) => {
-            "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
-        }
-        MiddlewarePoolConnection::Sqlite(_) => {
-            include_str!("../sql/functions/sqlite/03_sp_get_scores.sql")
-        }
-    };
-    let params = vec![RowValues2::Int(i64::from(event_id))];
-    let res = execute_query(&conn, query, params).await?;
+    let conn = config_and_pool.get_connection().await?;
+    let res = execute_query(
+        &conn,
+        get_scores_query(&conn),
+        vec![RowValues2::Int(i64::from(event_id))],
+    )
+    .await?;
 
     let last_time_updated = get_last_timestamp(&res.results);
 
@@ -105,65 +100,76 @@ pub async fn get_scores_from_db(
         // Debug logging would go here
     }
 
-    let z: Result<Vec<Scores>, SqlMiddlewareDbError> = res
-        .results
-        .iter()
-        .map(|row| {
-            Ok(Scores {
-                group: row
-                    .get("grp")
-                    .and_then(|v| v.as_int())
-                    .copied()
-                    .unwrap_or_default(),
-                golfer_name: row
-                    .get("golfername")
-                    .and_then(|v| v.as_text())
-                    .unwrap_or_default()
-                    .to_string(),
-                bettor_name: row
-                    .get("bettorname")
-                    .and_then(|v| v.as_text())
-                    .unwrap_or_default()
-                    .to_string(),
-                eup_id: row
-                    .get("eup_id")
-                    .and_then(|v| v.as_int())
-                    .copied()
-                    .unwrap_or_default(),
-                espn_id: row
-                    .get("golfer_espn_id")
-                    .and_then(|v| v.as_int())
-                    .copied()
-                    .unwrap_or_default(),
-                detailed_statistics: Statistic {
-                    eup_id: row
-                        .get("eup_id")
-                        .and_then(|v| v.as_int())
-                        .copied()
-                        .unwrap_or_default(),
-                    rounds: parse_json_field(row, "rounds")?,
-                    round_scores: parse_json_field(row, "round_scores")?,
-                    tee_times: parse_json_field(row, "tee_times")?,
-                    holes_completed_by_round: parse_json_field(row, "holes_completed_by_round")?,
-                    line_scores: parse_json_field(row, "line_scores")?,
-                    total_score: row
-                        .get("total_score")
-                        .and_then(|v| v.as_int())
-                        .map(|&v| i32::try_from(v).unwrap_or(0))
-                        .unwrap_or_default(),
-                },
-                #[allow(clippy::cast_possible_truncation)]
-                score_view_step_factor: row
-                    .get("score_view_step_factor")
-                    .and_then(sql_middleware::RowValues::as_float)
-                    .map(|v| v as f32),
-            })
-        })
-        .collect::<Result<Vec<Scores>, SqlMiddlewareDbError>>();
-
     Ok(ScoresAndLastRefresh {
-        score_struct: z?,
+        score_struct: res
+            .results
+            .iter()
+            .map(build_score_from_row)
+            .collect::<Result<Vec<_>, _>>()?,
         last_refresh: last_time_updated,
         last_refresh_source: refresh_source,
+    })
+}
+
+fn get_scores_query(conn: &MiddlewarePoolConnection) -> &'static str {
+    match conn {
+        MiddlewarePoolConnection::Postgres { .. } => {
+            "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
+        }
+        MiddlewarePoolConnection::Sqlite { .. } => {
+            include_str!("../sql/functions/sqlite/03_sp_get_scores.sql")
+        }
+    }
+}
+
+fn build_score_from_row(row: &CustomDbRow) -> Result<Scores, SqlMiddlewareDbError> {
+    Ok(Scores {
+        group: row
+            .get("grp")
+            .and_then(|v| v.as_int())
+            .copied()
+            .unwrap_or_default(),
+        golfer_name: row
+            .get("golfername")
+            .and_then(|v| v.as_text())
+            .unwrap_or_default()
+            .to_string(),
+        bettor_name: row
+            .get("bettorname")
+            .and_then(|v| v.as_text())
+            .unwrap_or_default()
+            .to_string(),
+        eup_id: row
+            .get("eup_id")
+            .and_then(|v| v.as_int())
+            .copied()
+            .unwrap_or_default(),
+        espn_id: row
+            .get("golfer_espn_id")
+            .and_then(|v| v.as_int())
+            .copied()
+            .unwrap_or_default(),
+        detailed_statistics: Statistic {
+            eup_id: row
+                .get("eup_id")
+                .and_then(|v| v.as_int())
+                .copied()
+                .unwrap_or_default(),
+            rounds: parse_json_field(row, "rounds")?,
+            round_scores: parse_json_field(row, "round_scores")?,
+            tee_times: parse_json_field(row, "tee_times")?,
+            holes_completed_by_round: parse_json_field(row, "holes_completed_by_round")?,
+            line_scores: parse_json_field(row, "line_scores")?,
+            total_score: row
+                .get("total_score")
+                .and_then(|v| v.as_int())
+                .map(|&v| i32::try_from(v).unwrap_or(0))
+                .unwrap_or_default(),
+        },
+        #[allow(clippy::cast_possible_truncation)]
+        score_view_step_factor: row
+            .get("score_view_step_factor")
+            .and_then(sql_middleware::RowValues::as_float)
+            .map(|v| v as f32),
     })
 }

@@ -2,8 +2,7 @@ use serde_json::Value;
 use sql_middleware::{
     SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery, convert_sql_params,
     middleware::{
-        AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, MiddlewarePool,
-        QueryAndParams, RowValues,
+        AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, QueryAndParams, RowValues,
     },
 };
 
@@ -15,8 +14,7 @@ pub async fn db_prefill(
     config_and_pool: &ConfigAndPool,
     db_type: DatabaseType,
 ) -> Result<(), SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
+    let conn = config_and_pool.get_connection().await?;
 
     match db_type {
         DatabaseType::Sqlite => prefill_sqlite(conn, json.clone()).await?,

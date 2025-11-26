@@ -6,7 +6,7 @@ use std::vec;
 use rusty_golf::controller::score::get_data_for_scores_page;
 
 use sql_middleware::middleware::{
-    AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, MiddlewarePool, QueryAndParams,
+    ConfigAndPool as ConfigAndPool2, QueryAndParams,
 };
 
 #[tokio::test]
@@ -31,8 +31,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
         params: vec![],
     };
 
-    let pool = config_and_pool.pool.get().await?;
-    let mut conn = MiddlewarePool::get_connection(pool).await?;
+    let mut conn = config_and_pool.get_connection().await?;
 
     conn.execute_batch(&query_and_params.query).await?;
 

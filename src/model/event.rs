@@ -1,7 +1,7 @@
 use crate::model::execute_query;
 use sql_middleware::SqlMiddlewareDbError;
 use sql_middleware::middleware::RowValues as RowValues2;
-use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
+use sql_middleware::middleware::{ConfigAndPool, MiddlewarePoolConnection};
 
 pub struct EventTitleAndScoreViewConf {
     pub event_name: String,
@@ -16,14 +16,13 @@ pub async fn get_event_details(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<EventTitleAndScoreViewConf, SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
+    let conn = config_and_pool.get_connection().await?;
 
     let query = match &conn {
-        MiddlewarePoolConnection::Postgres(_) => {
+        MiddlewarePoolConnection::Postgres { .. } => {
             "SELECT EXISTS(SELECT 1 FROM event WHERE event_id = $1)"
         }
-        MiddlewarePoolConnection::Sqlite(_) => {
+        MiddlewarePoolConnection::Sqlite { .. } => {
             include_str!("../sql/functions/sqlite/01_sp_get_event_details.sql")
         }
     };

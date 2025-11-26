@@ -1,5 +1,5 @@
 use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, MiddlewarePool, MiddlewarePoolConnection,
+    ConfigAndPool, ConversionMode, MiddlewarePoolConnection,
 };
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
 use sql_middleware::{SqlMiddlewareDbError, SqliteParamsExecute, convert_sql_params};
@@ -13,21 +13,20 @@ pub async fn execute_batch_sql(
     config_and_pool: &ConfigAndPool,
     query: &str,
 ) -> Result<(), SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await?;
-    let sconn = MiddlewarePool::get_connection(pool).await?;
+    let mut conn = config_and_pool.get_connection().await?;
     let query_and_params = QueryAndParams2 {
         query: query.to_string(),
         params: vec![],
     };
 
-    match sconn {
-        MiddlewarePoolConnection::Postgres(mut xx) => {
-            let tx = xx.transaction().await?;
+    match &mut conn {
+        MiddlewarePoolConnection::Postgres { client, .. } => {
+            let tx = client.transaction().await?;
             tx.batch_execute(&query_and_params.query).await?;
             tx.commit().await?;
             Ok::<_, SqlMiddlewareDbError>(())
         }
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
+        MiddlewarePoolConnection::Sqlite { conn: sqlite_conn, .. } => {
             sqlite_conn
                 .with_connection(move |conn| {
                     let tx = conn.transaction()?;
@@ -48,100 +47,105 @@ pub async fn store_scores_in_db(
     event_id: i32,
     scores: &[Scores],
 ) -> Result<(), SqlMiddlewareDbError> {
-    fn build_insert_stmts(
-        scores: &[Scores],
-        event_id: i32,
-    ) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
-        let mut queries = vec![];
-        for score in scores {
-            let insert_stmt = include_str!("../sql/functions/sqlite/04_sp_set_eup_statistic.sql");
+    let mut conn = config_and_pool.get_connection().await?;
+    let queries = build_insert_queries(scores, event_id)?;
 
-            let rounds_json =
-                serde_json::to_string(&score.detailed_statistics.rounds).map_err(|e| {
-                    SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {e}"))
-                })?;
-
-            let round_scores_json = serde_json::to_string(&score.detailed_statistics.round_scores)
-                .map_err(|e| {
-                    SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}"))
-                })?;
-
-            let tee_times_json = serde_json::to_string(&score.detailed_statistics.tee_times)
-                .map_err(|e| {
-                    SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}"))
-                })?;
-
-            let holes_completed_json =
-                serde_json::to_string(&score.detailed_statistics.holes_completed_by_round)
-                    .map_err(|e| {
-                        SqlMiddlewareDbError::Other(format!(
-                            "Failed to serialize holes completed: {e}"
-                        ))
-                    })?;
-
-            let line_scores_json = serde_json::to_string(&score.detailed_statistics.line_scores)
-                .map_err(|e| {
-                    SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}"))
-                })?;
-
-            let param = vec![
-                RowValues2::Int(i64::from(event_id)),
-                RowValues2::Int(score.espn_id),
-                RowValues2::Int(score.eup_id),
-                RowValues2::Int(score.group),
-                RowValues2::Text(rounds_json),
-                RowValues2::Text(round_scores_json),
-                RowValues2::Text(tee_times_json),
-                RowValues2::Text(holes_completed_json),
-                RowValues2::Text(line_scores_json),
-                RowValues2::Int(i64::from(score.detailed_statistics.total_score)),
-            ];
-            queries.push(QueryAndParams2 {
-                query: insert_stmt.to_string(),
-                params: param,
-            });
-        }
-        Ok(queries)
+    if queries.is_empty() {
+        return Ok(());
     }
 
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
-    let queries = build_insert_stmts(scores, event_id)?;
-
-    if !queries.is_empty() {
-        match &conn {
-            MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
-                sqlite_conn
-                    .with_connection(move |db_conn| {
-                        let tx = db_conn.transaction()?;
-                        {
-                            let mut stmt = tx.prepare(&queries[0].query)?;
-
-                            if cfg!(debug_assertions) {
-                                let _x = stmt.expanded_sql();
-                            }
-                            for query in queries {
-                                let converted_params = convert_sql_params::<SqliteParamsExecute>(
-                                    &query.params,
-                                    ConversionMode::Execute,
-                                )?;
-
-                                let _rs = stmt.execute(converted_params.0)?;
-                            }
-                        }
-                        tx.commit()?;
-                        Ok::<_, SqlMiddlewareDbError>(())
-                    })
-                    .await?;
-            }
-            MiddlewarePoolConnection::Postgres(_) => {
-                return Err(SqlMiddlewareDbError::Other(
-                    "Database type not supported for this operation".to_string(),
-                ));
-            }
+    match &mut conn {
+        sqlite_conn @ MiddlewarePoolConnection::Sqlite { .. } => {
+            execute_sqlite_queries(sqlite_conn, queries).await?;
+        }
+        MiddlewarePoolConnection::Postgres { .. } => {
+            return Err(SqlMiddlewareDbError::Other(
+                "Database type not supported for this operation".to_string(),
+            ));
         }
     }
     Ok(())
+}
+
+fn build_insert_queries(
+    scores: &[Scores],
+    event_id: i32,
+) -> Result<Vec<QueryAndParams2>, SqlMiddlewareDbError> {
+    let mut queries = vec![];
+    for score in scores {
+        let insert_stmt = include_str!("../sql/functions/sqlite/04_sp_set_eup_statistic.sql");
+
+        let rounds_json = serde_json::to_string(&score.detailed_statistics.rounds)
+            .map_err(|e| SqlMiddlewareDbError::Other(format!("Failed to serialize rounds: {e}")))?;
+
+        let round_scores_json = serde_json::to_string(&score.detailed_statistics.round_scores)
+            .map_err(|e| {
+                SqlMiddlewareDbError::Other(format!("Failed to serialize round scores: {e}"))
+            })?;
+
+        let tee_times_json =
+            serde_json::to_string(&score.detailed_statistics.tee_times).map_err(|e| {
+                SqlMiddlewareDbError::Other(format!("Failed to serialize tee times: {e}"))
+            })?;
+
+        let holes_completed_json = serde_json::to_string(
+            &score.detailed_statistics.holes_completed_by_round,
+        )
+        .map_err(|e| {
+            SqlMiddlewareDbError::Other(format!("Failed to serialize holes completed: {e}"))
+        })?;
+
+        let line_scores_json = serde_json::to_string(&score.detailed_statistics.line_scores)
+            .map_err(|e| {
+                SqlMiddlewareDbError::Other(format!("Failed to serialize line scores: {e}"))
+            })?;
+
+        let param = vec![
+            RowValues2::Int(i64::from(event_id)),
+            RowValues2::Int(score.espn_id),
+            RowValues2::Int(score.eup_id),
+            RowValues2::Int(score.group),
+            RowValues2::Text(rounds_json),
+            RowValues2::Text(round_scores_json),
+            RowValues2::Text(tee_times_json),
+            RowValues2::Text(holes_completed_json),
+            RowValues2::Text(line_scores_json),
+            RowValues2::Int(i64::from(score.detailed_statistics.total_score)),
+        ];
+        queries.push(QueryAndParams2 {
+            query: insert_stmt.to_string(),
+            params: param,
+        });
+    }
+    Ok(queries)
+}
+
+async fn execute_sqlite_queries(
+    sqlite_conn: &mut MiddlewarePoolConnection,
+    queries: Vec<QueryAndParams2>,
+) -> Result<(), SqlMiddlewareDbError> {
+    sqlite_conn
+        .with_sqlite_connection(move |db_conn| {
+            let tx = db_conn.transaction()?;
+            {
+                let mut stmt = tx.prepare(&queries[0].query)?;
+
+                if cfg!(debug_assertions) {
+                    let _x = stmt.expanded_sql();
+                }
+                for query in queries {
+                    let converted_params = convert_sql_params::<SqliteParamsExecute>(
+                        &query.params,
+                        ConversionMode::Execute,
+                    )?;
+
+                    stmt.execute(converted_params.0)?;
+                }
+            }
+            tx.commit()?;
+            Ok::<_, SqlMiddlewareDbError>(())
+        })
+        .await
 }
 
 /// # Errors
@@ -160,13 +164,12 @@ pub async fn event_and_scores_already_in_db(
         return Ok(false);
     }
 
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
+    let conn = config_and_pool.get_connection().await?;
     let query = match &conn {
-        MiddlewarePoolConnection::Postgres(_) => {
+        MiddlewarePoolConnection::Postgres { .. } => {
             "SELECT min(ins_ts) as ins_ts FROM eup_statistic WHERE event_espn_id = $1;"
         }
-        MiddlewarePoolConnection::Sqlite(_) => {
+        MiddlewarePoolConnection::Sqlite { .. } => {
             include_str!("../sql/functions/sqlite/05_sp_get_event_and_scores_already_in_db.sql")
         }
     };

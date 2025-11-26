@@ -1,6 +1,6 @@
 use sql_middleware::SqlMiddlewareDbError;
 use sql_middleware::middleware::RowValues as RowValues2;
-use sql_middleware::middleware::{ConfigAndPool, MiddlewarePool, MiddlewarePoolConnection};
+use sql_middleware::middleware::{ConfigAndPool, MiddlewarePoolConnection};
 use std::collections::HashMap;
 
 use crate::model::database_read::execute_query;
@@ -25,13 +25,12 @@ pub async fn get_golfers_from_db(
             .to_string()
     }
 
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
+    let conn = config_and_pool.get_connection().await?;
     let query = match &conn {
-        MiddlewarePoolConnection::Postgres(_) => {
+        MiddlewarePoolConnection::Postgres { .. } => {
             "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
         }
-        MiddlewarePoolConnection::Sqlite(_) => {
+        MiddlewarePoolConnection::Sqlite { .. } => {
             include_str!("../sql/functions/sqlite/02_sp_get_player_names.sql")
         }
     };
@@ -71,8 +70,7 @@ pub async fn get_player_step_factors(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<HashMap<(i64, String), f32>, SqlMiddlewareDbError> {
-    let pool = config_and_pool.pool.get().await?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
+    let conn = config_and_pool.get_connection().await?;
 
     let query = include_str!("../sql/functions/sqlite/03_sp_get_scores.sql");
 

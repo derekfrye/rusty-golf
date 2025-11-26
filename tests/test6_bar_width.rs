@@ -1,3 +1,5 @@
+mod common;
+use crate::common::ConnExt;
 use rusty_golf::controller::db_prefill::db_prefill;
 use rusty_golf::model::{
     AllBettorScoresByRound, BettorScoreByRound, DetailedScore, SummaryDetailedScores,
@@ -7,7 +9,7 @@ use std::io::Write;
 use std::path::Path;
 
 use sql_middleware::middleware::{
-    AsyncDatabaseExecutor, ConfigAndPool, DatabaseType, MiddlewarePool, QueryAndParams,
+    ConfigAndPool, DatabaseType, QueryAndParams,
 };
 
 // This function is for testing, accessing the public render function
@@ -65,8 +67,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
         params: vec![],
     };
 
-    let pool = config_and_pool.pool.get().await?;
-    let mut conn = MiddlewarePool::get_connection(pool).await?;
+    let mut conn = config_and_pool.get_connection().await?;
     conn.execute_batch(&query_and_params.query).await?;
 
     // Fill the database with test data
@@ -219,8 +220,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     let event_id = 401703504;
 
     // STEP 1: Verify that the score_view_step_factor is set correctly in the database
-    let pool = config_and_pool.pool.get().await?;
-    let mut conn = MiddlewarePool::get_connection(pool).await?;
+    let mut conn = config_and_pool.get_connection().await?;
 
     // Set refresh_from_espn to a valid value (0 or 1)
     let update_query = "UPDATE event SET refresh_from_espn = 1 WHERE espn_id = ?1;";

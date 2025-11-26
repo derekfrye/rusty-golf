@@ -1,9 +1,10 @@
+#![allow(dead_code)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusty_golf::args::CleanArgs;
 use sql_middleware::SqlMiddlewareDbError;
 use sql_middleware::middleware::{
-    ConfigAndPool, DatabaseType, MiddlewarePool, MiddlewarePoolConnection,
+    ConfigAndPool, DatabaseType, MiddlewarePoolConnection, ResultSet, RowValues,
 };
 
 pub struct TestContext {
@@ -61,30 +62,39 @@ async fn execute_batch(
     config_and_pool: &ConfigAndPool,
     sql: &str,
 ) -> Result<(), SqlMiddlewareDbError> {
-    let pool = config_and_pool
-        .pool
-        .get()
-        .await
-        .map_err(|e| SqlMiddlewareDbError::Other(e.to_string()))?;
-    let conn = MiddlewarePool::get_connection(pool).await?;
+    let mut conn = config_and_pool.get_connection().await?;
 
-    match conn {
-        MiddlewarePoolConnection::Sqlite(sqlite_conn) => {
-            let sql_owned = sql.to_owned();
-            sqlite_conn
-                .with_connection(move |conn| {
-                    let tx = conn.transaction()?;
-                    tx.execute_batch(&sql_owned)?;
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(())
-                })
-                .await
-        }
-        MiddlewarePoolConnection::Postgres(mut pg_conn) => {
-            let tx = pg_conn.transaction().await?;
-            tx.batch_execute(sql).await?;
-            tx.commit().await?;
-            Ok(())
-        }
+    conn.execute_batch(sql).await
+}
+
+pub trait ConnExt {
+    async fn execute_select(
+        &mut self,
+        query: &str,
+        params: &[RowValues],
+    ) -> Result<ResultSet, SqlMiddlewareDbError>;
+
+    async fn execute_dml(
+        &mut self,
+        query: &str,
+        params: &[RowValues],
+    ) -> Result<usize, SqlMiddlewareDbError>;
+}
+
+impl ConnExt for MiddlewarePoolConnection {
+    async fn execute_select(
+        &mut self,
+        query: &str,
+        params: &[RowValues],
+    ) -> Result<ResultSet, SqlMiddlewareDbError> {
+        self.query(query).params(params).select().await
+    }
+
+    async fn execute_dml(
+        &mut self,
+        query: &str,
+        params: &[RowValues],
+    ) -> Result<usize, SqlMiddlewareDbError> {
+        self.query(query).params(params).dml().await
     }
 }

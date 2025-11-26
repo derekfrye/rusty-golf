@@ -1,3 +1,5 @@
+mod common;
+use crate::common::ConnExt;
 use std::fs;
 use std::path::PathBuf;
 // use sqlx::sqlite::SqlitePoolOptions;
@@ -7,8 +9,7 @@ use std::vec;
 use rusty_golf::controller::score::get_data_for_scores_page;
 
 use sql_middleware::middleware::{
-    AsyncDatabaseExecutor, ConfigAndPool as ConfigAndPool2, MiddlewarePool, QueryAndParams,
-    RowValues,
+    ConfigAndPool as ConfigAndPool2, QueryAndParams, RowValues,
 };
 
 #[tokio::test]
@@ -35,8 +36,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
             let params = vec![RowValues::Text(eleven_days_ago_h)];
 
             let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
-            let pool = config_and_pool.pool.get().await?;
-            let mut conn = MiddlewarePool::get_connection(pool).await?;
+            let mut conn = config_and_pool.get_connection().await?;
 
             conn.execute_dml(query, &params).await?;
             true
@@ -58,8 +58,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
         params: vec![],
     };
 
-    let pool = config_and_pool.pool.get().await?;
-    let mut conn = MiddlewarePool::get_connection(pool).await?;
+    let mut conn = config_and_pool.get_connection().await?;
 
     conn.execute_batch(&query_and_params.query).await?;
 
@@ -94,8 +93,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
             let params = vec![RowValues::Text(eleven_days_ago_h.clone())];
 
             let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
-            let pool = config_and_pool.pool.get().await?;
-            let mut conn = MiddlewarePool::get_connection(pool).await?;
+            let mut conn = config_and_pool.get_connection().await?;
 
             conn.execute_dml(query, &params).await?;
             get_data_for_scores_page(401580351, 2024, true, &config_and_pool, 0).await
