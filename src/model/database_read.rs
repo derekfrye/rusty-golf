@@ -1,8 +1,8 @@
 use sql_middleware::middleware::{
-    ConfigAndPool, ConversionMode, CustomDbRow, MiddlewarePoolConnection, ResultSet,
+    ConfigAndPool, CustomDbRow, MiddlewarePoolConnection, ResultSet,
 };
-use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
-use sql_middleware::{SqlMiddlewareDbError, SqliteParamsQuery, convert_sql_params};
+use sql_middleware::middleware::RowValues as RowValues2;
+use sql_middleware::SqlMiddlewareDbError;
 
 use crate::model::score::Statistic;
 use crate::model::types::{RefreshSource, Scores, ScoresAndLastRefresh};
@@ -43,41 +43,11 @@ pub fn get_last_timestamp(
 ///
 /// Will return `Err` if the database query fails
 pub async fn execute_query(
-    conn: &MiddlewarePoolConnection,
+    conn: &mut MiddlewarePoolConnection,
     query: &str,
     params: Vec<RowValues2>,
 ) -> Result<ResultSet, SqlMiddlewareDbError> {
-    let query_and_params = QueryAndParams2 {
-        query: query.to_string(),
-        params,
-    };
-
-    match conn {
-        MiddlewarePoolConnection::Sqlite {
-            conn: sqlite_conn, ..
-        } => {
-            sqlite_conn
-                .with_connection(move |db_conn| {
-                    let converted_params = convert_sql_params::<SqliteParamsQuery>(
-                        &query_and_params.params,
-                        ConversionMode::Query,
-                    )?;
-                    let tx = db_conn.transaction()?;
-
-                    let result_set = {
-                        let mut stmt = tx.prepare(&query_and_params.query)?;
-
-                        sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?
-                    };
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(result_set)
-                })
-                .await
-        }
-        MiddlewarePoolConnection::Postgres { .. } => Err(SqlMiddlewareDbError::Other(
-            "Database type not supported for this operation".to_string(),
-        )),
-    }
+    conn.query(query).params(params.as_slice()).select().await
 }
 
 /// # Errors
@@ -88,13 +58,10 @@ pub async fn get_scores_from_db(
     event_id: i32,
     refresh_source: RefreshSource,
 ) -> Result<ScoresAndLastRefresh, SqlMiddlewareDbError> {
-    let conn = config_and_pool.get_connection().await?;
-    let res = execute_query(
-        &conn,
-        get_scores_query(&conn),
-        vec![RowValues2::Int(i64::from(event_id))],
-    )
-    .await?;
+    let mut conn = config_and_pool.get_connection().await?;
+    let query = get_scores_query(&conn);
+    let res =
+        execute_query(&mut conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let last_time_updated = get_last_timestamp(&res.results);
 

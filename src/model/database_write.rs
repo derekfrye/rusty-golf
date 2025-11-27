@@ -1,6 +1,6 @@
-use sql_middleware::middleware::{ConfigAndPool, ConversionMode, MiddlewarePoolConnection};
+use sql_middleware::middleware::{ConfigAndPool, MiddlewarePoolConnection};
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
-use sql_middleware::{SqlMiddlewareDbError, SqliteParamsExecute, convert_sql_params};
+use sql_middleware::SqlMiddlewareDbError;
 
 use crate::model::types::Scores;
 
@@ -12,31 +12,8 @@ pub async fn execute_batch_sql(
     query: &str,
 ) -> Result<(), SqlMiddlewareDbError> {
     let mut conn = config_and_pool.get_connection().await?;
-    let query_and_params = QueryAndParams2 {
-        query: query.to_string(),
-        params: vec![],
-    };
 
-    match &mut conn {
-        MiddlewarePoolConnection::Postgres { client, .. } => {
-            let tx = client.transaction().await?;
-            tx.batch_execute(&query_and_params.query).await?;
-            tx.commit().await?;
-            Ok::<_, SqlMiddlewareDbError>(())
-        }
-        MiddlewarePoolConnection::Sqlite {
-            conn: sqlite_conn, ..
-        } => {
-            sqlite_conn
-                .with_connection(move |conn| {
-                    let tx = conn.transaction()?;
-                    tx.execute_batch(&query_and_params.query)?;
-                    tx.commit()?;
-                    Ok::<_, SqlMiddlewareDbError>(())
-                })
-                .await
-        }
-    }
+    conn.execute_batch(query).await
 }
 
 /// # Errors
@@ -124,28 +101,18 @@ async fn execute_sqlite_queries(
     sqlite_conn: &mut MiddlewarePoolConnection,
     queries: Vec<QueryAndParams2>,
 ) -> Result<(), SqlMiddlewareDbError> {
-    sqlite_conn
-        .with_sqlite_connection(move |db_conn| {
-            let tx = db_conn.transaction()?;
-            {
-                let mut stmt = tx.prepare(&queries[0].query)?;
+    let Some(first) = queries.first() else {
+        return Ok(());
+    };
 
-                if cfg!(debug_assertions) {
-                    let _x = stmt.expanded_sql();
-                }
-                for query in queries {
-                    let converted_params = convert_sql_params::<SqliteParamsExecute>(
-                        &query.params,
-                        ConversionMode::Execute,
-                    )?;
+    let insert_sql = first.query.clone();
+    let prepared = sqlite_conn.prepare_sqlite_statement(&insert_sql).await?;
 
-                    stmt.execute(converted_params.0)?;
-                }
-            }
-            tx.commit()?;
-            Ok::<_, SqlMiddlewareDbError>(())
-        })
-        .await
+    for query in queries {
+        prepared.execute(&query.params).await?;
+    }
+
+    Ok(())
 }
 
 /// # Errors
@@ -164,7 +131,7 @@ pub async fn event_and_scores_already_in_db(
         return Ok(false);
     }
 
-    let conn = config_and_pool.get_connection().await?;
+    let mut conn = config_and_pool.get_connection().await?;
     let query = match &conn {
         MiddlewarePoolConnection::Postgres { .. } => {
             "SELECT min(ins_ts) as ins_ts FROM eup_statistic WHERE event_espn_id = $1;"
@@ -175,7 +142,7 @@ pub async fn event_and_scores_already_in_db(
     };
 
     let query_result =
-        execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
+        execute_query(&mut conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     if let Some(results) = query_result.results.first() {
         let now = chrono::Utc::now().naive_utc();

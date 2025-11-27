@@ -25,7 +25,7 @@ pub async fn get_golfers_from_db(
             .to_string()
     }
 
-    let conn = config_and_pool.get_connection().await?;
+    let mut conn = config_and_pool.get_connection().await?;
     let query = match &conn {
         MiddlewarePoolConnection::Postgres { .. } => {
             "SELECT grp, golfername, playername, eup_id, espn_id FROM sp_get_player_names($1) ORDER BY grp, eup_id"
@@ -36,7 +36,7 @@ pub async fn get_golfers_from_db(
     };
 
     let query_result =
-        execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
+        execute_query(&mut conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let scores = query_result
         .results
@@ -70,12 +70,12 @@ pub async fn get_player_step_factors(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<HashMap<(i64, String), f32>, SqlMiddlewareDbError> {
-    let conn = config_and_pool.get_connection().await?;
+    let mut conn = config_and_pool.get_connection().await?;
 
     let query = include_str!("../sql/functions/sqlite/03_sp_get_scores.sql");
 
     let query_result =
-        execute_query(&conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
+        execute_query(&mut conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let step_factors: HashMap<(i64, String), f32> = query_result
         .results

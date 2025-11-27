@@ -16,7 +16,7 @@ pub async fn get_event_details(
     config_and_pool: &ConfigAndPool,
     event_id: i32,
 ) -> Result<EventTitleAndScoreViewConf, SqlMiddlewareDbError> {
-    let conn = config_and_pool.get_connection().await?;
+    let mut conn = config_and_pool.get_connection().await?;
 
     let query = match &conn {
         MiddlewarePoolConnection::Postgres { .. } => {
@@ -27,7 +27,7 @@ pub async fn get_event_details(
         }
     };
     let params = vec![RowValues2::Int(i64::from(event_id))];
-    let res = execute_query(&conn, query, params).await?;
+    let res = execute_query(&mut conn, query, params).await?;
 
     res.results
         .iter()
