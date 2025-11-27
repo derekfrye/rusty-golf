@@ -23,7 +23,7 @@ sql-middleware = "0"
 clap = { version = "4", features = ["derive"] }
 futures = "0"
 ahash = "0"
-rusqlite = { version = "0", features = ["bundled"] }
+#rusqlite = { version = "0", features = ["bundled"] }
 
 [dependencies.tokio-util]
 version = "0.7"
