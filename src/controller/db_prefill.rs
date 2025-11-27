@@ -1,9 +1,7 @@
 use serde_json::Value;
 use sql_middleware::{
-    SqlMiddlewareDbError, SqliteParamsExecute, SqliteParamsQuery, convert_sql_params,
-    middleware::{
-        AnyConnWrapper, ConfigAndPool, ConversionMode, DatabaseType, QueryAndParams, RowValues,
-    },
+    SqlMiddlewareDbError,
+    middleware::{ConfigAndPool, DatabaseType, MiddlewarePoolConnection, RowValues},
 };
 
 /// # Errors
@@ -17,143 +15,125 @@ pub async fn db_prefill(
     let conn = config_and_pool.get_connection().await?;
 
     match db_type {
-        DatabaseType::Sqlite => prefill_sqlite(conn, json.clone()).await?,
+        DatabaseType::Sqlite => prefill_sqlite(conn, json).await?,
         DatabaseType::Postgres => unimplemented!(),
     }
     Ok(())
 }
 
 async fn prefill_sqlite(
-    conn: sql_middleware::middleware::MiddlewarePoolConnection,
-    json: Value,
+    mut conn: MiddlewarePoolConnection,
+    json: &Value,
 ) -> Result<(), SqlMiddlewareDbError> {
-    conn.interact_sync(move |wrapper_fn| {
-        if let AnyConnWrapper::Sqlite(sql_conn) = wrapper_fn {
-            if cfg!(debug_assertions) {
-                let _pretty_json = serde_json::to_string_pretty(&json).unwrap();
-            }
+    if cfg!(debug_assertions) {
+        let _pretty_json = serde_json::to_string_pretty(json).unwrap();
+    }
 
-            let data = json.as_array().unwrap();
-            let tx = sql_conn.transaction()?;
+    let data = json.as_array().unwrap();
 
-            for datum in data {
-                process_event_datum(&tx, datum)?;
-            }
-
-            tx.commit()?;
-            Ok(())
-        } else {
-            Err(SqlMiddlewareDbError::Other(
-                "Unexpected database type".into(),
-            ))
-        }
-    })
-    .await?
+    prefill_sqlite_inner(&mut conn, data).await
 }
 
-fn process_event_datum(
-    tx: &rusqlite::Transaction,
+async fn prefill_sqlite_inner(
+    conn: &mut MiddlewarePoolConnection,
+    data: &[Value],
+) -> Result<(), SqlMiddlewareDbError> {
+    for datum in data {
+        process_event_datum(conn, datum).await?;
+    }
+    Ok(())
+}
+
+async fn process_event_datum(
+    conn: &mut MiddlewarePoolConnection,
     datum: &Value,
 ) -> Result<(), SqlMiddlewareDbError> {
     let espn_id = datum["event"].as_i64().unwrap();
     let year = datum["year"].as_i64().unwrap();
 
-    if event_exists(tx, espn_id, year)? {
+    if event_exists(conn, espn_id, year).await? {
         println!("Event {espn_id} and year {year} already exist in the db. Skipping db prefill.");
     } else {
-        insert_event(tx, datum)?;
+        insert_event(conn, datum).await?;
         let data_to_fill = datum["data_to_fill_if_event_and_year_missing"]
             .as_array()
             .unwrap();
         for data in data_to_fill {
-            insert_bettors(tx, data["bettors"].as_array().unwrap())?;
-            insert_golfers(tx, data["golfers"].as_array().unwrap())?;
-            insert_event_user_players(tx, data["event_user_player"].as_array().unwrap(), datum)?;
+            insert_bettors(conn, data["bettors"].as_array().unwrap()).await?;
+            insert_golfers(conn, data["golfers"].as_array().unwrap()).await?;
+            insert_event_user_players(conn, data["event_user_player"].as_array().unwrap(), datum)
+                .await?;
         }
     }
     Ok(())
 }
 
-fn event_exists(
-    tx: &rusqlite::Transaction,
+async fn event_exists(
+    conn: &mut MiddlewarePoolConnection,
     espn_id: i64,
     year: i64,
 ) -> Result<bool, SqlMiddlewareDbError> {
-    let query_and_params = QueryAndParams {
-        query: "SELECT * FROM event WHERE espn_id = ?1 AND year = ?2;".to_string(),
-        params: vec![RowValues::Int(espn_id), RowValues::Int(year)],
-    };
-    let converted_params =
-        convert_sql_params::<SqliteParamsQuery>(&query_and_params.params, ConversionMode::Query)?;
-    let mut stmt = tx.prepare(&query_and_params.query)?;
-    let result_set = sql_middleware::sqlite_build_result_set(&mut stmt, &converted_params.0)?;
+    let params = [RowValues::Int(espn_id), RowValues::Int(year)];
+    let result_set = conn
+        .query("SELECT 1 FROM event WHERE espn_id = ?1 AND year = ?2;")
+        .params(&params)
+        .select()
+        .await?;
     Ok(!result_set.results.is_empty())
 }
 
-fn insert_event(tx: &rusqlite::Transaction, datum: &Value) -> Result<(), SqlMiddlewareDbError> {
-    let query_and_params = QueryAndParams {
-        query:
-            "INSERT INTO event (name, espn_id, year, score_view_step_factor) VALUES(?1, ?2, ?3, ?4);"
-                .to_string(),
-        params: vec![
-            RowValues::Text(datum["name"].as_str().unwrap().to_string()),
-            RowValues::Int(datum["event"].as_i64().unwrap()),
-            RowValues::Int(datum["year"].as_i64().unwrap()),
-            RowValues::Float(datum["score_view_step_factor"].as_f64().unwrap()),
-        ],
-    };
-    let converted_params = convert_sql_params::<SqliteParamsExecute>(
-        &query_and_params.params,
-        ConversionMode::Execute,
-    )?;
-    let mut stmt = tx.prepare(&query_and_params.query)?;
-    stmt.execute(converted_params.0)?;
+async fn insert_event(
+    conn: &mut MiddlewarePoolConnection,
+    datum: &Value,
+) -> Result<(), SqlMiddlewareDbError> {
+    let params = [
+        RowValues::Text(datum["name"].as_str().unwrap().to_string()),
+        RowValues::Int(datum["event"].as_i64().unwrap()),
+        RowValues::Int(datum["year"].as_i64().unwrap()),
+        RowValues::Float(datum["score_view_step_factor"].as_f64().unwrap()),
+    ];
+    conn.query(
+        "INSERT INTO event (name, espn_id, year, score_view_step_factor) VALUES(?1, ?2, ?3, ?4);",
+    )
+    .params(&params)
+    .dml()
+    .await?;
     Ok(())
 }
 
-fn insert_bettors(
-    tx: &rusqlite::Transaction,
+async fn insert_bettors(
+    conn: &mut MiddlewarePoolConnection,
     bettors: &[Value],
 ) -> Result<(), SqlMiddlewareDbError> {
     for bettor in bettors {
-        let query_and_params = QueryAndParams {
-            query: "INSERT INTO bettor (name) SELECT ?1 WHERE NOT EXISTS (SELECT 1 from bettor where name = ?1);".to_string(),
-            params: vec![RowValues::Text(bettor.as_str().unwrap().to_string())],
-        };
-        let converted_params = convert_sql_params::<SqliteParamsExecute>(
-            &query_and_params.params,
-            ConversionMode::Execute,
-        )?;
-        let mut stmt = tx.prepare(&query_and_params.query)?;
-        stmt.execute(converted_params.0)?;
+        let params = [RowValues::Text(bettor.as_str().unwrap().to_string())];
+        conn.query("INSERT INTO bettor (name) SELECT ?1 WHERE NOT EXISTS (SELECT 1 from bettor where name = ?1);")
+            .params(&params)
+            .dml()
+            .await?;
     }
     Ok(())
 }
 
-fn insert_golfers(
-    tx: &rusqlite::Transaction,
+async fn insert_golfers(
+    conn: &mut MiddlewarePoolConnection,
     golfers: &[Value],
 ) -> Result<(), SqlMiddlewareDbError> {
     for golfer in golfers {
-        let query_and_params = QueryAndParams {
-            query: "INSERT INTO golfer (name, espn_id) SELECT ?1, ?2 WHERE NOT EXISTS (SELECT 1 from golfer where espn_id = ?2);".to_string(),
-            params: vec![
-                RowValues::Text(golfer["name"].as_str().unwrap().to_string()),
-                RowValues::Int(golfer["espn_id"].as_i64().unwrap()),
-            ],
-        };
-        let converted_params = convert_sql_params::<SqliteParamsExecute>(
-            &query_and_params.params,
-            ConversionMode::Execute,
-        )?;
-        let mut stmt = tx.prepare(&query_and_params.query)?;
-        stmt.execute(converted_params.0)?;
+        let params = [
+            RowValues::Text(golfer["name"].as_str().unwrap().to_string()),
+            RowValues::Int(golfer["espn_id"].as_i64().unwrap()),
+        ];
+        conn.query("INSERT INTO golfer (name, espn_id) SELECT ?1, ?2 WHERE NOT EXISTS (SELECT 1 from golfer where espn_id = ?2);")
+            .params(&params)
+            .dml()
+            .await?;
     }
     Ok(())
 }
 
-fn insert_event_user_players(
-    tx: &rusqlite::Transaction,
+async fn insert_event_user_players(
+    conn: &mut MiddlewarePoolConnection,
     event_user_players: &[Value],
     datum: &Value,
 ) -> Result<(), SqlMiddlewareDbError> {
@@ -187,25 +167,7 @@ fn insert_event_user_players(
         query_values.push(';');
 
         let query = format!("INSERT INTO event_user_player {query_columns}{query_values}");
-        let query_and_params = QueryAndParams { query, params };
-
-        let converted_params = convert_sql_params::<SqliteParamsExecute>(
-            &query_and_params.params,
-            ConversionMode::Execute,
-        )?;
-
-        let mut stmt = tx.prepare(&query_and_params.query)?;
-        if let Err(e) = stmt.execute(converted_params.0) {
-            println!(
-                "event_id {:?}, user_id {:?}, golfer_id {:?}, qry: {:?}, err {:?}",
-                query_and_params.params[0],
-                query_and_params.params[1],
-                query_and_params.params[2],
-                stmt.expanded_sql(),
-                e
-            );
-            return Err(e.into());
-        }
+        conn.query(&query).params(&params).dml().await?;
     }
     Ok(())
 }
