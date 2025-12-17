@@ -106,7 +106,9 @@ async fn execute_sqlite_queries(
     };
 
     let insert_sql = first.query.clone();
-    let prepared = sqlite_conn.prepare_sqlite_statement(&insert_sql).await?;
+    let mut prepared = sqlite_conn
+        .prepare_sqlite_statement(&insert_sql)
+        .await?;
 
     for query in queries {
         prepared.execute(&query.params).await?;

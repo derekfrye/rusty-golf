@@ -8,7 +8,9 @@ use std::vec;
 // use rusty_golf::controller::score;
 use rusty_golf::controller::score::get_data_for_scores_page;
 
-use sql_middleware::middleware::{ConfigAndPool as ConfigAndPool2, QueryAndParams, RowValues};
+use sql_middleware::middleware::{
+    ConfigAndPool as ConfigAndPool2, QueryAndParams, RowValues, SqliteOptions,
+};
 
 #[tokio::test]
 async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,14 +35,16 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
             let eleven_days_ago_h = eleven_days_ago.format("%Y-%m-%d %H:%M:%S").to_string();
             let params = vec![RowValues::Text(eleven_days_ago_h)];
 
-            let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
+            let sqlite_options = SqliteOptions::new(x.clone());
+            let config_and_pool = ConfigAndPool2::new_sqlite(sqlite_options).await.unwrap();
             let mut conn = config_and_pool.get_connection().await?;
 
             conn.execute_dml(query, &params).await?;
             true
         }
     };
-    let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
+    let sqlite_options = SqliteOptions::new(x.clone());
+    let config_and_pool = ConfigAndPool2::new_sqlite(sqlite_options).await.unwrap();
 
     let ddl = [
         include_str!("../src/sql/schema/sqlite/00_event.sql"),
@@ -87,7 +91,8 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
         let eleven_days_ago_h = eleven_days_ago.format("%Y-%m-%d %H:%M:%S").to_string();
         let params = vec![RowValues::Text(eleven_days_ago_h.clone())];
 
-        let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
+        let sqlite_options = SqliteOptions::new(x.clone());
+        let config_and_pool = ConfigAndPool2::new_sqlite(sqlite_options).await.unwrap();
         let mut conn = config_and_pool.get_connection().await?;
 
         conn.execute_dml(query, &params).await?;

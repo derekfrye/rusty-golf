@@ -1,9 +1,9 @@
-// extern crate no longer needed in Rust 2018+
-use deadpool_postgres::{ManagerConfig, RecyclingMethod};
 use rusty_golf::args;
 use rusty_golf::controller::{db_prefill, score::scores};
 use rusty_golf::model::get_event_details;
-use sql_middleware::middleware::{ConfigAndPool, DatabaseType};
+use sql_middleware::middleware::{
+    ConfigAndPool, DatabaseType, PgConfig, PostgresOptions, SqliteOptions,
+};
 
 use actix_files::Files;
 use actix_web::web::Data;
@@ -77,20 +77,19 @@ async fn init_config_and_pool(
     args: &args::CleanArgs,
 ) -> Result<(ConfigAndPool, DatabaseType), Box<dyn std::error::Error>> {
     if args.db_type == DatabaseType::Postgres {
-        let mut postgres_config = deadpool_postgres::Config::new();
+        let mut postgres_config = PgConfig::new();
         postgres_config.dbname = Some(args.db_name.clone());
-        postgres_config.host.clone_from(&args.db_host);
+        postgres_config.host = args.db_host.clone();
         postgres_config.port = args.db_port;
-        postgres_config.user.clone_from(&args.db_user);
-        postgres_config.password.clone_from(&args.db_password);
-        postgres_config.manager = Some(ManagerConfig {
-            recycling_method: RecyclingMethod::Fast,
-        });
+        postgres_config.user = args.db_user.clone();
+        postgres_config.password = args.db_password.clone();
 
-        let pool = ConfigAndPool::new_postgres(postgres_config).await?;
+        let postgres_options = PostgresOptions::new(postgres_config);
+        let pool = ConfigAndPool::new_postgres(postgres_options).await?;
         Ok((pool, DatabaseType::Postgres))
     } else {
-        match ConfigAndPool::new_sqlite(args.db_name.clone()).await {
+        let sqlite_options = SqliteOptions::new(args.db_name.clone());
+        match ConfigAndPool::new_sqlite(sqlite_options).await {
             Ok(pool) => Ok((pool, DatabaseType::Sqlite)),
             Err(e) => {
                 eprintln!(

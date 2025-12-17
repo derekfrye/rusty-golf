@@ -19,7 +19,7 @@ actix-files = "0"
 regex = "1"
 function_name = "0"
 deadpool-postgres = "0"
-sql-middleware = "0.3.0"
+sql-middleware = "0.4.0"
 clap = { version = "4", features = ["derive"] }
 futures = "0"
 ahash = "0"

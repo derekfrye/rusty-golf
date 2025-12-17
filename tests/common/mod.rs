@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rusty_golf::args::CleanArgs;
 use sql_middleware::SqlMiddlewareDbError;
 use sql_middleware::middleware::{
-    ConfigAndPool, DatabaseType, MiddlewarePoolConnection, ResultSet, RowValues,
+    ConfigAndPool, DatabaseType, MiddlewarePoolConnection, ResultSet, RowValues, SqliteOptions,
 };
 
 pub struct TestContext {
@@ -21,7 +21,8 @@ pub async fn setup_test_context(fixture_sql: &str) -> Result<TestContext, SqlMid
             .as_nanos()
     );
 
-    let config_and_pool = ConfigAndPool::new_sqlite(db_name.clone()).await?;
+    let sqlite_options = SqliteOptions::new(db_name.clone());
+    let config_and_pool = ConfigAndPool::new_sqlite(sqlite_options).await?;
     let args = CleanArgs {
         db_type: DatabaseType::Sqlite,
         db_name,

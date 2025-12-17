@@ -5,7 +5,9 @@ use std::vec;
 // use rusty_golf::controller::score;
 use rusty_golf::controller::score::get_data_for_scores_page;
 
-use sql_middleware::middleware::{ConfigAndPool as ConfigAndPool2, QueryAndParams};
+use sql_middleware::middleware::{
+    ConfigAndPool as ConfigAndPool2, QueryAndParams, SqliteOptions,
+};
 
 #[tokio::test]
 async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>> {
@@ -13,7 +15,8 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     // let _ = env_logger::builder().is_test(true).try_init();
 
     let x = "file::memory:?cache=shared".to_string();
-    let config_and_pool = ConfigAndPool2::new_sqlite(x.clone()).await.unwrap();
+    let sqlite_options = SqliteOptions::new(x.clone());
+    let config_and_pool = ConfigAndPool2::new_sqlite(sqlite_options).await.unwrap();
 
     let ddl = [
         include_str!("../src/sql/schema/sqlite/00_event.sql"),

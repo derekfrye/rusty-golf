@@ -7,7 +7,7 @@ use rusty_golf::controller::db_prefill;
 // use rusty_golf::controller::score;
 
 use sql_middleware::middleware::{
-    ConfigAndPool as ConfigAndPool2, DatabaseType, QueryAndParams, RowValues,
+    ConfigAndPool as ConfigAndPool2, DatabaseType, QueryAndParams, RowValues, SqliteOptions,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -21,8 +21,8 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
         .expect("system time went backwards")
         .as_nanos();
     let x = format!("file:test_db_{unique}?mode=memory&cache=shared");
-    // let x = "zzz".to_string();
-    let config_and_pool = ConfigAndPool2::new_sqlite(x).await.unwrap();
+    let sqlite_options = SqliteOptions::new(x);
+    let config_and_pool = ConfigAndPool2::new_sqlite(sqlite_options).await.unwrap();
 
     let ddl = [
         include_str!("../src/sql/schema/sqlite/00_event.sql"),

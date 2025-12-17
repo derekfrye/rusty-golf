@@ -8,7 +8,7 @@ use scraper::{Html, Selector};
 use std::io::Write;
 use std::path::Path;
 
-use sql_middleware::middleware::{ConfigAndPool, DatabaseType, QueryAndParams};
+use sql_middleware::middleware::{ConfigAndPool, DatabaseType, QueryAndParams, SqliteOptions};
 
 // This function is for testing, accessing the public render function
 async fn test_render_template(
@@ -50,7 +50,8 @@ async fn test_render_template(
 async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the SQLite in-memory database
     let conn_string = "file::memory:?cache=shared".to_string();
-    let config_and_pool = ConfigAndPool::new_sqlite(conn_string).await?;
+    let sqlite_options = SqliteOptions::new(conn_string);
+    let config_and_pool = ConfigAndPool::new_sqlite(sqlite_options).await?;
 
     // Set up database schema from SQL files
     let ddl = [
