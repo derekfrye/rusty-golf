@@ -64,7 +64,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     println!("Running SQL-backed assertions");
     let x = match get_data_for_scores_page(401_580_351, 2024, false, &storage, 0).await {
         Ok(data) => data,
-        Err(e) => return Err(Box::new(e)),
+        Err(e) => return Err(Box::new(e) as Box<dyn std::error::Error>),
     };
 
     // load reference json
