@@ -25,6 +25,10 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
         let _ = dotenvy::from_filename("../.env");
     }
 
+    if std::env::var("R2_ENDPOINT").is_ok() {
+        print!("R2 test portions will run\n");
+    }
+
     let x = "file::memory:?cache=shared".to_string();
     let sqlite_options = SqliteOptions::new(x.clone());
     let config_and_pool = ConfigAndPool2::new_sqlite(sqlite_options).await.unwrap();
@@ -57,6 +61,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
 
     let storage = SqlStorage::new(config_and_pool.clone());
 
+    println!("Running SQL-backed assertions");
     let x = match get_data_for_scores_page(401_580_351, 2024, false, &storage, 0).await {
         Ok(data) => data,
         Err(e) => return Err(e),
@@ -142,6 +147,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
             || std::env::var("AWS_SECRET_ACCESS_KEY").is_ok());
 
     if r2_ready {
+        println!("Running R2-backed assertions");
         let r2_config = R2Storage::config_from_env()?;
         let signer = R2Storage::signer_from_config(&r2_config);
         let r2_storage = R2Storage::new(r2_config, std::sync::Arc::new(signer));
@@ -167,6 +173,23 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
             r2_bryson.detailed_statistics.total_score,
             "R2 total score mismatch for Bryson DeChambeau"
         );
+        assert_eq!(
+            bryson_reference_entry
+                .get("eup_id")
+                .unwrap()
+                .as_i64()
+                .unwrap(),
+            r2_bryson.eup_id,
+            "R2 eup_id mismatch for Bryson DeChambeau"
+        );
+        let r2_line_score = r2_bryson
+            .detailed_statistics
+            .line_scores
+            .iter()
+            .find(|s| s.hole == 13 && s.round == 2)
+            .unwrap()
+            .score;
+        assert_eq!(left, r2_line_score, "R2 line score mismatch");
 
         let r2_data = build_score_data_from_scores(&r2_scores);
         let from_db_scores = storage
