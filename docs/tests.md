@@ -32,6 +32,7 @@ The project uses integration tests located in the `tests/` directory. Each test 
   - `test1.sql` - Used to load the database
 - **Database**: `file::memory:?cache=shared".to_string();`
 - **What it tests**: Database abstraction layer functionality and json score formatting
+- **Optional R2 extension**: If a `.env` file exists with `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`, the test also writes scores to R2, reads them back, and renders HTML from the R2 payload to validate parity with SQLite.
 
 ### Test 4: Cache
 - **Purpose**: Tests caching functionality

@@ -9,6 +9,10 @@ use crate::model::{
     store_scores_in_db,
 };
 
+pub mod r2;
+
+pub use r2::{MissingSigner, R2Storage, R2StorageConfig, S3Signer, SigV4Signer};
+
 #[derive(Clone)]
 pub struct SqlStorage {
     config_and_pool: ConfigAndPool,

@@ -4,7 +4,13 @@ use std::vec;
 
 // use rusty_golf::controller::score;
 use rusty_golf::controller::score::get_data_for_scores_page;
-use rusty_golf::storage::SqlStorage;
+use rusty_golf::model::{Bettors, ScoreData, ScoresAndLastRefresh};
+use rusty_golf::model::format_time_ago_for_score_view;
+use rusty_golf::storage::{R2Storage, SqlStorage};
+use rusty_golf::view::score::{
+    render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
+};
+use rusty_golf_core::storage::Storage;
 
 use sql_middleware::middleware::{
     ConfigAndPool as ConfigAndPool2, QueryAndParams, SqliteOptions,
@@ -125,5 +131,106 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     assert_eq!(left, right);
     assert_eq!(left, 3); // line 6824 in test3_espn_json_responses.json
 
+    if dotenvy::dotenv().is_ok() {
+        let r2_config = R2Storage::config_from_env()?;
+        let signer = R2Storage::signer_from_config(&r2_config);
+        let r2_storage = R2Storage::new(r2_config, std::sync::Arc::new(signer));
+
+        r2_storage.store_scores(401_580_351, &x.score_struct).await?;
+        let r2_scores = r2_storage
+            .get_scores(401_580_351, rusty_golf::model::RefreshSource::Db)
+            .await?;
+
+        assert_eq!(
+            x.score_struct.len(),
+            r2_scores.score_struct.len(),
+            "R2 score count mismatch"
+        );
+
+        let r2_bryson = r2_scores
+            .score_struct
+            .iter()
+            .find(|s| s.golfer_name == "Bryson DeChambeau")
+            .expect("R2 scores missing Bryson DeChambeau");
+        assert_eq!(
+            bryson_espn_entry.detailed_statistics.total_score,
+            r2_bryson.detailed_statistics.total_score,
+            "R2 total score mismatch for Bryson DeChambeau"
+        );
+
+        let r2_data = build_score_data_from_scores(&r2_scores);
+        let from_db_scores = storage
+            .get_scores(401_580_351, rusty_golf::model::RefreshSource::Db)
+            .await?;
+        let bettor_struct = scores_and_last_refresh_to_line_score_tables(&from_db_scores);
+        let event_details = storage.get_event_details(401_580_351).await?;
+        let player_step_factors = storage.get_player_step_factors(401_580_351).await?;
+
+        let markup = render_scores_template_pure(
+            &r2_data,
+            false,
+            &bettor_struct,
+            event_details.score_view_step_factor,
+            &player_step_factors,
+            401_580_351,
+            2024,
+            true,
+        );
+
+        assert!(
+            !markup.into_string().is_empty(),
+            "R2-rendered markup should not be empty"
+        );
+    } else {
+        println!("Skipping R2 checks: .env not found");
+    }
+
     Ok(())
+}
+
+fn build_score_data_from_scores(scores: &ScoresAndLastRefresh) -> ScoreData {
+    use std::collections::HashMap;
+
+    let mut totals: HashMap<String, i32> = HashMap::new();
+    for golfer in &scores.score_struct {
+        *totals.entry(golfer.bettor_name.clone()).or_insert(0) +=
+            golfer.detailed_statistics.total_score;
+    }
+
+    let mut bettors: Vec<Bettors> = totals
+        .into_iter()
+        .map(|(name, total)| Bettors {
+            bettor_name: name,
+            total_score: total,
+            scoreboard_position_name: String::new(),
+            scoreboard_position: 0,
+        })
+        .collect();
+
+    bettors.sort_by(|a, b| {
+        a.total_score
+            .cmp(&b.total_score)
+            .then_with(|| a.bettor_name.cmp(&b.bettor_name))
+    });
+
+    for (i, bettor) in bettors.iter_mut().enumerate() {
+        bettor.scoreboard_position = i;
+        bettor.scoreboard_position_name = match i {
+            0 => "TOP GOLFER".to_string(),
+            1 => "FIRST LOSER".to_string(),
+            2 => "MEH".to_string(),
+            3 => "SEEN BETTER DAYS".to_string(),
+            4 => "NOT A CHANCE".to_string(),
+            _ => "WORST OF THE WORST".to_string(),
+        };
+    }
+
+    let x = chrono::Utc::now().naive_utc() - scores.last_refresh;
+
+    ScoreData {
+        bettor_struct: bettors,
+        score_struct: scores.score_struct.clone(),
+        last_refresh: format_time_ago_for_score_view(x),
+        last_refresh_source: scores.last_refresh_source.clone(),
+    }
 }

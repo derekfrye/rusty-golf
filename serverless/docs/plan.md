@@ -67,6 +67,33 @@ Replace SQL queries/stored procedures with typed JSON documents in R2, keyed by 
 - `eup_statistic` -> `events/{event_id}/scores.json` as the primary render payload.
 - `eup_statistic_hx` -> optional `events/{event_id}/history/{timestamp}.json` if history is needed.
 
+## KV + R2 hybrid (latency/consistency balanced)
+If R2 is too latent to store everything, use KV for small config + lookups and R2 for large payloads.
+
+### Storage layout
+R2 (authoritative, larger payloads):
+- `events/{event_id}/scores.json` -> `ScoresAndLastRefresh` (render payload).
+- `cache/espn/{event_id}.json` -> raw ESPN JSON cache.
+
+KV (small, frequently read):
+- `event:{event_id}:details` -> `{event_name, score_view_step_factor, refresh_from_espn}`.
+- `event:{event_id}:golfers` -> golfer/bettor assignments (ESPN query inputs).
+- `event:{event_id}:player_factors` -> `(golfer_espn_id,bettor_name) -> step_factor`.
+- `event:{event_id}:last_refresh` -> `{ts, source}` for TTL checks.
+
+### TTL-based cache_max_age flow
+- `cache_max_age` derives from `event:{id}:details.refresh_from_espn`.
+- On `cache=true`: read `event:{id}:last_refresh`; if fresh, read `scores.json` from R2; else fetch ESPN and overwrite.
+- On `cache=false`: always fetch ESPN and overwrite.
+
+### test1 flow mapping (cache=false)
+1. `/scores` decodes request and reads `event:{id}:details` from KV for `cache_max_age`.
+2. MVU `PageLoad` triggers:
+   - `LoadScores`: read `event:{id}:golfers` from KV, fetch ESPN, write `cache/espn/{id}.json` and `events/{id}/scores.json` in R2, update `event:{id}:last_refresh` in KV. Return in-memory scores to avoid read-after-write.
+   - `LoadEventConfig`: read `event:{id}:details` from KV.
+   - `LoadPlayerFactors`: read `event:{id}:player_factors` from KV.
+   - `LoadDbScores`: read `events/{id}/scores.json` from R2 (or reuse in-memory scores in this request).
+
 ### Minimal R2-first rollout
 - Start by writing `scores.json` + `event.json` directly from existing ESPN ingest code.
 - Keep SQL flow unchanged for now; add a second write path to R2 to validate data shape.

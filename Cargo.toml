@@ -26,6 +26,9 @@ ahash = "0"
 #rusqlite = { version = "0", features = ["bundled"] }
 rusty-golf-core = { path = "rusty-golf-core" }
 async-trait = "0"
+aws-sign-v4 = "0"
+dotenvy = "0"
+sha256 = "1"
 
 [dependencies.tokio-util]
 version = "0.7"
