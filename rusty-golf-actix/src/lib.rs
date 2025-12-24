@@ -8,7 +8,6 @@ pub mod storage;
 pub mod view;
 
 pub mod mvu {
-    pub mod error;
     pub mod runtime;
     pub mod score;
 }

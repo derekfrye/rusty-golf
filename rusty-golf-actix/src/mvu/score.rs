@@ -1,12 +1,13 @@
 use maud::Markup;
 use rusty_golf_core::storage::Storage;
 
-use super::error::AppError;
 use crate::controller::score::data_service::get_data_for_scores_page;
 use crate::model::{RefreshSource, ScoreData, ScoresAndLastRefresh};
 use crate::view::score::{
     render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
 };
+use rusty_golf_core::error::CoreError;
+use rusty_golf_core::score::decode_score_request;
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 
@@ -20,7 +21,7 @@ pub struct ScoreModel {
     pub cache_max_age: i64,
     pub data: Option<ScoreData>,
     pub markup: Option<Markup>,
-    pub error: Option<AppError>,
+    pub error: Option<CoreError>,
     pub from_db_scores: Option<ScoresAndLastRefresh>,
     pub global_step_factor: Option<f32>,
     pub player_step_factors: Option<HashMap<(i64, String), f32>>,
@@ -61,7 +62,7 @@ pub enum Msg {
     PlayerFactorsLoaded(HashMap<(i64, String), f32>),
     DbScoresLoaded(ScoresAndLastRefresh),
     Rendered(Markup),
-    Failed(AppError),
+    Failed(CoreError),
 }
 
 #[derive(Debug, Clone)]
@@ -159,19 +160,19 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
             .await
             {
                 Ok(data) => Msg::ScoresLoaded(data),
-                Err(e) => Msg::Failed(AppError::from(e.to_string())),
+                Err(e) => Msg::Failed(e),
             }
         }
         Effect::LoadEventConfig => {
             match deps.storage.get_event_details(model.event_id).await {
                 Ok(event_details) => Msg::EventConfigLoaded(event_details.score_view_step_factor),
-                Err(e) => Msg::Failed(AppError::from(e)),
+                Err(e) => Msg::Failed(CoreError::from(e)),
             }
         }
         Effect::LoadPlayerFactors => {
             match deps.storage.get_player_step_factors(model.event_id).await {
                 Ok(factors) => Msg::PlayerFactorsLoaded(factors),
-                Err(e) => Msg::Failed(AppError::from(e)),
+                Err(e) => Msg::Failed(CoreError::from(e)),
             }
         }
         Effect::LoadDbScores => {
@@ -181,7 +182,7 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
                 .await
             {
                 Ok(from_db_scores) => Msg::DbScoresLoaded(from_db_scores),
-                Err(e) => Msg::Failed(AppError::from(e)),
+                Err(e) => Msg::Failed(CoreError::from(e)),
             }
         }
         Effect::RenderTemplate => {
@@ -204,7 +205,7 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
                 );
                 Msg::Rendered(markup)
             } else {
-                Msg::Failed(AppError::Other("Render requested without deps".into()))
+                Msg::Failed(CoreError::Other("Render requested without deps".into()))
             }
         }
     }
@@ -214,49 +215,24 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
 ///
 /// # Errors
 ///
-/// Returns `AppError::Other` with human-readable messages for missing or invalid params.
+/// Returns `CoreError::Other` with human-readable messages for missing or invalid params.
 pub async fn decode_request_to_model<S: BuildHasher>(
     query: &HashMap<String, String, S>,
     storage: &dyn Storage,
-) -> Result<ScoreModel, AppError> {
-    let event_id: i32 = query
-        .get("event")
-        .and_then(|s| s.trim().parse().ok())
-        .ok_or_else(|| AppError::Other("espn event parameter is required".into()))?;
-
-    let year: i32 = query
-        .get("yr")
-        .and_then(|s| s.trim().parse().ok())
-        .ok_or_else(|| AppError::Other("yr (year) parameter is required".into()))?;
-
-    let cache = !matches!(query.get("cache").map(String::as_str), Some("0"));
-
-    let want_json = match query.get("json").map(String::as_str) {
-        Some("1") => true,
-        Some("0") | None => false,
-        Some(other) => other.parse().unwrap_or(false),
-    };
-
-    let expanded = match query.get("expanded").map(String::as_str) {
-        Some("1") => true,
-        Some("0") | None => false,
-        Some(other) => other.parse().unwrap_or(false),
-    };
-
-    let cache_max_age: i64 = match storage.get_event_details(event_id).await {
-        Ok(event_details) => match event_details.refresh_from_espn {
-            1 => 99,
-            _ => 0,
-        },
-        Err(_) => 0,
-    };
-
-    Ok(ScoreModel::new(
-        event_id,
-        year,
-        cache,
-        expanded,
-        want_json,
-        cache_max_age,
-    ))
+) -> Result<ScoreModel, CoreError> {
+    let mut owned_query = HashMap::new();
+    for (key, value) in query {
+        owned_query.insert(key.clone(), value.clone());
+    }
+    decode_score_request(&owned_query, storage, |req, cache_max_age| {
+        ScoreModel::new(
+            req.event_id,
+            req.year,
+            req.use_cache,
+            req.expanded,
+            req.want_json,
+            cache_max_age,
+        )
+    })
+    .await
 }

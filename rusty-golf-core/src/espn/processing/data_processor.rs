@@ -1,14 +1,12 @@
 use super::score_calculator::{calculate_total_score, process_line_scores, process_round_score};
 use super::time_processor::process_tee_time;
+use crate::error::CoreError;
 use crate::model::{IntStat, PlayerJsonResponse, Scores, Statistic};
 use serde_json::Value;
 
-/// # Errors
-///
-/// Will return `Err` if the json processing fails
 pub fn process_json_to_statistics(
     json_responses: &PlayerJsonResponse,
-) -> Result<Vec<Statistic>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Statistic>, CoreError> {
     let mut golfer_scores = Vec::new();
     let empty_vec: Vec<Value> = Vec::new();
 
@@ -65,13 +63,10 @@ pub fn process_json_to_statistics(
     Ok(golfer_scores)
 }
 
-/// # Errors
-///
-/// Will return `Err` if there is a mismatch between statistics and scores
 pub fn merge_statistics_with_scores(
     statistics: &[Statistic],
     scores: &[Scores],
-) -> Result<Vec<Scores>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Scores>, CoreError> {
     let result: Result<Vec<_>, _> = statistics
         .iter()
         .map(|statistic| {
@@ -79,13 +74,10 @@ pub fn merge_statistics_with_scores(
                 .iter()
                 .find(|g| g.eup_id == statistic.eup_id)
                 .ok_or_else(|| {
-                    Box::new(std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        format!(
-                            "Failed to find golfer with eup_id {} in scores data",
-                            statistic.eup_id
-                        ),
-                    )) as Box<dyn std::error::Error>
+                    CoreError::NotFound(format!(
+                        "Failed to find golfer with eup_id {} in scores data",
+                        statistic.eup_id
+                    ))
                 })
                 .map(|active_golfer| Scores {
                     eup_id: statistic.eup_id,
@@ -97,7 +89,7 @@ pub fn merge_statistics_with_scores(
                     score_view_step_factor: active_golfer.score_view_step_factor,
                 })
         })
-        .collect::<Result<Vec<Scores>, Box<dyn std::error::Error>>>();
+        .collect::<Result<Vec<Scores>, CoreError>>();
 
     let mut golfers_and_scores = result?;
 

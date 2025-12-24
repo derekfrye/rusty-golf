@@ -1,4 +1,4 @@
-use crate::mvu::error::AppError;
+use rusty_golf_core::error::CoreError;
 use crate::mvu::score::{Deps, Msg, ScoreModel, update};
 use serde_json::json;
 
@@ -6,12 +6,12 @@ use serde_json::json;
 ///
 /// # Errors
 ///
-/// Returns an error if the `update` loop surfaces an `AppError`.
+/// Returns an error if the `update` loop surfaces a `CoreError`.
 pub async fn run_score(
     model: &mut ScoreModel,
     init_msg: Msg,
     deps: Deps<'_>,
-) -> Result<(), AppError> {
+) -> Result<(), CoreError> {
     let mut effects = update(model, init_msg);
     while let Some(effect) = effects.pop() {
         if cfg!(debug_assertions) {

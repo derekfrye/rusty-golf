@@ -82,12 +82,16 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
         // let now = chrono::Utc::now().naive_utc();
         // let diff = now - z?;
         // Ok(diff.num_days() > cache_max_age)
-        get_data_for_scores_page(401_580_351, 2024, true, &storage, 0).await
+        get_data_for_scores_page(401_580_351, 2024, true, &storage, 0)
+            .await
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
     } else {
         if cfg!(debug_assertions) {
             println!("db didn't exist, set data back 11 days");
         }
-        get_data_for_scores_page(401_580_351, 2024, false, &storage, 99).await?;
+        get_data_for_scores_page(401_580_351, 2024, false, &storage, 99)
+            .await
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
         // now set the data back 11 days
         let query = "update eup_statistic set ins_ts = ?1;";
 
@@ -99,7 +103,9 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
         let mut conn = config_and_pool.get_connection().await?;
 
         conn.execute_dml(query, &params).await?;
-        get_data_for_scores_page(401_580_351, 2024, true, &storage, 0).await
+        get_data_for_scores_page(401_580_351, 2024, true, &storage, 0)
+            .await
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
     }?;
 
     if cfg!(debug_assertions) {

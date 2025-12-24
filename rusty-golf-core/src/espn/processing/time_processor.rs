@@ -1,9 +1,6 @@
 use crate::model::{StringStat, take_a_char_off};
 use chrono::DateTime;
 
-/// # Panics
-///
-/// Will panic if the timezone is invalid
 #[must_use]
 pub fn process_tee_time(tee_time: &str) -> Option<StringStat> {
     let mut_tee_time = if tee_time.ends_with('Z') {
