@@ -11,24 +11,47 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    ensure_command("worker-build")?;
     ensure_command("wrangler")?;
     ensure_command("jq")?;
 
     let workspace_root = workspace_root();
     let wrangler_config = workspace_root.join("rusty-golf-serverless/wrangler.toml");
 
+    let wrangler_log_dir = workspace_root.join(".wrangler-logs");
+    let wrangler_log_dir_str = wrangler_log_dir.to_str().unwrap_or_default();
+    let wrangler_config_dir = workspace_root.join(".wrangler-config");
+    let wrangler_config_dir_str = wrangler_config_dir.to_str().unwrap_or_default();
     run_script(
         &workspace_root.join("rusty-golf-serverless/scripts/build_local.sh"),
-        &[("CONFIG_PATH", wrangler_config.to_str().unwrap_or_default())],
+        &[
+            ("CONFIG_PATH", wrangler_config.to_str().unwrap_or_default()),
+            ("WRANGLER_LOG_DIR", wrangler_log_dir_str),
+            ("XDG_CONFIG_HOME", wrangler_config_dir_str),
+        ],
         &workspace_root,
     )?;
 
-    let wrangler_flags = format!("--local --config {}", wrangler_config.display());
+    let wrangler_kv_flags = format!(
+        "--local --preview false --config {}",
+        wrangler_config.display()
+    );
+    let wrangler_r2_flags = format!("--local --config {}", wrangler_config.display());
     run_script(
         &workspace_root.join("rusty-golf-serverless/scripts/seed_test1_local.sh"),
-        &[("WRANGLER_FLAGS", wrangler_flags.as_str())],
+        &[
+            ("WRANGLER_KV_FLAGS", wrangler_kv_flags.as_str()),
+            ("WRANGLER_R2_FLAGS", wrangler_r2_flags.as_str()),
+            ("WRANGLER_LOG_DIR", wrangler_log_dir_str),
+            ("XDG_CONFIG_HOME", wrangler_config_dir_str),
+        ],
         &workspace_root,
     )?;
+
+    let stdout_path = wrangler_log_dir.join("wrangler-dev-stdout.log");
+    let stderr_path = wrangler_log_dir.join("wrangler-dev-stderr.log");
+    let stdout_file = std::fs::File::create(&stdout_path)?;
+    let stderr_file = std::fs::File::create(&stderr_path)?;
 
     let child = Command::new("bash")
         .arg(
@@ -37,12 +60,21 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         .arg("8787")
         .arg(wrangler_config)
         .current_dir(&workspace_root)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .env("WRANGLER_LOG_DIR", wrangler_log_dir_str)
+        .env("XDG_CONFIG_HOME", wrangler_config_dir_str)
+        .stdout(Stdio::from(stdout_file))
+        .stderr(Stdio::from(stderr_file))
         .spawn()?;
     let _guard = ChildGuard { child };
 
-    wait_for_health("http://127.0.0.1:8787/health").await?;
+    if let Err(err) = wait_for_health("http://127.0.0.1:8787/health").await {
+        let stdout = std::fs::read_to_string(&stdout_path).unwrap_or_default();
+        let stderr = std::fs::read_to_string(&stderr_path).unwrap_or_default();
+        return Err(format!(
+            "{err}\nwrangler dev stdout:\n{stdout}\nwrangler dev stderr:\n{stderr}"
+        )
+        .into());
+    }
 
     let resp = reqwest::get("http://127.0.0.1:8787/scores?event=401580351&yr=2024&cache=1&json=1")
         .await?;
@@ -182,7 +214,7 @@ async fn wait_for_health(url: &str) -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(2))
         .build()?;
-    for _ in 0..60 {
+    for _ in 0..240 {
         match client.get(url).send().await {
             Ok(resp) if resp.status().is_success() => return Ok(()),
             _ => tokio::time::sleep(Duration::from_millis(250)).await,

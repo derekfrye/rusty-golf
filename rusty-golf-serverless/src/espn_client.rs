@@ -15,7 +15,7 @@ impl ServerlessEspnClient {
     }
 }
 
-#[async_trait::async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait::async_trait(?Send))]
 impl EspnApiClient for ServerlessEspnClient {
     async fn get_json_from_espn(
         &self,

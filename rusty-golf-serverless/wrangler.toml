@@ -9,3 +9,6 @@ kv_namespaces = [
 r2_buckets = [
   { binding = "SCORES_R2", bucket_name = "djf-rusty-golf" }
 ]
+
+[build]
+command = "worker-build ./rusty-golf-serverless"

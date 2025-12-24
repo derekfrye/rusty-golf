@@ -19,7 +19,15 @@ fi
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 serverless_dir="${script_dir}/.."
+workspace_root="${serverless_dir}/.."
 config_path="${CONFIG_PATH:-${serverless_dir}/wrangler.toml}"
+log_dir="${WRANGLER_LOG_DIR:-${workspace_root}/.wrangler-logs}"
+config_dir="${XDG_CONFIG_HOME:-${workspace_root}/.wrangler-config}"
 
-cd "${serverless_dir}"
+cd "${workspace_root}"
+mkdir -p "${log_dir}"
+mkdir -p "${config_dir}"
+export WRANGLER_LOG_DIR="${log_dir}"
+export XDG_CONFIG_HOME="${config_dir}"
+export RUSTFLAGS='--cfg getrandom_backend="wasm_js"'
 wrangler build --config "${config_path}"

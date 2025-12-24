@@ -15,3 +15,10 @@ tests/test7/debug_401580355/actual_output.html
 tests/test7/debug_401703504/actual_output.html
 rusty-golf-core/target
 serverless/target
+wrangler-*.log
+*.wasm
+rusty-golf-serverless/.wrangler/state/*
+.wrangler
+.wrangler-config
+node_modules/
+dist/

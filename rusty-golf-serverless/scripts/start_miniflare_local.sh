@@ -3,5 +3,17 @@ set -euo pipefail
 
 PORT="${1:-8787}"
 CONFIG_PATH="${2:-rusty-golf-serverless/wrangler.toml}"
+config_dir="$(cd -- "$(dirname -- "${CONFIG_PATH}")" && pwd)"
+workspace_root="$(cd -- "${config_dir}/.." && pwd)"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+serverless_dir="${script_dir}/.."
+log_dir="${WRANGLER_LOG_DIR:-${workspace_root}/.wrangler-logs}"
+config_dir="${XDG_CONFIG_HOME:-${workspace_root}/.wrangler-config}"
 
-exec wrangler dev --local --port "${PORT}" --ip 127.0.0.1 --config "${CONFIG_PATH}"
+mkdir -p "${log_dir}"
+mkdir -p "${config_dir}"
+export WRANGLER_LOG_DIR="${log_dir}"
+export XDG_CONFIG_HOME="${config_dir}"
+cd "${workspace_root}"
+exec wrangler dev --local --port "${PORT}" --ip 127.0.0.1 \
+  --config "${CONFIG_PATH}"

@@ -7,8 +7,7 @@ use rusty_golf_core::model::{RefreshSource, Scores, ScoresAndLastRefresh};
 use rusty_golf_core::storage::{EventDetails, Storage, StorageError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use worker::{Bucket, Env};
-use worker_kv::KvStore;
+use worker::{Bucket, Env, KvStore};
 
 #[derive(Clone)]
 pub struct ServerlessStorage {
@@ -148,7 +147,7 @@ struct LastRefreshDoc {
     source: RefreshSource,
 }
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl Storage for ServerlessStorage {
     async fn get_event_details(&self, event_id: i32) -> Result<EventDetails, StorageError> {
         let key = Self::kv_event_details_key(event_id);

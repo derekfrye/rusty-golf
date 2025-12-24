@@ -6,8 +6,24 @@ use crate::model::{PlayerJsonResponse, Scores, ScoresAndLastRefresh};
 use crate::storage::Storage;
 use processing::{merge_statistics_with_scores, process_json_to_statistics};
 
+#[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 pub trait EspnApiClient: Send + Sync {
+    async fn get_json_from_espn(
+        &self,
+        scores: &[Scores],
+        year: i32,
+        event_id: i32,
+    ) -> Result<PlayerJsonResponse, CoreError>;
+
+    async fn fallback_scores(&self, _event_id: i32) -> Result<Option<Vec<Scores>>, CoreError> {
+        Ok(None)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[async_trait(?Send)]
+pub trait EspnApiClient {
     async fn get_json_from_espn(
         &self,
         scores: &[Scores],

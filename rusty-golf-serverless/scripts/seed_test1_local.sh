@@ -14,8 +14,13 @@ fi
 EVENT_ID="${EVENT_ID:-401580351}"
 KV_BINDING="${KV_BINDING:-djf_rusty_golf_kv}"
 R2_BINDING="${R2_BINDING:-SCORES_R2}"
+R2_BUCKET="${R2_BUCKET:-djf-rusty-golf}"
 WRANGLER_FLAGS="${WRANGLER_FLAGS:---local}"
+WRANGLER_KV_FLAGS="${WRANGLER_KV_FLAGS:-${WRANGLER_FLAGS}}"
+WRANGLER_R2_FLAGS="${WRANGLER_R2_FLAGS:-${WRANGLER_FLAGS}}"
 FIXTURE_JSON="${FIXTURE_JSON:-rusty-golf-tests/tests/test3_espn_json_responses.json}"
+log_dir="${WRANGLER_LOG_DIR:-rusty-golf-serverless/.wrangler-logs}"
+config_dir="${XDG_CONFIG_HOME:-rusty-golf-serverless/.wrangler-config}"
 
 if [[ ! -f "${FIXTURE_JSON}" ]]; then
   echo "Fixture not found: ${FIXTURE_JSON}" >&2
@@ -27,6 +32,10 @@ cleanup() {
   rm -rf "${tmp_dir}"
 }
 trap cleanup EXIT
+
+mkdir -p "${log_dir}" "${config_dir}"
+export WRANGLER_LOG_DIR="${log_dir}"
+export XDG_CONFIG_HOME="${config_dir}"
 
 event_details_json="${tmp_dir}/event_details.json"
 golfers_json="${tmp_dir}/golfers.json"
@@ -51,18 +60,18 @@ EOF
 jq '{score_struct: .score_struct, last_refresh: "2024-05-19T00:00:00", last_refresh_source: "Espn"}' \
   "${FIXTURE_JSON}" >"${scores_json}"
 
-wrangler kv:key put ${WRANGLER_FLAGS} --binding "${KV_BINDING}" \
+wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
   "event:${EVENT_ID}:details" --path "${event_details_json}"
-wrangler kv:key put ${WRANGLER_FLAGS} --binding "${KV_BINDING}" \
+wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
   "event:${EVENT_ID}:golfers" --path "${golfers_json}"
-wrangler kv:key put ${WRANGLER_FLAGS} --binding "${KV_BINDING}" \
+wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
   "event:${EVENT_ID}:player_factors" --path "${player_factors_json}"
-wrangler kv:key put ${WRANGLER_FLAGS} --binding "${KV_BINDING}" \
+wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
   "event:${EVENT_ID}:last_refresh" --path "${last_refresh_json}"
 
-wrangler r2 object put ${WRANGLER_FLAGS} "${R2_BINDING}" \
-  "events/${EVENT_ID}/scores.json" --file "${scores_json}"
-wrangler r2 object put ${WRANGLER_FLAGS} "${R2_BINDING}" \
-  "cache/espn/${EVENT_ID}.json" --file "${FIXTURE_JSON}"
+wrangler r2 object put ${WRANGLER_R2_FLAGS} \
+  "${R2_BUCKET}/events/${EVENT_ID}/scores.json" --file "${scores_json}"
+wrangler r2 object put ${WRANGLER_R2_FLAGS} \
+  "${R2_BUCKET}/cache/espn/${EVENT_ID}.json" --file "${FIXTURE_JSON}"
 
 echo "Seeded KV/R2 for event ${EVENT_ID}."

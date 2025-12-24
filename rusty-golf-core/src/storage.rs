@@ -45,8 +45,32 @@ impl From<&str> for StorageError {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[async_trait]
 pub trait Storage: Send + Sync {
+    async fn get_event_details(&self, event_id: i32) -> Result<EventDetails, StorageError>;
+    async fn get_golfers_for_event(&self, event_id: i32) -> Result<Vec<Scores>, StorageError>;
+    async fn get_player_step_factors(
+        &self,
+        event_id: i32,
+    ) -> Result<HashMap<(i64, String), f32>, StorageError>;
+    async fn get_scores(
+        &self,
+        event_id: i32,
+        source: RefreshSource,
+    ) -> Result<ScoresAndLastRefresh, StorageError>;
+    async fn store_scores(&self, event_id: i32, scores: &[Scores])
+        -> Result<(), StorageError>;
+    async fn event_and_scores_already_in_db(
+        &self,
+        event_id: i32,
+        max_age_seconds: i64,
+    ) -> Result<bool, StorageError>;
+}
+
+#[cfg(target_arch = "wasm32")]
+#[async_trait(?Send)]
+pub trait Storage {
     async fn get_event_details(&self, event_id: i32) -> Result<EventDetails, StorageError>;
     async fn get_golfers_for_event(&self, event_id: i32) -> Result<Vec<Scores>, StorageError>;
     async fn get_player_step_factors(

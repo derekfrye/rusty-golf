@@ -102,9 +102,8 @@ async fn scores_summary_handler(req: Request, ctx: RouteContext<()>) -> Result<R
         Err(err) => return Response::error(err.to_string(), 400),
     };
     if !score_req.expanded {
-        let mut resp = Response::empty()?;
-        resp.set_status(204);
-        return Ok(resp);
+    let resp = Response::empty()?.with_status(204);
+    return Ok(resp);
     }
     let storage = ServerlessStorage::from_env(
         &ctx.env,
@@ -220,7 +219,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     let router = Router::new();
 
     router
-        .get("/health", |_, ctx| async move {
+        .get_async("/health", |_, ctx| async move {
             let _storage = ServerlessStorage::from_env(
                 &ctx.env,
                 ServerlessStorage::KV_BINDING,
@@ -229,14 +228,14 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             .map_err(|e| worker::Error::RustError(e.to_string()))?;
             Response::ok("ok")
         })
-        .get("/scores", |req, ctx| async move { scores_handler(req, ctx).await })
-        .get("/scores/summary", |req, ctx| async move {
+        .get_async("/scores", |req, ctx| async move { scores_handler(req, ctx).await })
+        .get_async("/scores/summary", |req, ctx| async move {
             scores_summary_handler(req, ctx).await
         })
-        .get("/scores/chart", |req, ctx| async move {
+        .get_async("/scores/chart", |req, ctx| async move {
             scores_chart_handler(req, ctx).await
         })
-        .get("/scores/linescore", |req, ctx| async move {
+        .get_async("/scores/linescore", |req, ctx| async move {
             scores_linescore_handler(req, ctx).await
         })
         .run(req, env)
