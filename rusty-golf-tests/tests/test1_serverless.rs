@@ -42,10 +42,10 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     println!("build_local completed at {}", now.format("%H:%M:%S"));
 
     let wrangler_kv_flags = format!(
-        "--local --preview false --config {}",
+        "--local --preview false --config {} --env dev",
         wrangler_config.display()
     );
-    let wrangler_r2_flags = format!("--local --config {}", wrangler_config.display());
+    let wrangler_r2_flags = format!("--local --config {} --env dev", wrangler_config.display());
 
     let now = chrono::Local::now();
     println!("Seeding test data via seed_test1_local.sh at {}", now.format("%H:%M:%S"));

@@ -147,6 +147,36 @@ Implementations (current/next):
 - What R2 object schema best matches existing SQL semantics?
 - Do we need per-request recomputation, or can we cache rendered HTML for hot paths?
 
+## Production readiness gaps and plan
+### Wrangler config and envs
+- Add `account_id` and either `routes` or `workers_dev` to `wrangler.toml` for explicit deploy targets.
+- Split config into envs (at least `dev` and `prod`) with distinct KV/R2 bindings.
+- Set `preview_id` and `preview_bucket_name` so previews do not write to prod data.
+
+### Storage bindings and configuration
+- Replace hard-coded binding names with env-driven values (e.g., `KV_BINDING`, `R2_BINDING`).
+- Add validation on startup to surface missing bindings with clear error messages.
+
+### Data seeding and refresh
+- Add an admin-only refresh endpoint or a CLI task to seed/refresh KV and R2 in prod.
+- Document the seed flow and required KV/R2 keys for an event.
+
+### ESPN fetch behavior
+- Add request timeout and limited retry/backoff when fetching ESPN.
+- Fetch player summaries concurrently with a bounded fanout to avoid worker timeouts.
+- Add circuit-breaker style behavior on repeated failures (use cached ESPN data when available).
+
+### Observability and diagnostics
+- Add structured logging for fetch failures and storage misses (KV/R2 key missing).
+- Add a `/health` check that validates KV and R2 bindings and returns a clear error payload.
+
+## Proposed implementation steps
+1. Update `wrangler.toml` with explicit deploy targets and per-env bindings.
+2. Move binding names into env/config and refactor `ServerlessStorage::from_env` usage.
+3. Add an admin refresh path or script for prod seeding and document the required data.
+4. Implement ESPN fetch concurrency + timeout + retry in `ServerlessEspnClient`.
+5. Add logging and health diagnostics for missing bindings and storage keys.
+
 ## First concrete steps
 - Add a `rusty-golf-serverless/` crate with `worker` and `wasm32-unknown-unknown` target. (scaffolded)
 - Introduce `Storage` trait in `rusty-golf-core` and refactor SQL calls behind it. (done for MVU + ESPN cache paths)

@@ -45,18 +45,41 @@ fn respond_html(body: String) -> Result<Response> {
 }
 
 #[cfg(target_arch = "wasm32")]
+fn read_env_binding(env: &Env, var_name: &str) -> Result<String> {
+    let value = env.var(var_name).map_err(|e| {
+        worker::Error::RustError(format!(
+            "Missing env var {var_name}; set it in wrangler.toml [vars]. {e}"
+        ))
+    })?;
+    let value = value.to_string();
+    if value.trim().is_empty() {
+        Err(worker::Error::RustError(format!(
+            "Env var {var_name} is empty; set it in wrangler.toml [vars]."
+        )))
+    } else {
+        Ok(value)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn storage_from_env(env: &Env) -> Result<ServerlessStorage> {
+    let kv_binding = read_env_binding(env, "KV_BINDING")?;
+    let r2_binding = read_env_binding(env, "R2_BINDING")?;
+    ServerlessStorage::from_env(env, &kv_binding, &r2_binding).map_err(|e| {
+        worker::Error::RustError(format!(
+            "Storage binding error (KV_BINDING={kv_binding}, R2_BINDING={r2_binding}): {e}"
+        ))
+    })
+}
+
+#[cfg(target_arch = "wasm32")]
 async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let query = parse_query_params(&req)?;
     let score_req = match parse_score_request(&query) {
         Ok(value) => value,
         Err(err) => return Response::error(err.to_string(), 400),
     };
-    let storage = ServerlessStorage::from_env(
-        &ctx.env,
-        ServerlessStorage::KV_BINDING,
-        ServerlessStorage::R2_BINDING,
-    )
-    .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
     let cache_max_age = cache_max_age_for_event(&storage, score_req.event_id)
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
@@ -102,15 +125,10 @@ async fn scores_summary_handler(req: Request, ctx: RouteContext<()>) -> Result<R
         Err(err) => return Response::error(err.to_string(), 400),
     };
     if !score_req.expanded {
-    let resp = Response::empty()?.with_status(204);
-    return Ok(resp);
+        let resp = Response::empty()?.with_status(204);
+        return Ok(resp);
     }
-    let storage = ServerlessStorage::from_env(
-        &ctx.env,
-        ServerlessStorage::KV_BINDING,
-        ServerlessStorage::R2_BINDING,
-    )
-    .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
     let cache_max_age = cache_max_age_for_event(&storage, score_req.event_id)
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
@@ -140,12 +158,7 @@ async fn scores_chart_handler(req: Request, ctx: RouteContext<()>) -> Result<Res
         Ok(value) => value,
         Err(err) => return Response::error(err.to_string(), 400),
     };
-    let storage = ServerlessStorage::from_env(
-        &ctx.env,
-        ServerlessStorage::KV_BINDING,
-        ServerlessStorage::R2_BINDING,
-    )
-    .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
     let cache_max_age = cache_max_age_for_event(&storage, score_req.event_id)
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
@@ -181,12 +194,7 @@ async fn scores_linescore_handler(req: Request, ctx: RouteContext<()>) -> Result
         Ok(value) => value,
         Err(err) => return Response::error(err.to_string(), 400),
     };
-    let storage = ServerlessStorage::from_env(
-        &ctx.env,
-        ServerlessStorage::KV_BINDING,
-        ServerlessStorage::R2_BINDING,
-    )
-    .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
     let cache_max_age = cache_max_age_for_event(&storage, score_req.event_id)
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
@@ -220,12 +228,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
     router
         .get_async("/health", |_, ctx| async move {
-            let _storage = ServerlessStorage::from_env(
-                &ctx.env,
-                ServerlessStorage::KV_BINDING,
-                ServerlessStorage::R2_BINDING,
-            )
-            .map_err(|e| worker::Error::RustError(e.to_string()))?;
+            let _storage = storage_from_env(&ctx.env)?;
             Response::ok("ok")
         })
         .get_async("/scores", |req, ctx| async move { scores_handler(req, ctx).await })
