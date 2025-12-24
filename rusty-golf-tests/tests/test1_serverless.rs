@@ -22,6 +22,13 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     let wrangler_log_dir_str = wrangler_log_dir.to_str().unwrap_or_default();
     let wrangler_config_dir = workspace_root.join(".wrangler-config");
     let wrangler_config_dir_str = wrangler_config_dir.to_str().unwrap_or_default();
+    println!(
+        "Using wrangler config: {}, log dir: {}",
+        wrangler_config.display(),
+        wrangler_log_dir.display()
+    );
+    let now = chrono::Local::now();
+    println!("Starting build_local at {}", now.format("%H:%M:%S"));
     run_script(
         &workspace_root.join("rusty-golf-serverless/scripts/build_local.sh"),
         &[
@@ -31,12 +38,17 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         ],
         &workspace_root,
     )?;
+    let now = chrono::Local::now();
+    println!("build_local completed at {}", now.format("%H:%M:%S"));
 
     let wrangler_kv_flags = format!(
         "--local --preview false --config {}",
         wrangler_config.display()
     );
     let wrangler_r2_flags = format!("--local --config {}", wrangler_config.display());
+
+    let now = chrono::Local::now();
+    println!("Seeding test data via seed_test1_local.sh at {}", now.format("%H:%M:%S"));
     run_script(
         &workspace_root.join("rusty-golf-serverless/scripts/seed_test1_local.sh"),
         &[
@@ -47,12 +59,17 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         ],
         &workspace_root,
     )?;
+    let now = chrono::Local::now();
+    println!("seed_test1_local completed at {}", now.format("%H:%M:%S"));
+    
 
     let stdout_path = wrangler_log_dir.join("wrangler-dev-stdout.log");
     let stderr_path = wrangler_log_dir.join("wrangler-dev-stderr.log");
     let stdout_file = std::fs::File::create(&stdout_path)?;
     let stderr_file = std::fs::File::create(&stderr_path)?;
 
+    let now = chrono::Local::now();
+    println!("Starting wrangler dev at {}", now.format("%H:%M:%S"));
     let child = Command::new("bash")
         .arg(
             workspace_root.join("rusty-golf-serverless/scripts/start_miniflare_local.sh"),
@@ -65,6 +82,9 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         .stdout(Stdio::from(stdout_file))
         .stderr(Stdio::from(stderr_file))
         .spawn()?;
+    let now = chrono::Local::now();
+    println!("wrangler dev started at {}", now.format("%H:%M:%S"));
+    
     let _guard = ChildGuard { child };
 
     if let Err(err) = wait_for_health("http://127.0.0.1:8787/health").await {
@@ -75,9 +95,11 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         )
         .into());
     }
+    println!("wrangler dev health check passed");
 
     let resp = reqwest::get("http://127.0.0.1:8787/scores?event=401580351&yr=2024&cache=1&json=1")
         .await?;
+    println!("Received response from /scores endpoint");
     assert!(resp.status().is_success(), "Unexpected status: {}", resp.status());
     let body: Value = resp.json().await?;
     assert!(body.is_object(), "Response is not a JSON object; got {body:?}");
