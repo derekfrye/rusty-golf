@@ -1,6 +1,7 @@
 use rusty_golf::args;
 use rusty_golf::controller::{db_prefill, score::scores};
-use rusty_golf::model::get_event_details;
+use rusty_golf::storage::SqlStorage;
+use rusty_golf_core::storage::Storage;
 use sql_middleware::middleware::{
     ConfigAndPool, DatabaseType, PgConfig, PostgresOptions, SqliteOptions,
 };
@@ -18,9 +19,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (config_and_pool, db_type) = init_config_and_pool(&args).await?;
     run_startup_tasks(&args, &config_and_pool, db_type).await?;
 
+    let storage = SqlStorage::new(config_and_pool.clone());
+
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::new(config_and_pool.clone()))
+            .app_data(Data::new(storage.clone()))
             .app_data(Data::new(args_for_web.clone()))
             .route("/", web::get().to(index))
             .route("/scores", web::get().to(scores))
@@ -47,14 +50,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn index(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
+    storage: Data<SqlStorage>,
 ) -> impl Responder {
-    // let db = Db::new(abc.get_ref().clone()).unwrap();
-    let config_and_pool = abc.get_ref().clone();
     let event_str = query.get("event").cloned().unwrap_or_default();
 
     let title = match event_str.parse() {
-        Ok(id) => match get_event_details(&config_and_pool, id).await {
+        Ok(id) => match storage.get_event_details(id).await {
             Ok(event_config) => event_config.event_name,
             Err(e) => {
                 eprintln!("Error: {e}");

@@ -1,10 +1,8 @@
 use crate::controller::espn::processing::go_get_espn_data;
 use crate::controller::espn::storage::store_espn_results;
-use crate::model::{
-    RefreshSource, Scores, ScoresAndLastRefresh, event_and_scores_already_in_db, get_scores_from_db,
-};
+use crate::model::{RefreshSource, Scores, ScoresAndLastRefresh};
+use rusty_golf_core::storage::Storage;
 use serde_json::Value;
-use sql_middleware::middleware::ConfigAndPool;
 use std::fs;
 use std::io;
 use std::sync::OnceLock;
@@ -24,16 +22,17 @@ async fn get_event_lock(event_id: i32) -> Arc<AsyncMutex<()>> {
 
 async fn try_cached_scores(
     use_cache: bool,
-    config_and_pool: &ConfigAndPool,
+    storage: &dyn Storage,
     event_id: i32,
 ) -> Result<Option<ScoresAndLastRefresh>, Box<dyn std::error::Error>> {
     if use_cache
-        && event_and_scores_already_in_db(config_and_pool, event_id, 0)
+        && storage
+            .event_and_scores_already_in_db(event_id, 0)
             .await
             .unwrap_or(false)
     {
         Ok(Some(
-            get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?,
+            storage.get_scores(event_id, RefreshSource::Db).await?,
         ))
     } else {
         Ok(None)
@@ -42,7 +41,7 @@ async fn try_cached_scores(
 
 async fn load_offline_scores(
     event_id: i32,
-    config_and_pool: &ConfigAndPool,
+    storage: &dyn Storage,
 ) -> Result<ScoresAndLastRefresh, Box<dyn std::error::Error>> {
     let text = fs::read_to_string("tests/test3_espn_json_responses.json")?;
     let val = serde_json::from_str::<Value>(&text)?;
@@ -50,20 +49,20 @@ async fn load_offline_scores(
         .get("score_struct")
         .ok_or_else(|| io::Error::other("offline fixture missing score_struct"))?;
     let scores_vec = serde_json::from_value::<Vec<Scores>>(score_struct.clone())?;
-    store_espn_results(&scores_vec, event_id, config_and_pool).await
+    store_espn_results(&scores_vec, event_id, storage).await
 }
 
 async fn fetch_or_fallback(
     scores: Vec<Scores>,
     year: i32,
     event_id: i32,
-    config_and_pool: &ConfigAndPool,
+    storage: &dyn Storage,
 ) -> Result<ScoresAndLastRefresh, Box<dyn std::error::Error>> {
     match go_get_espn_data(scores, year, event_id).await {
-        Ok(fetched_scores) => store_espn_results(&fetched_scores, event_id, config_and_pool).await,
+        Ok(fetched_scores) => store_espn_results(&fetched_scores, event_id, storage).await,
         Err(e) => {
             eprintln!("ESPN fetch failed: {e}. Falling back to offline fixtures.");
-            load_offline_scores(event_id, config_and_pool).await
+            load_offline_scores(event_id, storage).await
         }
     }
 }
@@ -75,11 +74,11 @@ pub async fn fetch_scores_from_espn(
     scores: Vec<Scores>,
     year: i32,
     event_id: i32,
-    config_and_pool: &ConfigAndPool,
+    storage: &dyn Storage,
     use_cache: bool,
     _cache_max_age: i64,
 ) -> Result<ScoresAndLastRefresh, Box<dyn std::error::Error>> {
-    if let Some(scores) = try_cached_scores(use_cache, config_and_pool, event_id).await? {
+    if let Some(scores) = try_cached_scores(use_cache, storage, event_id).await? {
         return Ok(scores);
     }
 
@@ -88,9 +87,9 @@ pub async fn fetch_scores_from_espn(
     let _guard = event_mutex.lock().await;
 
     // Re-check after acquiring the lock in case another task already populated the DB
-    if let Some(scores) = try_cached_scores(use_cache, config_and_pool, event_id).await? {
+    if let Some(scores) = try_cached_scores(use_cache, storage, event_id).await? {
         return Ok(scores);
     }
 
-    fetch_or_fallback(scores, year, event_id, config_and_pool).await
+    fetch_or_fallback(scores, year, event_id, storage).await
 }

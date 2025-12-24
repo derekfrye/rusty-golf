@@ -4,10 +4,8 @@ pub mod controller {
     pub mod espn;
     pub mod score;
 }
-pub mod view {
-    pub mod index;
-    pub mod score;
-}
+pub mod storage;
+pub mod view;
 
 pub mod mvu {
     pub mod error;
@@ -15,7 +13,7 @@ pub mod mvu {
     pub mod score;
 }
 
-const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
+pub use rusty_golf_core::HTMX_PATH;
 
 // // Re-export commonly used items for easier access in tests and other modules
 // pub use controller::score::scores;

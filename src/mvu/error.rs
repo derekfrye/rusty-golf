@@ -29,6 +29,12 @@ impl From<sql_middleware::SqlMiddlewareDbError> for AppError {
     }
 }
 
+impl From<rusty_golf_core::storage::StorageError> for AppError {
+    fn from(e: rusty_golf_core::storage::StorageError) -> Self {
+        Self::Db(e.to_string())
+    }
+}
+
 impl From<reqwest::Error> for AppError {
     fn from(e: reqwest::Error) -> Self {
         Self::Network(e.to_string())

@@ -1,0 +1,7 @@
+[package]
+name = "rusty-golf-serverless"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rusty-golf-core = { path = "../rusty-golf-core" }

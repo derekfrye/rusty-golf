@@ -1,8 +1,8 @@
-use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
 
 use crate::controller::espn::fetch_scores_from_espn;
-use crate::model::{Bettors, ScoreData, format_time_ago_for_score_view, get_golfers_from_db};
+use crate::model::{Bettors, ScoreData, format_time_ago_for_score_view};
+use rusty_golf_core::storage::Storage;
 
 /// # Errors
 ///
@@ -11,16 +11,16 @@ pub async fn get_data_for_scores_page(
     event_id: i32,
     year: i32,
     use_cache: bool,
-    config_and_pool: &ConfigAndPool,
+    storage: &dyn Storage,
     cache_max_age: i64,
 ) -> Result<ScoreData, Box<dyn std::error::Error>> {
-    let active_golfers = get_golfers_from_db(config_and_pool, event_id).await?;
+    let active_golfers = storage.get_golfers_for_event(event_id).await?;
 
     let golfers_and_scores = fetch_scores_from_espn(
         active_golfers.clone(),
         year,
         event_id,
-        config_and_pool,
+        storage,
         use_cache,
         cache_max_age,
     )

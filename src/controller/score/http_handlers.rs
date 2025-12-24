@@ -1,11 +1,11 @@
 use actix_web::web::{self, Data};
 use actix_web::{HttpResponse, Responder};
 use serde_json::json;
-use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
 
 use crate::mvu::runtime::run_score;
 use crate::mvu::score as mvu_score;
+use crate::storage::SqlStorage;
 use crate::view::score::chart::render_drop_down_bar_pure;
 use crate::view::score::types::RefreshData;
 use crate::view::score::{
@@ -18,12 +18,12 @@ use crate::view::score::{
 #[allow(clippy::implicit_hasher)]
 pub async fn scores(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
+    storage: Data<SqlStorage>,
 ) -> impl Responder {
-    let config_and_pool = abc.get_ref().clone();
+    let storage_ref = storage.get_ref();
 
     // Decode request → model
-    let mut model = match mvu_score::decode_request_to_model(&query, &config_and_pool).await {
+    let mut model = match mvu_score::decode_request_to_model(&query, storage_ref).await {
         Ok(m) => m,
         Err(e) => return HttpResponse::BadRequest().json(json!({"error": e.to_string()})),
     };
@@ -32,7 +32,7 @@ pub async fn scores(
         &mut model,
         mvu_score::Msg::PageLoad,
         mvu_score::Deps {
-            config_and_pool: &config_and_pool,
+            storage: storage_ref,
         },
     )
     .await;
@@ -59,9 +59,9 @@ pub async fn scores(
 #[allow(clippy::implicit_hasher)]
 pub async fn scores_summary(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
+    storage: Data<SqlStorage>,
 ) -> impl Responder {
-    let config_and_pool = abc.get_ref().clone();
+    let storage_ref = storage.get_ref();
 
     // Only render when expanded=1 is explicitly requested
     let expanded = matches!(query.get("expanded").map(String::as_str), Some("1"));
@@ -69,7 +69,7 @@ pub async fn scores_summary(
         return HttpResponse::NoContent().finish();
     }
 
-    let mut model = match mvu_score::decode_request_to_model(&query, &config_and_pool).await {
+    let mut model = match mvu_score::decode_request_to_model(&query, storage_ref).await {
         Ok(m) => m,
         Err(e) => return HttpResponse::BadRequest().json(json!({"error": e.to_string()})),
     };
@@ -78,7 +78,7 @@ pub async fn scores_summary(
         &mut model,
         mvu_score::Msg::PageLoad,
         mvu_score::Deps {
-            config_and_pool: &config_and_pool,
+            storage: storage_ref,
         },
     )
     .await;
@@ -100,10 +100,10 @@ pub async fn scores_summary(
 #[allow(clippy::implicit_hasher)]
 pub async fn scores_chart(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
+    storage: Data<SqlStorage>,
 ) -> impl Responder {
-    let config_and_pool = abc.get_ref().clone();
-    let mut model = match mvu_score::decode_request_to_model(&query, &config_and_pool).await {
+    let storage_ref = storage.get_ref();
+    let mut model = match mvu_score::decode_request_to_model(&query, storage_ref).await {
         Ok(m) => m,
         Err(e) => return HttpResponse::BadRequest().json(json!({"error": e.to_string()})),
     };
@@ -112,7 +112,7 @@ pub async fn scores_chart(
         &mut model,
         mvu_score::Msg::PageLoad,
         mvu_score::Deps {
-            config_and_pool: &config_and_pool,
+            storage: storage_ref,
         },
     )
     .await;
@@ -143,10 +143,10 @@ pub async fn scores_chart(
 #[allow(clippy::implicit_hasher)]
 pub async fn scores_linescore(
     query: web::Query<HashMap<String, String>>,
-    abc: Data<ConfigAndPool>,
+    storage: Data<SqlStorage>,
 ) -> impl Responder {
-    let config_and_pool = abc.get_ref().clone();
-    let mut model = match mvu_score::decode_request_to_model(&query, &config_and_pool).await {
+    let storage_ref = storage.get_ref();
+    let mut model = match mvu_score::decode_request_to_model(&query, storage_ref).await {
         Ok(m) => m,
         Err(e) => return HttpResponse::BadRequest().json(json!({"error": e.to_string()})),
     };
@@ -155,7 +155,7 @@ pub async fn scores_linescore(
         &mut model,
         mvu_score::Msg::PageLoad,
         mvu_score::Deps {
-            config_and_pool: &config_and_pool,
+            storage: storage_ref,
         },
     )
     .await;

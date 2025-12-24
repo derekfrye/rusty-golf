@@ -4,6 +4,7 @@ use std::vec;
 
 // use rusty_golf::controller::score;
 use rusty_golf::controller::score::get_data_for_scores_page;
+use rusty_golf::storage::SqlStorage;
 
 use sql_middleware::middleware::{
     ConfigAndPool as ConfigAndPool2, QueryAndParams, SqliteOptions,
@@ -44,7 +45,9 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
 
     conn.execute_batch(&query_and_params.query).await?;
 
-    let x = match get_data_for_scores_page(401_580_351, 2024, false, &config_and_pool, 0).await {
+    let storage = SqlStorage::new(config_and_pool.clone());
+
+    let x = match get_data_for_scores_page(401_580_351, 2024, false, &storage, 0).await {
         Ok(data) => data,
         Err(e) => return Err(e),
     };

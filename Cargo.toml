@@ -24,6 +24,8 @@ clap = { version = "4", features = ["derive"] }
 futures = "0"
 ahash = "0"
 #rusqlite = { version = "0", features = ["bundled"] }
+rusty-golf-core = { path = "rusty-golf-core" }
+async-trait = "0"
 
 [dependencies.tokio-util]
 version = "0.7"
@@ -34,3 +36,9 @@ scraper = "0"
 
 # [patch.crates-io]
 # sql-middleware = { path = "../sql-middleware" }
+
+[workspace]
+members = [
+    "rusty-golf-core",
+    "serverless",
+]

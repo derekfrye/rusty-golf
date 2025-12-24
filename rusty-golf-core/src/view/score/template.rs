@@ -1,16 +1,12 @@
 use maud::Markup;
-use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 
-use crate::model::database_read::get_scores_from_db;
-use crate::model::event::get_event_details;
-use crate::model::golfer::get_player_step_factors;
-use crate::model::{RefreshSource, ScoreData};
+use crate::model::ScoreData;
+use crate::score::{group_by_bettor_golfer_round, group_by_bettor_name_and_round};
 use crate::view::score::types::RefreshData;
 use crate::view::score::{
     render_drop_down_bar_pure, render_line_score_tables, render_scoreboard, render_summary_scores,
-    scores_and_last_refresh_to_line_score_tables,
 };
 
 #[must_use]
@@ -25,10 +21,8 @@ pub fn render_scores_template_pure<S: BuildHasher>(
     year: i32,
     _cache: bool,
 ) -> Markup {
-    let summary_scores_x =
-        crate::controller::score::group_by_bettor_name_and_round(&data.score_struct);
-    let detailed_scores =
-        crate::controller::score::group_by_bettor_golfer_round(&data.score_struct);
+    let summary_scores_x = group_by_bettor_name_and_round(&data.score_struct);
+    let detailed_scores = group_by_bettor_golfer_round(&data.score_struct);
 
     let refresh_data = RefreshData {
         last_refresh: data.last_refresh.clone(),
@@ -61,32 +55,4 @@ pub fn render_scores_template_pure<S: BuildHasher>(
             (render_line_score_tables(bettor_struct_for_line_scores, &refresh_data))
         }
     }
-}
-
-/// Backward-compatible async wrapper used by existing tests. Performs IO then renders purely.
-///
-/// # Errors
-///
-/// Returns an error if DB queries fail.
-pub async fn render_scores_template(
-    data: &ScoreData,
-    expanded: bool,
-    config_and_pool: &ConfigAndPool,
-    event_id: i32,
-) -> Result<Markup, Box<dyn std::error::Error>> {
-    let from_db_scores = get_scores_from_db(config_and_pool, event_id, RefreshSource::Db).await?;
-    let bettor_struct = scores_and_last_refresh_to_line_score_tables(&from_db_scores);
-    let event_details = get_event_details(config_and_pool, event_id).await?;
-    let player_step_factors = get_player_step_factors(config_and_pool, event_id).await?;
-
-    Ok(render_scores_template_pure(
-        data,
-        expanded,
-        &bettor_struct,
-        event_details.score_view_step_factor,
-        &player_step_factors,
-        event_id,
-        0,
-        true,
-    ))
 }

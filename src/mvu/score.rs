@@ -1,11 +1,8 @@
 use maud::Markup;
-use sql_middleware::middleware::ConfigAndPool;
+use rusty_golf_core::storage::Storage;
 
 use super::error::AppError;
 use crate::controller::score::data_service::get_data_for_scores_page;
-use crate::model::database_read::get_scores_from_db;
-use crate::model::event::get_event_details;
-use crate::model::golfer::get_player_step_factors;
 use crate::model::{RefreshSource, ScoreData, ScoresAndLastRefresh};
 use crate::view::score::{
     render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
@@ -146,7 +143,7 @@ pub fn update(model: &mut ScoreModel, msg: Msg) -> Vec<Effect> {
 
 #[derive(Clone, Copy)]
 pub struct Deps<'a> {
-    pub config_and_pool: &'a ConfigAndPool,
+    pub storage: &'a dyn Storage,
 }
 
 pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> Msg {
@@ -156,7 +153,7 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
                 model.event_id,
                 model.year,
                 model.use_cache,
-                deps.config_and_pool,
+                deps.storage,
                 model.cache_max_age,
             )
             .await
@@ -166,19 +163,22 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
             }
         }
         Effect::LoadEventConfig => {
-            match get_event_details(deps.config_and_pool, model.event_id).await {
+            match deps.storage.get_event_details(model.event_id).await {
                 Ok(event_details) => Msg::EventConfigLoaded(event_details.score_view_step_factor),
                 Err(e) => Msg::Failed(AppError::from(e)),
             }
         }
         Effect::LoadPlayerFactors => {
-            match get_player_step_factors(deps.config_and_pool, model.event_id).await {
+            match deps.storage.get_player_step_factors(model.event_id).await {
                 Ok(factors) => Msg::PlayerFactorsLoaded(factors),
                 Err(e) => Msg::Failed(AppError::from(e)),
             }
         }
         Effect::LoadDbScores => {
-            match get_scores_from_db(deps.config_and_pool, model.event_id, RefreshSource::Db).await
+            match deps
+                .storage
+                .get_scores(model.event_id, RefreshSource::Db)
+                .await
             {
                 Ok(from_db_scores) => Msg::DbScoresLoaded(from_db_scores),
                 Err(e) => Msg::Failed(AppError::from(e)),
@@ -217,7 +217,7 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
 /// Returns `AppError::Other` with human-readable messages for missing or invalid params.
 pub async fn decode_request_to_model<S: BuildHasher>(
     query: &HashMap<String, String, S>,
-    config_and_pool: &ConfigAndPool,
+    storage: &dyn Storage,
 ) -> Result<ScoreModel, AppError> {
     let event_id: i32 = query
         .get("event")
@@ -243,7 +243,7 @@ pub async fn decode_request_to_model<S: BuildHasher>(
         Some(other) => other.parse().unwrap_or(false),
     };
 
-    let cache_max_age: i64 = match get_event_details(config_and_pool, event_id).await {
+    let cache_max_age: i64 = match storage.get_event_details(event_id).await {
         Ok(event_details) => match event_details.refresh_from_espn {
             1 => 99,
             _ => 0,
