@@ -37,16 +37,16 @@ pub async fn setup_test_context(fixture_sql: &str) -> Result<TestContext, SqlMid
 
     execute_batch(
         &config_and_pool,
-        include_str!("../../src/sql/schema/sqlite/00_table_drop.sql"),
+        include_str!("../../../rusty-golf-actix/src/sql/schema/sqlite/00_table_drop.sql"),
     )
     .await?;
 
     let schema = [
-        include_str!("../../src/sql/schema/sqlite/00_event.sql"),
-        include_str!("../../src/sql/schema/sqlite/02_golfer.sql"),
-        include_str!("../../src/sql/schema/sqlite/03_bettor.sql"),
-        include_str!("../../src/sql/schema/sqlite/04_event_user_player.sql"),
-        include_str!("../../src/sql/schema/sqlite/05_eup_statistic.sql"),
+        include_str!("../../../rusty-golf-actix/src/sql/schema/sqlite/00_event.sql"),
+        include_str!("../../../rusty-golf-actix/src/sql/schema/sqlite/02_golfer.sql"),
+        include_str!("../../../rusty-golf-actix/src/sql/schema/sqlite/03_bettor.sql"),
+        include_str!("../../../rusty-golf-actix/src/sql/schema/sqlite/04_event_user_player.sql"),
+        include_str!("../../../rusty-golf-actix/src/sql/schema/sqlite/05_eup_statistic.sql"),
     ]
     .join("\n");
     execute_batch(&config_and_pool, &schema).await?;

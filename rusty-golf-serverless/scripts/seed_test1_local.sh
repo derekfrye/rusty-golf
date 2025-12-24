@@ -12,10 +12,10 @@ if ! command -v wrangler >/dev/null 2>&1; then
 fi
 
 EVENT_ID="${EVENT_ID:-401580351}"
-KV_BINDING="${KV_BINDING:-SCORES_KV}"
+KV_BINDING="${KV_BINDING:-djf_rusty_golf_kv}"
 R2_BINDING="${R2_BINDING:-SCORES_R2}"
 WRANGLER_FLAGS="${WRANGLER_FLAGS:---local}"
-FIXTURE_JSON="${FIXTURE_JSON:-tests/test3_espn_json_responses.json}"
+FIXTURE_JSON="${FIXTURE_JSON:-rusty-golf-tests/tests/test3_espn_json_responses.json}"
 
 if [[ ! -f "${FIXTURE_JSON}" ]]; then
   echo "Fixture not found: ${FIXTURE_JSON}" >&2

@@ -52,11 +52,11 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
 
     // Set up database schema from SQL files
     let ddl = [
-        include_str!("../src/sql/schema/sqlite/00_event.sql"),
-        include_str!("../src/sql/schema/sqlite/02_golfer.sql"),
-        include_str!("../src/sql/schema/sqlite/03_bettor.sql"),
-        include_str!("../src/sql/schema/sqlite/04_event_user_player.sql"),
-        include_str!("../src/sql/schema/sqlite/05_eup_statistic.sql"),
+        include_str!("../../rusty-golf-actix/src/sql/schema/sqlite/00_event.sql"),
+        include_str!("../../rusty-golf-actix/src/sql/schema/sqlite/02_golfer.sql"),
+        include_str!("../../rusty-golf-actix/src/sql/schema/sqlite/03_bettor.sql"),
+        include_str!("../../rusty-golf-actix/src/sql/schema/sqlite/04_event_user_player.sql"),
+        include_str!("../../rusty-golf-actix/src/sql/schema/sqlite/05_eup_statistic.sql"),
     ];
 
     let query_and_params = QueryAndParams {

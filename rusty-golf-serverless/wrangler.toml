@@ -1,0 +1,11 @@
+name = "rusty-golf-serverless"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-10-01"
+
+kv_namespaces = [
+  { binding = "djf_rusty_golf_kv", id = "a58260e26eca4000906a8fc491bc1d5d", preview_id = "a58260e26eca4000906a8fc491bc1d5d" }
+]
+
+r2_buckets = [
+  { binding = "SCORES_R2", bucket_name = "djf-rusty-golf" }
+]

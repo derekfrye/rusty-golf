@@ -17,7 +17,7 @@ pub struct ServerlessStorage {
 }
 
 impl ServerlessStorage {
-    pub const KV_BINDING: &str = "SCORES_KV";
+    pub const KV_BINDING: &str = "djf_rusty_golf_kv";
     pub const R2_BINDING: &str = "SCORES_R2";
 
     pub fn from_env(env: &Env, kv_binding: &str, r2_binding: &str) -> Result<Self, StorageError> {

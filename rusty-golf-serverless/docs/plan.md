@@ -19,9 +19,9 @@
 - Workspace layout now in place:
   - `rusty-golf-core` (shared pure logic + Storage trait)
   - `rusty-golf` (native Actix binary + SQL storage impl)
-  - `serverless` (Workers entrypoint)
+  - `rusty-golf-serverless` (Workers entrypoint)
 - Continue moving pure modules (MVU + view + DTOs) into `rusty-golf-core`.
-- Keep Workers-only entrypoints and bindings in `serverless/src/lib.rs`.
+- Keep Workers-only entrypoints and bindings in `rusty-golf-serverless/src/lib.rs`.
 
 ## Dependency trim/replace (from `Cargo.toml`)
 Remove or replace:
@@ -148,7 +148,7 @@ Implementations (current/next):
 - Do we need per-request recomputation, or can we cache rendered HTML for hot paths?
 
 ## First concrete steps
-- Add a `serverless/` crate with `worker` and `wasm32-unknown-unknown` target. (scaffolded)
+- Add a `rusty-golf-serverless/` crate with `worker` and `wasm32-unknown-unknown` target. (scaffolded)
 - Introduce `Storage` trait in `rusty-golf-core` and refactor SQL calls behind it. (done for MVU + ESPN cache paths)
 - Continue moving MVU into `rusty-golf-core`.
 - Implement R2 storage and integrate into storage trait.
