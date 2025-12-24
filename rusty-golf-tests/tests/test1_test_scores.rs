@@ -13,10 +13,10 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
+    let storage = rusty_golf::storage::SqlStorage::new(test_ctx.config_and_pool.clone());
     let app = test::init_service(
         App::new()
-            .app_data(Data::new(test_ctx.config_and_pool.clone()))
-            .app_data(Data::new(test_ctx.args.clone()))
+            .app_data(Data::new(storage))
             .route("/scores", actix_web::web::get().to(scores)),
     )
     .await;

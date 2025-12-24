@@ -20,6 +20,10 @@ use sql_middleware::middleware::{
 async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging (optional, but useful for debugging)
     // let _ = env_logger::builder().is_test(true).try_init();
+    let _ = dotenvy::dotenv();
+    if std::env::var("R2_ENDPOINT").is_err() {
+        let _ = dotenvy::from_filename("../.env");
+    }
 
     let x = "file::memory:?cache=shared".to_string();
     let sqlite_options = SqliteOptions::new(x.clone());
@@ -131,7 +135,13 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     assert_eq!(left, right);
     assert_eq!(left, 3); // line 6824 in test3_espn_json_responses.json
 
-    if dotenvy::dotenv().is_ok() {
+    let r2_ready = std::env::var("R2_ENDPOINT").is_ok()
+        && std::env::var("R2_BUCKET").is_ok()
+        && (std::env::var("R2_ACCESS_KEY_ID").is_ok() || std::env::var("AWS_ACCESS_KEY_ID").is_ok())
+        && (std::env::var("R2_SECRET_ACCESS_KEY").is_ok()
+            || std::env::var("AWS_SECRET_ACCESS_KEY").is_ok());
+
+    if r2_ready {
         let r2_config = R2Storage::config_from_env()?;
         let signer = R2Storage::signer_from_config(&r2_config);
         let r2_storage = R2Storage::new(r2_config, std::sync::Arc::new(signer));
@@ -182,7 +192,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
             "R2-rendered markup should not be empty"
         );
     } else {
-        println!("Skipping R2 checks: .env not found");
+        println!("Skipping R2 checks: missing R2 env vars");
     }
 
     Ok(())
