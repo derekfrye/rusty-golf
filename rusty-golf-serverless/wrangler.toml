@@ -1,11 +1,31 @@
-name = "rusty-golf-serverless"
+name = "rusty-golf"
 main = "build/worker/shim.mjs"
 compatibility_date = "2024-10-01"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1
 
 [build]
 command = "worker-build ./rusty-golf-serverless"
 
+[assets]
+directory = "../static"
+binding = "ASSETS"
+
 [env.dev]
+name = "rusty-golf-dev"
 account_id = "0d647b6009886e56766d5113275dbd66"
 workers_dev = true
 routes = ["golfdev.dfrye.io/*"]

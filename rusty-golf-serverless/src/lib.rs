@@ -17,6 +17,7 @@ use {
         cache_max_age_for_event, load_score_context, parse_score_request,
         group_by_bettor_golfer_round, group_by_bettor_name_and_round,
     },
+    rusty_golf_core::view::index::render_index_template,
     rusty_golf_core::view::score::{
         render_drop_down_bar_pure, render_line_score_tables, render_scores_template_pure,
         render_summary_scores, scores_and_last_refresh_to_line_score_tables, RefreshData,
@@ -115,6 +116,25 @@ async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Response>
         );
         respond_html(markup.into_string())
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn index_handler() -> Result<Response> {
+    let markup = render_index_template("Scoreboard");
+    respond_html(markup.into_string())
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn static_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let assets = ctx.env.assets("ASSETS")?;
+    let mut url = req
+        .url()
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let path = url.path();
+    let stripped = path.strip_prefix("/static/").unwrap_or(path);
+    let rewritten = format!("/{}", stripped.trim_start_matches('/'));
+    url.set_path(&rewritten);
+    assets.fetch(url.to_string(), None).await
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -226,7 +246,11 @@ async fn scores_linescore_handler(req: Request, ctx: RouteContext<()>) -> Result
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     let router = Router::new();
 
-    router
+    let result = router
+        .get_async("/", |_, _| async move { index_handler().await })
+        .get_async("/static/*path", |req, ctx| async move {
+            static_handler(req, ctx).await
+        })
         .get_async("/health", |_, ctx| async move {
             let _storage = storage_from_env(&ctx.env)?;
             Response::ok("ok")
@@ -242,5 +266,10 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             scores_linescore_handler(req, ctx).await
         })
         .run(req, env)
-        .await
+        .await;
+
+    match result {
+        Ok(resp) => Ok(resp),
+        Err(err) => Response::error(err.to_string(), 500),
+    }
 }

@@ -45,9 +45,11 @@ impl EspnApiClient for ServerlessEspnClient {
                     .map_err(|e| CoreError::Network(e.to_string()))?;
 
                 if json.contains_key("rounds") {
-                    Ok(Some((eup_id, json)))
+                    Ok::<Option<(i64, HashMap<String, serde_json::Value>)>, CoreError>(Some((
+                        eup_id, json,
+                    )))
                 } else {
-                    Ok(None)
+                    Ok::<Option<(i64, HashMap<String, serde_json::Value>)>, CoreError>(None)
                 }
             }
         }))

@@ -3,14 +3,14 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: seed_kv_from_eup.sh EUP_JSON [EVENT_ID]
+Usage: seed_kv_from_eup.sh EUP_JSON KV_ENV [EVENT_ID]
 
 Seeds KV entries (event details, golfers, player_factors) from a db_prefill-style eup.json.
 
 Environment overrides:
   CONFIG_PATH        Path to wrangler.toml (default: rusty-golf-serverless/wrangler.toml)
   WRANGLER_ENV       Wrangler env (default: dev)
-  KV_BINDING         KV binding name (default: djf_rusty_golf_kv)
+  KV_ENV             KV env to target (dev or prod)
   REFRESH_FROM_ESPN  refresh_from_espn value (default: 1)
   WRANGLER_FLAGS     Extra flags (default: --config <CONFIG_PATH>)
   WRANGLER_KV_FLAGS  Overrides WRANGLER_FLAGS for KV commands
@@ -19,19 +19,19 @@ Environment overrides:
 EOF
 }
 
-if [[ $# -lt 1 ]]; then
+if [[ $# -lt 2 ]]; then
   usage >&2
   exit 1
 fi
 
 EUP_JSON="$1"
-EVENT_ID="${2:-}"
+KV_ENV="$2"
+EVENT_ID="${3:-}"
 
 CONFIG_PATH="${CONFIG_PATH:-rusty-golf-serverless/wrangler.toml}"
 WRANGLER_ENV="${WRANGLER_ENV:-dev}"
-KV_BINDING="${KV_BINDING:-djf_rusty_golf_kv}"
 REFRESH_FROM_ESPN="${REFRESH_FROM_ESPN:-1}"
-WRANGLER_FLAGS="${WRANGLER_FLAGS:---config ${CONFIG_PATH}}"
+WRANGLER_FLAGS="${WRANGLER_FLAGS:---config ${CONFIG_PATH} --remote --preview false}"
 WRANGLER_KV_FLAGS="${WRANGLER_KV_FLAGS:-${WRANGLER_FLAGS} --env ${WRANGLER_ENV}}"
 log_dir="${WRANGLER_LOG_DIR:-rusty-golf-serverless/.wrangler-logs}"
 config_dir="${XDG_CONFIG_HOME:-rusty-golf-serverless/.wrangler-config}"
@@ -41,25 +41,48 @@ if [[ ! -f "${EUP_JSON}" ]]; then
   exit 1
 fi
 
+if [[ -z "${KV_ENV}" ]]; then
+  echo "Missing KV env." >&2
+  usage >&2
+  exit 1
+fi
+
+if [[ "${KV_ENV}" != "dev" && "${KV_ENV}" != "prod" ]]; then
+  echo "KV env must be 'dev' or 'prod'." >&2
+  exit 1
+fi
+
 mkdir -p "${log_dir}" "${config_dir}"
 export WRANGLER_LOG_DIR="${log_dir}"
 export XDG_CONFIG_HOME="${config_dir}"
 
 tmp_dir="$(mktemp -d)"
-event_ids_file="${tmp_dir}/event_ids.txt"
 cleanup() {
   rm -rf "${tmp_dir}"
 }
 trap cleanup EXIT
 
-python - "${EUP_JSON}" "${tmp_dir}" "${EVENT_ID}" "${REFRESH_FROM_ESPN}" "${event_ids_file}" <<'PY'
+python_output="$(python - "${EUP_JSON}" "${CONFIG_PATH}" "${KV_ENV}" "${tmp_dir}" "${EVENT_ID}" "${REFRESH_FROM_ESPN}" <<'PY'
 import json
 import os
 import sys
+import tomllib
 
-eup_path, out_dir, event_id_arg, refresh_from_espn, event_ids_file = sys.argv[1:]
+eup_path, config_path, kv_env, out_dir, event_id_arg, refresh_from_espn = sys.argv[1:]
 refresh_from_espn = int(refresh_from_espn)
 event_id_filter = int(event_id_arg) if event_id_arg else None
+
+with open(config_path, "rb") as handle:
+    config = tomllib.load(handle)
+
+env_config = config.get("env", {}).get(kv_env, {})
+kv_namespaces = env_config.get("kv_namespaces", [])
+if not kv_namespaces:
+    raise SystemExit(f"No kv_namespaces found for env '{kv_env}' in {config_path}")
+
+kv_namespace_id = kv_namespaces[0].get("id")
+if not kv_namespace_id:
+    raise SystemExit(f"Missing kv_namespaces[0].id for env '{kv_env}' in {config_path}")
 
 with open(eup_path, "r", encoding="utf-8") as handle:
     data = json.load(handle)
@@ -121,19 +144,34 @@ for event in events:
     with open(os.path.join(event_dir, "player_factors.json"), "w", encoding="utf-8") as out:
         json.dump(player_factors, out, separators=(",", ":"))
 
-with open(event_ids_file, "w", encoding="utf-8") as handle:
-    handle.write("\n".join(str(event["event"]) for event in events))
+event_ids = "\n".join(str(event["event"]) for event in events)
+print(kv_namespace_id)
+print(event_ids)
 PY
+)"
+
+KV_NAMESPACE_ID="$(printf '%s\n' "${python_output}" | head -n 1)"
+event_ids="$(printf '%s\n' "${python_output}" | tail -n +2)"
+
+if [[ -z "${KV_NAMESPACE_ID}" ]]; then
+  echo "Missing KV namespace id in ${CONFIG_PATH} for env ${KV_ENV}." >&2
+  exit 1
+fi
+
+if [[ -z "${event_ids}" ]]; then
+  echo "No events found to seed." >&2
+  exit 1
+fi
 
 while IFS= read -r event_id; do
   event_dir="${tmp_dir}/${event_id}"
-  wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
+  wrangler kv key put ${WRANGLER_KV_FLAGS} --namespace-id "${KV_NAMESPACE_ID}" \
     "event:${event_id}:details" --path "${event_dir}/event_details.json"
-  wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
+  wrangler kv key put ${WRANGLER_KV_FLAGS} --namespace-id "${KV_NAMESPACE_ID}" \
     "event:${event_id}:golfers" --path "${event_dir}/golfers.json"
-  wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
+  wrangler kv key put ${WRANGLER_KV_FLAGS} --namespace-id "${KV_NAMESPACE_ID}" \
     "event:${event_id}:player_factors" --path "${event_dir}/player_factors.json"
   echo "Seeded KV for event ${event_id}."
-done < "${event_ids_file}"
+done <<< "${event_ids}"
 
 echo "KV seed complete for env ${WRANGLER_ENV}."
