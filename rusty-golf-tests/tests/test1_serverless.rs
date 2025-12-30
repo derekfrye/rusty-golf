@@ -73,6 +73,8 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         &[
             ("WRANGLER_KV_FLAGS", wrangler_kv_flags.as_str()),
             ("WRANGLER_R2_FLAGS", wrangler_r2_flags.as_str()),
+            // wrangler dev --local reads from the preview R2 bucket by default.
+            ("R2_BUCKET", "djf-rusty-golf-dev-preview"),
             ("WRANGLER_LOG_DIR", wrangler_log_dir_str),
             ("XDG_CONFIG_HOME", wrangler_config_dir_str),
         ],

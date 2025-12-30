@@ -22,3 +22,4 @@ rusty-golf-serverless/.wrangler/state/*
 .wrangler-config
 node_modules/
 dist/
+.wrangler-locks/worker-build.lock

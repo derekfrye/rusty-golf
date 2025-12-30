@@ -14,6 +14,7 @@ fi
 EVENT_ID="${EVENT_ID:-401580351}"
 KV_BINDING="${KV_BINDING:-djf_rusty_golf_kv}"
 R2_BINDING="${R2_BINDING:-SCORES_R2}"
+# wrangler dev --local uses the preview bucket; non-preview names won't be visible to miniflare.
 R2_BUCKET="${R2_BUCKET:-djf-rusty-golf-dev}"
 WRANGLER_ENV="${WRANGLER_ENV:-dev}"
 WRANGLER_FLAGS="${WRANGLER_FLAGS:---local}"
