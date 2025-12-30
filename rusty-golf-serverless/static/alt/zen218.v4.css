@@ -1,0 +1,490 @@
+:root {
+  --ink: #1f231b;
+  --ink-soft: #3f4a36;
+  --paper: #fbfbf7;
+  --paper-deep: #f1f2e8;
+  --accent: #6e8f3b;
+  --accent-deep: #466027;
+  --sage: #5f7a4a;
+  --gold: #cbb971;
+  --shadow: rgba(20, 28, 16, 0.16);
+  --line: rgba(40, 58, 32, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.alt-zen {
+  margin: 0;
+  color: var(--ink);
+  background: radial-gradient(1200px 600px at 20% -10%, #ffffff, #f3f4eb 60%, #e7eadf 100%);
+  font-family: "Fira Sans", "Gill Sans", "Trebuchet MS", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.paper-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(0deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)),
+    repeating-linear-gradient(45deg, rgba(90, 75, 55, 0.05) 0 2px, rgba(255, 255, 255, 0) 2px 8px);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 36px 24px 48px;
+}
+
+.mast {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 24px 28px;
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, #ffffff 0%, #f1f4e6 100%);
+  box-shadow: 0 18px 40px var(--shadow);
+  border-radius: 18px;
+  animation: rise 0.7s ease-out both;
+}
+
+.title-block h1 {
+  margin: 8px 0 6px;
+  font-family: "Cormorant Garamond", "Garamond", "Palatino Linotype", serif;
+  font-weight: 600;
+  font-size: clamp(32px, 4vw, 48px);
+  letter-spacing: 0.02em;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 11px;
+  color: var(--sage);
+  margin: 0;
+}
+
+.deck {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 420px;
+}
+
+.switches {
+  display: flex;
+  align-items: center;
+}
+
+.theme-toggle {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.theme-switch {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-label,
+.theme-toggle-text {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.theme-label {
+  text-align: right;
+}
+
+.content {
+  margin-top: 28px;
+}
+
+.panel {
+  position: relative;
+  background: var(--paper);
+  border-radius: 20px;
+  padding: 16px 28px 28px;
+  border: 1px solid var(--line);
+  box-shadow: 0 22px 45px var(--shadow);
+  animation: fade-in 0.9s ease-out 0.1s both;
+}
+
+.golf-ball-overlay {
+  position: absolute;
+  width: clamp(220px, 28vw, 360px);
+  height: clamp(220px, 28vw, 360px);
+  border-radius: 50%;
+  left: 50%;
+  bottom: -170px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 45% 35%, #ffffff 0%, #f7f2e6 55%, #eadfcb 100%);
+  box-shadow: 0 14px 40px rgba(30, 24, 16, 0.18);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.golf-ball-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 18% 18% auto auto;
+  width: 64%;
+  height: 64%;
+  background:
+    radial-gradient(circle, rgba(55, 48, 39, 0.35) 0 8px, transparent 9px) 0 0 / 34px 34px,
+    radial-gradient(circle, rgba(55, 48, 39, 0.28) 0 7px, transparent 8px) 17px 18px / 30px 30px;
+  opacity: 0.75;
+  border-radius: 50%;
+  transform: rotate(-12deg);
+}
+
+.panel > :not(.golf-ball-overlay) {
+  position: relative;
+  z-index: 1;
+}
+
+h3 {
+  font-family: "Cormorant Garamond", "Garamond", "Palatino Linotype", serif;
+  font-weight: 600;
+  font-size: 26px;
+  margin: 18px 0 12px;
+  color: var(--accent-deep);
+}
+
+.panel > h3 {
+  margin-top: 0;
+}
+
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fbfbf5;
+  border: 1px solid var(--line);
+  font-family: "IBM Plex Sans", "Fira Sans", "Gill Sans", "Trebuchet MS", sans-serif;
+  font-weight: 600;
+}
+
+.styled-table thead th {
+  background: var(--accent);
+  color: #f7f7ef;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  padding: 14px 16px;
+}
+
+.styled-table th:nth-child(3),
+.styled-table td:nth-child(3) {
+  text-align: right;
+}
+
+.styled-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(58, 54, 47, 0.12);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.styled-table tbody tr:nth-child(even) {
+  background: #f2efea;
+}
+
+.playerbars {
+  margin-top: 30px;
+  border-top: 1px dashed var(--line);
+  padding-top: 18px;
+}
+
+.player-bar-container {
+  border: 1px solid var(--line);
+  background: #fbf7ee;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.player-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.player-button {
+  border: 1px solid var(--ink-soft);
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.player-button.selected {
+  background: var(--accent);
+  color: #fff6e6;
+  border-color: var(--accent);
+}
+
+.chart-container {
+  display: grid;
+  gap: 16px;
+}
+
+.chart.hidden {
+  display: none;
+}
+
+.chart-row {
+  display: flex;
+  align-items: center;
+}
+
+.golfer-bar-container {
+  border-top: 1px solid rgba(58, 54, 47, 0.1);
+  padding-top: 14px;
+}
+
+.golfer-label {
+  font-family: "IBM Plex Sans", "Fira Sans", "Gill Sans", "Trebuchet MS", sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  margin-bottom: 0;
+  padding-right: 10px;
+  text-align: right;
+  width: 16ch;
+   padding-right: 0.5rem; /* Space between label and bars */
+  white-space: nowrap;
+  overflow: hidden;
+  /*text-overflow: ellipsis;*/
+}
+
+.golfer-label .bar-label {
+  font-family: inherit;
+  font-weight: inherit;
+}
+
+.bar-row {
+  background: #fcf7d9;
+  border-radius: 10px;
+  padding: 8px;
+  flex: 1;
+}
+
+.progress-bar {
+  position: relative;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.centerline {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: rgba(28, 24, 18, 0.25);
+}
+
+.vertical-line {
+  display: none;
+}
+
+.bar {
+  position: absolute;
+  top: 7px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  font-size: 11px;
+  color: #fff6e6;
+}
+
+.bar.negative {
+  background: linear-gradient(90deg, #5b6d4a, #7a8f5f);
+}
+
+.bar.positive {
+  background: linear-gradient(90deg, #8f3a2b, #c75b3a);
+}
+
+.bar.zero {
+  background: linear-gradient(90deg, #9a8b6d, #c2ad83);
+}
+
+.bar-text {
+  mix-blend-mode: screen;
+}
+
+#linescore {
+  margin-top: 28px;
+}
+
+.linescore-container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.linescore-table {
+  width: auto;
+  border-collapse: collapse;
+  background: #fbf7ee;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.linescore-table th,
+.linescore-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(58, 54, 47, 0.12);
+  font-size: 13px;
+}
+
+.linescore-table thead th {
+  background: var(--accent);
+  color: #f7f7ef;
+}
+
+.linescore-round-button {
+  border: 1px solid var(--ink-soft);
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.linescore-round-button.selected {
+  background: var(--accent);
+  color: #fff6e6;
+  border-color: var(--accent);
+}
+
+.score-shape-birdie {
+  background: #c9e3b4;
+  border: 1px solid #93b57c;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.score-shape-bogey {
+  background: #f1c2b2;
+  border: 1px solid #d68a73;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.score-shape-doublebogey,
+.score-shape-double-bogey {
+  background: #f7a49f;
+  border: 1px solid #cf6f6b;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.score-shape-par {
+  background: #e6e0d4;
+  border: 1px solid #c4b8a1;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.refresh {
+  color: var(--ink-soft);
+  font-size: 12px;
+  margin-top: 14px;
+}
+
+.foot {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .mast {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .panel {
+    padding: 14px 20px 20px;
+  }
+
+  .styled-table td,
+  .styled-table th,
+  .linescore-table td,
+  .linescore-table th {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 24px 16px 32px;
+  }
+
+  .golf-ball-overlay {
+    width: clamp(180px, 44vw, 260px);
+    height: clamp(180px, 44vw, 260px);
+    bottom: -140px;
+    opacity: 0.4;
+  }
+
+  .player-selection {
+    gap: 6px;
+  }
+
+  .progress-bar {
+    height: 46px;
+  }
+}

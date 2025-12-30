@@ -27,7 +27,6 @@ if [[ ! -f "${FIXTURE_JSON}" ]]; then
   echo "Fixture not found: ${FIXTURE_JSON}" >&2
   exit 1
 fi
-
 tmp_dir="$(mktemp -d)"
 cleanup() {
   rm -rf "${tmp_dir}"
@@ -38,21 +37,8 @@ mkdir -p "${log_dir}" "${config_dir}"
 export WRANGLER_LOG_DIR="${log_dir}"
 export XDG_CONFIG_HOME="${config_dir}"
 
-event_details_json="${tmp_dir}/event_details.json"
-golfers_json="${tmp_dir}/golfers.json"
-player_factors_json="${tmp_dir}/player_factors.json"
 last_refresh_json="${tmp_dir}/last_refresh.json"
 scores_json="${tmp_dir}/scores.json"
-
-cat >"${event_details_json}" <<EOF
-{"event_name":"PGA Championship","score_view_step_factor":3.0,"refresh_from_espn":1}
-EOF
-
-jq '.score_struct | map({eup_id, espn_id, golfer_name, bettor_name, group, score_view_step_factor: null})' \
-  "${FIXTURE_JSON}" >"${golfers_json}"
-
-jq '.score_struct | map({golfer_espn_id: .espn_id, bettor_name, step_factor: 3.0}) | unique_by(.golfer_espn_id, .bettor_name)' \
-  "${FIXTURE_JSON}" >"${player_factors_json}"
 
 cat >"${last_refresh_json}" <<EOF
 {"ts":"2024-05-19T00:00:00Z","source":"Espn"}
@@ -61,12 +47,6 @@ EOF
 jq '{score_struct: .score_struct, last_refresh: "2024-05-19T00:00:00", last_refresh_source: "Espn"}' \
   "${FIXTURE_JSON}" >"${scores_json}"
 
-wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
-  "event:${EVENT_ID}:details" --path "${event_details_json}"
-wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
-  "event:${EVENT_ID}:golfers" --path "${golfers_json}"
-wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
-  "event:${EVENT_ID}:player_factors" --path "${player_factors_json}"
 wrangler kv key put ${WRANGLER_KV_FLAGS} --binding "${KV_BINDING}" \
   "event:${EVENT_ID}:last_refresh" --path "${last_refresh_json}"
 

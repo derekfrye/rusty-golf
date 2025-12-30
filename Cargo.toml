@@ -2,7 +2,7 @@
 members = [
     "rusty-golf-actix",
     "rusty-golf-core",
-    "rusty-golf-serverless",
+    "rusty-golf-serverless", "rusty-golf-setup",
     "rusty-golf-tests",
 ]
 resolver = "3"

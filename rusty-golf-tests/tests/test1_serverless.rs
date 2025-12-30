@@ -3,6 +3,7 @@ use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
+use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
@@ -46,6 +47,24 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         wrangler_config.display()
     );
     let wrangler_r2_flags = format!("--local --config {} --env dev", wrangler_config.display());
+
+    let event_id = 401580351_i64;
+    let wrangler_kv_flag_list = wrangler_kv_flags
+        .split_whitespace()
+        .map(|flag| flag.to_string())
+        .collect::<Vec<_>>();
+    seed_kv_from_eup(SeedOptions {
+        eup_json: workspace_root.join("rusty-golf-tests/tests/test5_dbprefill.json"),
+        kv_env: "dev".to_string(),
+        kv_binding: Some("djf_rusty_golf_kv".to_string()),
+        event_id: Some(event_id),
+        refresh_from_espn: 1,
+        wrangler_config: wrangler_config.clone(),
+        wrangler_env: "dev".to_string(),
+        wrangler_kv_flags: wrangler_kv_flag_list,
+        wrangler_log_dir: Some(wrangler_log_dir.clone()),
+        wrangler_config_dir: Some(wrangler_config_dir.clone()),
+    })?;
 
     let now = chrono::Local::now();
     println!("Seeding test data via seed_test1_local.sh at {}", now.format("%H:%M:%S"));
@@ -97,7 +116,9 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     }
     println!("wrangler dev health check passed");
 
-    let resp = reqwest::get("http://127.0.0.1:8787/scores?event=401580351&yr=2024&cache=1&json=1")
+    let resp = reqwest::get(format!(
+        "http://127.0.0.1:8787/scores?event={event_id}&yr=2024&cache=1&json=1"
+    ))
         .await?;
     println!("Received response from /scores endpoint");
     assert!(resp.status().is_success(), "Unexpected status: {}", resp.status());

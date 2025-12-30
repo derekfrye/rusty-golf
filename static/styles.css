@@ -520,3 +520,30 @@ h4.playerdetails {
   /* no border-radius -> it's a square */
 }
 
+.theme-switch {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-toggle {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.theme-label,
+.theme-toggle-text {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #222;
+}
+
+.theme-label {
+  text-align: right;
+}
