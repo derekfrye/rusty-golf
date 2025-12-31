@@ -29,11 +29,6 @@
   display: inline;
 }
 
-.switches {
-  margin-left: auto;
-  z-index: 1000;
-}
-
 .theme-label {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -46,8 +41,20 @@
   align-items: flex-end;
   gap: 16px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
+.title-block {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.switches {
+  position: fixed;
+  top: 1rem;
+  right: 9rem;
+  z-index: 1000;
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .theme-toggle-text {

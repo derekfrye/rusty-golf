@@ -185,7 +185,7 @@ h3 {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 12px;
-  padding: 14px 16px;
+  padding: 10px 14px;
 }
 
 .styled-table th:nth-child(3),
@@ -194,7 +194,7 @@ h3 {
 }
 
 .styled-table td {
-  padding: 14px 16px;
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid rgba(58, 54, 47, 0.12);
   font-weight: 500;
   font-size: 12px;
@@ -220,7 +220,7 @@ h3 {
 .player-selection {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  /* gap: 10px; */
   margin-bottom: 14px;
 }
 
@@ -228,7 +228,7 @@ h3 {
   border: 1px solid var(--ink-soft);
   background: transparent;
   color: var(--ink-soft);
-  padding: 6px 12px;
+  padding: 0.3rem 0.4rem;
   border-radius: 999px;
   font-size: 12px;
   letter-spacing: 0.08em;
@@ -288,7 +288,7 @@ h3 {
 
 .progress-bar {
   position: relative;
-  height: 40px;
+  height: 50px;
   border-radius: 8px;
 }
 
@@ -305,10 +305,10 @@ h3 {
   display: none;
 }
 
-.bar {
+/* .bar {
   position: absolute;
   top: 7px;
-  height: 26px;
+  height: 36px;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -316,6 +316,19 @@ h3 {
   padding-right: 6px;
   font-size: 11px;
   color: #fff6e6;
+} */
+
+.bar {
+    position: absolute;
+    height: 85%; /* Occupy 85% of the vertical space */
+    top: 50%; /* Move the top of the bar to the middle */
+    transform: translateY(-50%); /* Center the bar vertically */
+    border-radius: 0.3rem; /* Retain rounded corners */
+    z-index: 1; /* Below the T structure */
+    margin-left: 0.1rem; /* Space on the left side */
+    margin-right: 0.1rem; /* Space on the right side */
+    font-size: 0.7rem;
+    color: #fff6e6;
 }
 
 .bar.negative {
@@ -332,6 +345,13 @@ h3 {
 
 .bar-text {
   mix-blend-mode: screen;
+  position: absolute;
+    top: 50%; /* Position at the middle */
+    transform: translateY(-50%); /* Center vertically */
+    z-index: 2; /* Above the bars */
+    padding: 0.0rem; /* Space around the text */
+    font-size: 0.55rem; /* Adjust font size as needed */
+    /*color: #333;  Dark grey text */
 }
 
 #linescore {
