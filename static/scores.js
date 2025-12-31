@@ -22,16 +22,16 @@
 //     });
 // });
 
-function toggleAllPlayersDetailDiv() {
-    const playerDetailsDiv = document.querySelector('.playerdetailsdiv');
-    if (playerDetailsDiv) {
-      if (playerDetailsDiv.style.display === 'none') {
-        playerDetailsDiv.style.display = 'block';
-      } else {
-        playerDetailsDiv.style.display = 'none';
-      }
-    }
-  }
+// function toggleAllPlayersDetailDiv() {
+//     const playerDetailsDiv = document.querySelector('.playerdetailsdiv');
+//     if (playerDetailsDiv) {
+//       if (playerDetailsDiv.style.display === 'none') {
+//         playerDetailsDiv.style.display = 'block';
+//       } else {
+//         playerDetailsDiv.style.display = 'none';
+//       }
+//     }
+//   }
 
 
 document.addEventListener('click', (event) => {
@@ -137,37 +137,37 @@ function filterRound(round) {
     });
 }
 
-const initThemeToggle = () => {
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeLink = document.getElementById('theme-css');
-    const themeText = document.getElementById('theme-toggle-text');
+// const initThemeToggle = () => {
+//     const themeToggle = document.getElementById('theme-toggle');
+//     const themeLink = document.getElementById('theme-css');
+//     const themeText = document.getElementById('theme-toggle-text');
 
-    if (!themeToggle || !themeLink || !themeText) {
-        return;
-    }
+//     if (!themeToggle || !themeLink || !themeText) {
+//         return;
+//     }
 
-    const newHref = 'static/alt/zen218.v4.css';
-    const classicHref = 'static/styles.css';
+//     const newHref = 'static/alt/zen218.v4.css';
+//     const classicHref = 'static/styles.css';
 
-    const isClassicTheme = () => {
-        const href = themeLink.getAttribute('href') || themeLink.href || '';
-        return href.endsWith(classicHref) || href.endsWith(`/${classicHref}`);
-    };
+//     const isClassicTheme = () => {
+//         const href = themeLink.getAttribute('href') || themeLink.href || '';
+//         return href.endsWith(classicHref) || href.endsWith(`/${classicHref}`);
+//     };
 
-    const syncLabel = () => {
-        const isClassic = isClassicTheme();
-        themeToggle.checked = !isClassic;
-        themeText.textContent = isClassic ? 'Classic' : 'New';
-    };
+//     const syncLabel = () => {
+//         const isClassic = isClassicTheme();
+//         themeToggle.checked = !isClassic;
+//         themeText.textContent = isClassic ? 'Classic' : 'New';
+//     };
 
-    syncLabel();
+//     syncLabel();
 
-    themeToggle.addEventListener('change', () => {
-        const useNewTheme = themeToggle.checked;
-        themeLink.setAttribute('href', useNewTheme ? newHref : classicHref);
-        syncLabel();
-    });
-};
+//     themeToggle.addEventListener('change', () => {
+//         const useNewTheme = themeToggle.checked;
+//         themeLink.setAttribute('href', useNewTheme ? newHref : classicHref);
+//         syncLabel();
+//     });
+// };
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initThemeToggle);
