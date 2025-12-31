@@ -168,6 +168,10 @@ h3 {
   margin-top: 0;
 }
 
+.hidden {
+  display: none;
+}
+
 .styled-table {
   width: 100%;
   border-collapse: collapse;
@@ -362,7 +366,13 @@ h3 {
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-start;
-  gap: 20px;
+  /* gap: 20px; */
+  display: none; /* hidden by default; or use .hidden in your JS toggling */
+}
+
+.linescore-container.visible {
+  display: flex; /* Show the container for the selected bettor */
+  gap: 1rem;
 }
 
 .linescore-table {
@@ -376,10 +386,12 @@ h3 {
 
 .linescore-table th,
 .linescore-table td {
-  padding: 10px 12px;
+  /* padding: 10px 12px; */
+  padding: 0.3rem 0.3rem;
   text-align: left;
   border-bottom: 1px solid rgba(58, 54, 47, 0.12);
-  font-size: 13px;
+  /* font-size: 13px; */
+  font-size: 0.6rem; /* Set font size for table headers and entries */
 }
 
 .linescore-table thead th {
@@ -484,7 +496,7 @@ h3 {
   .styled-table th,
   .linescore-table td,
   .linescore-table th {
-    font-size: 12px;
+    font-size: 0.7rem;
   }
 }
 
