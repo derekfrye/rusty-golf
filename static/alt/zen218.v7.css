@@ -86,16 +86,6 @@ body.alt-zen {
   cursor: pointer;
 }
 
-.theme-switch {
-  position: fixed;
-  top: 20px;
-  right: 24px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .theme-label,
 .theme-toggle-text {
   font-size: 12px;
@@ -445,19 +435,6 @@ h3 {
   border-radius: 8px;
   padding: 2px 6px;
   display: inline-block;
-}
-
-.refresh {
-  color: var(--ink-soft);
-  font-size: 12px;
-  margin-top: 14px;
-}
-
-.foot {
-  text-align: center;
-  margin-top: 24px;
-  font-size: 12px;
-  color: var(--ink-soft);
 }
 
 @keyframes rise {
