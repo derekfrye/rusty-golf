@@ -1,13 +1,17 @@
 
 .theme-toggle {
-  background: transparent;
+  background: var(--surface-2, #f0f0f0);
   border: 0;
-  padding: 0;
-  line-height: 0;
+  padding: 0.2rem 0.2rem;
+  line-height: normal;
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* gap: 8px; */
   cursor: pointer;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  width: max-content;
 }
 
 .theme-toggle-text {
@@ -52,7 +56,7 @@
 .switches {
   position: fixed;
   top: 1rem;
-  right: 9rem;
+  right: 1rem;
   z-index: 1000;
 }
 
