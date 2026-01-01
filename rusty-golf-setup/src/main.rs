@@ -1,7 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use clap::{Parser, ValueEnum};
+use rustyline::completion::{Completer, Pair};
 use rustyline::error::ReadlineError;
-use rustyline::DefaultEditor;
+use rustyline::highlight::Highlighter;
+use rustyline::hint::Hinter;
+use rustyline::history::DefaultHistory;
+use rustyline::Helper;
+use rustyline::validate::Validator;
+use rustyline::Editor;
 use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
 use serde::Deserialize;
 use serde_json::Value;
@@ -23,6 +29,30 @@ enum AppMode {
 }
 
 const ESPN_SCOREBOARD_URL: &str = "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=golf&league=pga&region=us&lang=en&contentorigin=espn";
+
+struct ReplCommand {
+    name: &'static str,
+    description: &'static str,
+}
+
+const REPL_COMMANDS: &[ReplCommand] = &[
+    ReplCommand {
+        name: "help",
+        description: "Show this help.",
+    },
+    ReplCommand {
+        name: "list_events",
+        description: "List events on ESPN API.",
+    },
+    ReplCommand {
+        name: "exit",
+        description: "Exit the REPL.",
+    },
+    ReplCommand {
+        name: "quit",
+        description: "Exit the REPL.",
+    },
+];
 
 #[derive(Parser, Debug)]
 #[command(about = "Seed Wrangler KV entries from a db_prefill-style eup.json")]
@@ -194,9 +224,10 @@ fn parse_auth_tokens(value: &str) -> Result<Vec<String>> {
 }
 
 fn run_new_event_repl() -> Result<()> {
-    let help_text = "Commands:\n  help, ?, -h, --help  Show this help.\n  list                List events on ESPN API.";
+    let help_text = build_repl_help();
     println!("Entering new_event mode. Press Ctrl-C or Ctrl-D to quit.");
-    let mut rl = DefaultEditor::new().context("init repl")?;
+    let mut rl = Editor::<ReplHelper, DefaultHistory>::new().context("init repl")?;
+    rl.set_helper(Some(ReplHelper));
     loop {
         match rl.readline("new_event> ") {
             Ok(line) => {
@@ -209,7 +240,7 @@ fn run_new_event_repl() -> Result<()> {
                     "help" | "?" | "-h" | "--help" => {
                         println!("{help_text}");
                     }
-                    "list" => {
+                    "list_events" => {
                         match list_espn_events() {
                             Ok(events) => {
                                 if events.is_empty() {
@@ -285,3 +316,59 @@ fn extract_espn_events(payload: &Value) -> Vec<(String, String)> {
     }
     events
 }
+
+fn build_repl_help() -> String {
+    let mut help = String::from("Commands:");
+    help.push_str("\n  help, ?, -h, --help  Show this help.");
+    for command in REPL_COMMANDS {
+        if command.name == "help" {
+            continue;
+        }
+        help.push_str("\n  ");
+        help.push_str(command.name);
+        let padding = 18usize.saturating_sub(command.name.len());
+        help.push_str(&" ".repeat(padding.max(2)));
+        help.push_str(command.description);
+    }
+    help
+}
+
+struct ReplHelper;
+
+impl Completer for ReplHelper {
+    type Candidate = Pair;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Pair>)> {
+        let prefix = &line[..pos];
+        if prefix.contains(char::is_whitespace) {
+            return Ok((pos, Vec::new()));
+        }
+
+        let candidates = REPL_COMMANDS
+            .iter()
+            .map(|command| command.name)
+            .chain(["?", "-h", "--help"])
+            .filter(|cmd| cmd.starts_with(prefix))
+            .map(|cmd| Pair {
+                display: cmd.to_string(),
+                replacement: cmd.to_string(),
+            })
+            .collect();
+        Ok((0, candidates))
+    }
+}
+
+impl Hinter for ReplHelper {
+    type Hint = String;
+}
+
+impl Highlighter for ReplHelper {}
+
+impl Validator for ReplHelper {}
+
+impl Helper for ReplHelper {}
