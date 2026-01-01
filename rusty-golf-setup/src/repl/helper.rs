@@ -1,0 +1,112 @@
+use crate::repl::commands::{find_command, REPL_COMMANDS};
+use crate::repl::complete::complete_event_prompt;
+use rustyline::completion::{Completer, Pair};
+use rustyline::highlight::Highlighter;
+use rustyline::hint::Hinter;
+use rustyline::validate::Validator;
+use rustyline::Helper;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Clone)]
+pub(crate) enum ReplCompletionMode {
+    Repl,
+    PromptEvents(Vec<String>),
+}
+
+pub(crate) struct ReplHelperState {
+    mode: ReplCompletionMode,
+}
+
+impl ReplHelperState {
+    pub(crate) fn new() -> Self {
+        Self {
+            mode: ReplCompletionMode::Repl,
+        }
+    }
+
+    pub(crate) fn set_mode(&mut self, mode: ReplCompletionMode) {
+        self.mode = mode;
+    }
+}
+
+pub(crate) struct ReplHelper {
+    state: Rc<RefCell<ReplHelperState>>,
+}
+
+impl ReplHelper {
+    pub(crate) fn new(state: Rc<RefCell<ReplHelperState>>) -> Self {
+        Self { state }
+    }
+}
+
+impl Completer for ReplHelper {
+    type Candidate = Pair;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Pair>)> {
+        let mode = self.state.borrow().mode.clone();
+        match mode {
+            ReplCompletionMode::Repl => self.complete_repl(line, pos),
+            ReplCompletionMode::PromptEvents(ids) => Ok(complete_event_prompt(line, pos, &ids)),
+        }
+    }
+}
+
+impl ReplHelper {
+    fn complete_repl(&self, line: &str, pos: usize) -> rustyline::Result<(usize, Vec<Pair>)> {
+        let prefix = &line[..pos];
+        let mut parts = prefix.split_whitespace();
+        let first = parts.next().unwrap_or_default();
+        let second = parts.next();
+
+        if let Some(command) = find_command(first)
+            && !command.subcommands.is_empty()
+            && second.is_none()
+            && prefix.contains(char::is_whitespace)
+        {
+            let sub_prefix = prefix.trim_start_matches(command.name).trim_start();
+            let candidates = command
+                .subcommands
+                .iter()
+                .map(|subcommand| subcommand.name)
+                .filter(|cmd| cmd.starts_with(sub_prefix))
+                .map(|cmd| Pair {
+                    display: cmd.to_string(),
+                    replacement: cmd.to_string(),
+                })
+                .collect();
+            let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
+            return Ok((start, candidates));
+        }
+
+        if prefix.contains(char::is_whitespace) {
+            return Ok((pos, Vec::new()));
+        }
+
+        let candidates = REPL_COMMANDS
+            .iter()
+            .flat_map(|command| command.aliases.iter().copied().chain([command.name]))
+            .filter(|cmd| cmd.starts_with(prefix))
+            .map(|cmd| Pair {
+                display: cmd.to_string(),
+                replacement: cmd.to_string(),
+            })
+            .collect();
+        Ok((0, candidates))
+    }
+}
+
+impl Hinter for ReplHelper {
+    type Hint = String;
+}
+
+impl Highlighter for ReplHelper {}
+
+impl Validator for ReplHelper {}
+
+impl Helper for ReplHelper {}
