@@ -1,5 +1,5 @@
 use crate::seed::eup::EupEvent;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use chrono::Utc;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -49,11 +49,15 @@ pub(crate) fn write_event_files(
     let data_to_fill = event
         .data_to_fill_if_event_and_year_missing
         .first()
-        .ok_or_else(|| anyhow!("no data_to_fill_if_event_and_year_missing for {}", event.event))?;
+        .ok_or_else(|| {
+            anyhow!(
+                "no data_to_fill_if_event_and_year_missing for {}",
+                event.event
+            )
+        })?;
 
     let event_dir = root.join(event.event.to_string());
-    fs::create_dir_all(&event_dir)
-        .with_context(|| format!("create {}", event_dir.display()))?;
+    fs::create_dir_all(&event_dir).with_context(|| format!("create {}", event_dir.display()))?;
 
     let details = EventDetails {
         event_name: &event.name,
@@ -99,11 +103,14 @@ pub(crate) fn write_event_files(
         .event_user_player
         .iter()
         .filter_map(|entry| {
-            entry.score_view_step_factor.as_ref().map(|factor| PlayerFactor {
-                golfer_espn_id: entry.golfer_espn_id,
-                bettor_name: entry.bettor.as_str(),
-                step_factor: factor,
-            })
+            entry
+                .score_view_step_factor
+                .as_ref()
+                .map(|factor| PlayerFactor {
+                    golfer_espn_id: entry.golfer_espn_id,
+                    bettor_name: entry.bettor.as_str(),
+                    step_factor: factor,
+                })
         })
         .collect();
     write_json(&event_dir.join("player_factors.json"), &player_factors)?;

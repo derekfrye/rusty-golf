@@ -1,7 +1,7 @@
 use crate::seed::eup::load_events;
 use crate::seed::files::{write_auth_tokens, write_event_files};
 use crate::seed::wrangler::{load_kv_namespace_id, seed_event_kv};
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::path::PathBuf;
 use tempfile::TempDir;
 

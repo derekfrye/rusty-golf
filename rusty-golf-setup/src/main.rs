@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use rusty_golf_setup::config::{load_config, AppMode, Cli};
+use rusty_golf_setup::config::{AppMode, Cli, load_config};
 use rusty_golf_setup::repl::run_new_event_repl;
 use rusty_golf_setup::seed_kv_from_eup;
 

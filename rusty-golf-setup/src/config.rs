@@ -1,5 +1,5 @@
 use crate::seed::SeedOptions;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::{Parser, ValueEnum};
 use serde::Deserialize;
 use std::fs;
@@ -149,9 +149,7 @@ pub fn load_config(cli: Cli) -> Result<AppMode> {
                 wrangler_env,
                 wrangler_kv_flags,
                 wrangler_log_dir: cli.wrangler_log_dir.or(file_config.wrangler_log_dir),
-                wrangler_config_dir: cli
-                    .wrangler_config_dir
-                    .or(file_config.wrangler_config_dir),
+                wrangler_config_dir: cli.wrangler_config_dir.or(file_config.wrangler_config_dir),
             })))
         }
         Mode::NewEvent => Ok(AppMode::NewEvent {

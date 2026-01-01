@@ -6,8 +6,7 @@ use std::fs;
 use std::path::Path;
 
 pub const ESPN_SCOREBOARD_URL: &str = "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=golf&league=pga&region=us&lang=en&contentorigin=espn";
-pub const ESPN_EVENT_URL_PREFIX: &str =
-    "https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/players?region=us&lang=en&event=";
+pub const ESPN_EVENT_URL_PREFIX: &str = "https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/players?region=us&lang=en&event=";
 
 #[derive(Debug)]
 pub struct MalformedEspnJson;
@@ -25,8 +24,8 @@ pub fn list_espn_events() -> Result<Vec<(String, String)>> {
         .context("fetch ESPN events")?
         .text()
         .context("read ESPN response body")?;
-    let payload: Value = serde_json::from_str(&response)
-        .map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+    let payload: Value =
+        serde_json::from_str(&response).map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
     Ok(extract_espn_events(&payload))
 }
 
@@ -85,10 +84,9 @@ pub fn fetch_event_json_cached(event_id: i64, cache_dir: &Path) -> Result<Value>
         .context("fetch ESPN event")?
         .text()
         .context("read ESPN event response body")?;
-    let payload: Value = serde_json::from_str(&response)
-        .map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
-    fs::write(&cache_path, response)
-        .with_context(|| format!("write {}", cache_path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&response).map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+    fs::write(&cache_path, response).with_context(|| format!("write {}", cache_path.display()))?;
     Ok(payload)
 }
 

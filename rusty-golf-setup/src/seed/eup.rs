@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
@@ -36,8 +36,8 @@ pub(crate) fn load_events(eup_path: &Path, event_id_filter: Option<i64>) -> Resu
     }
     let contents =
         fs::read_to_string(eup_path).with_context(|| format!("read {}", eup_path.display()))?;
-    let mut events: Vec<EupEvent> = serde_json::from_str(&contents)
-        .with_context(|| format!("parse {}", eup_path.display()))?;
+    let mut events: Vec<EupEvent> =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", eup_path.display()))?;
 
     if let Some(event_id) = event_id_filter {
         events.retain(|event| event.event == event_id);

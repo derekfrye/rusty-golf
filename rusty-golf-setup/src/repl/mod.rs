@@ -1,14 +1,14 @@
-use crate::espn::{fetch_event_names_parallel, list_espn_events, MalformedEspnJson};
+use crate::espn::{MalformedEspnJson, fetch_event_names_parallel, list_espn_events};
 use crate::repl::complete::complete_event_prompt;
 use anyhow::{Context, Result};
+use rustyline::Editor;
+use rustyline::Helper;
 use rustyline::completion::{Completer, Pair};
 use rustyline::error::ReadlineError;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
 use rustyline::history::DefaultHistory;
 use rustyline::validate::Validator;
-use rustyline::Editor;
-use rustyline::Helper;
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
@@ -133,7 +133,9 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                         let subcommand_token = parts.next();
                         let subcommand = subcommand_token
                             .and_then(|token| find_subcommand(command.subcommands, token));
-                        if let Some(token) = subcommand_token && subcommand.is_none() {
+                        if let Some(token) = subcommand_token
+                            && subcommand.is_none()
+                        {
                             println!("Unknown subcommand: {}", token);
                             print_subcommand_help(command);
                             continue;
@@ -157,42 +159,38 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                             Err(err) => print_list_event_error(&err),
                         }
                     }
-                    CommandId::GetAvailableGolfers => {
-                        match ensure_list_events(&mut state, false) {
-                            Ok(events) => {
-                                if events.is_empty() {
-                                    println!("No events found.");
-                                } else {
-                                    for (id, name) in &events {
-                                        println!("{id} {name}");
-                                    }
-                                }
-                                let event_ids: Vec<String> =
-                                    events.iter().map(|(id, _)| id.clone()).collect();
-                                helper_state
-                                    .borrow_mut()
-                                    .set_mode(ReplCompletionMode::PromptEvents(event_ids));
-                                let response = prompt_for_events(&mut rl);
-                                helper_state
-                                    .borrow_mut()
-                                    .set_mode(ReplCompletionMode::Repl);
-                                match response {
-                                    Ok(selected) => {
-                                        if selected.is_empty() {
-                                            println!("No events selected.");
-                                        } else {
-                                            println!("{}", selected.join(" "));
-                                        }
-                                    }
-                                    Err(ReplPromptError::Interrupted) => continue,
-                                    Err(ReplPromptError::Failed(err)) => {
-                                        return Err(err);
-                                    }
+                    CommandId::GetAvailableGolfers => match ensure_list_events(&mut state, false) {
+                        Ok(events) => {
+                            if events.is_empty() {
+                                println!("No events found.");
+                            } else {
+                                for (id, name) in &events {
+                                    println!("{id} {name}");
                                 }
                             }
-                            Err(err) => print_list_event_error(&err),
+                            let event_ids: Vec<String> =
+                                events.iter().map(|(id, _)| id.clone()).collect();
+                            helper_state
+                                .borrow_mut()
+                                .set_mode(ReplCompletionMode::PromptEvents(event_ids));
+                            let response = prompt_for_events(&mut rl);
+                            helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
+                            match response {
+                                Ok(selected) => {
+                                    if selected.is_empty() {
+                                        println!("No events selected.");
+                                    } else {
+                                        println!("{}", selected.join(" "));
+                                    }
+                                }
+                                Err(ReplPromptError::Interrupted) => continue,
+                                Err(ReplPromptError::Failed(err)) => {
+                                    return Err(err);
+                                }
+                            }
                         }
-                    }
+                        Err(err) => print_list_event_error(&err),
+                    },
                     CommandId::Exit | CommandId::Quit => break,
                 }
             }
@@ -252,7 +250,9 @@ fn find_subcommand(
     subcommands: &'static [ReplSubcommand],
     name: &str,
 ) -> Option<&'static ReplSubcommand> {
-    subcommands.iter().find(|subcommand| subcommand.name == name)
+    subcommands
+        .iter()
+        .find(|subcommand| subcommand.name == name)
 }
 
 fn print_subcommand_help(command: &ReplCommand) {
