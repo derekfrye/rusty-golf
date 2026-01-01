@@ -19,6 +19,10 @@ impl fmt::Display for MalformedEspnJson {
 
 impl std::error::Error for MalformedEspnJson {}
 
+/// Fetch the current ESPN event list.
+///
+/// # Errors
+/// Returns an error if the HTTP request fails or the response is not JSON.
 pub fn list_espn_events() -> Result<Vec<(String, String)>> {
     let response = reqwest::blocking::get(ESPN_SCOREBOARD_URL)
         .context("fetch ESPN events")?
@@ -29,6 +33,10 @@ pub fn list_espn_events() -> Result<Vec<(String, String)>> {
     Ok(extract_espn_events(&payload))
 }
 
+/// Fetch a single event name, using the cache if available.
+///
+/// # Errors
+/// Returns an error if the event response is invalid or cannot be read.
 pub fn fetch_event_name(event_id: i64, cache_dir: &Path) -> Result<String> {
     let payload = fetch_event_json_cached(event_id, cache_dir)?;
     let name = payload
@@ -40,22 +48,20 @@ pub fn fetch_event_name(event_id: i64, cache_dir: &Path) -> Result<String> {
     Ok(name.to_string())
 }
 
+#[must_use]
 pub fn fetch_event_names_parallel(event_ids: &[i64], cache_dir: &Path) -> Vec<(i64, String)> {
     if event_ids.is_empty() {
         return Vec::new();
     }
-    let pool = match rayon::ThreadPoolBuilder::new().num_threads(4).build() {
-        Ok(pool) => pool,
-        Err(_) => {
-            return event_ids
-                .iter()
-                .filter_map(|event_id| {
-                    fetch_event_name(*event_id, cache_dir)
-                        .ok()
-                        .map(|name| (*event_id, name))
-                })
-                .collect();
-        }
+    let Ok(pool) = rayon::ThreadPoolBuilder::new().num_threads(4).build() else {
+        return event_ids
+            .iter()
+            .filter_map(|event_id| {
+                fetch_event_name(*event_id, cache_dir)
+                    .ok()
+                    .map(|name| (*event_id, name))
+            })
+            .collect();
     };
     pool.install(|| {
         event_ids
@@ -69,6 +75,10 @@ pub fn fetch_event_names_parallel(event_ids: &[i64], cache_dir: &Path) -> Vec<(i
     })
 }
 
+/// Fetch event JSON with a local cache.
+///
+/// # Errors
+/// Returns an error if the cache cannot be read/written or ESPN returns bad JSON.
 pub fn fetch_event_json_cached(event_id: i64, cache_dir: &Path) -> Result<Value> {
     let cache_path = cache_dir.join(format!("{event_id}.json"));
     if cache_path.is_file() {

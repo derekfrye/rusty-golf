@@ -1,13 +1,13 @@
 use crate::repl::commands::{
-    build_repl_help, find_command, find_subcommand, print_subcommand_help, CommandId, SubcommandId,
+    CommandId, SubcommandId, build_repl_help, find_command, find_subcommand, print_subcommand_help,
 };
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
-use crate::repl::prompt::{prompt_for_events, ReplPromptError};
-use crate::repl::state::{ensure_list_events, print_list_event_error, ReplState};
+use crate::repl::prompt::{ReplPromptError, prompt_for_events};
+use crate::repl::state::{ReplState, ensure_list_events, print_list_event_error};
 use anyhow::{Context, Result};
+use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
-use rustyline::Editor;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -18,6 +18,10 @@ mod helper;
 mod prompt;
 mod state;
 
+/// Run the interactive REPL for selecting new events.
+///
+/// # Errors
+/// Returns an error if the REPL or ESPN interactions fail.
 pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
     let help_text = build_repl_help();
     println!("Entering new_event mode. Press Ctrl-C or Ctrl-D to quit.");
@@ -35,13 +39,10 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                 rl.add_history_entry(input)?;
                 let mut parts = input.split_whitespace();
                 let command_token = parts.next().unwrap_or_default();
-                let command = match find_command(command_token) {
-                    Some(command) => command,
-                    None => {
-                        println!("Unknown command: {input}");
-                        println!("{help_text}");
-                        continue;
-                    }
+                let Some(command) = find_command(command_token) else {
+                    println!("Unknown command: {input}");
+                    println!("{help_text}");
+                    continue;
                 };
 
                 match command.id {
@@ -52,8 +53,10 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                         let subcommand_token = parts.next();
                         let subcommand = subcommand_token
                             .and_then(|token| find_subcommand(command.subcommands, token));
-                        if let Some(token) = subcommand_token && subcommand.is_none() {
-                            println!("Unknown subcommand: {}", token);
+                        if let Some(token) = subcommand_token
+                            && subcommand.is_none()
+                        {
+                            println!("Unknown subcommand: {token}");
                             print_subcommand_help(command);
                             continue;
                         }
@@ -100,7 +103,7 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                                         println!("{}", selected.join(" "));
                                     }
                                 }
-                                Err(ReplPromptError::Interrupted) => continue,
+                                Err(ReplPromptError::Interrupted) => {}
                                 Err(ReplPromptError::Failed(err)) => {
                                     return Err(err);
                                 }

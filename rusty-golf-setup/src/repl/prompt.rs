@@ -1,7 +1,7 @@
 use anyhow::Result;
+use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
-use rustyline::Editor;
 
 pub(crate) enum ReplPromptError {
     Interrupted,

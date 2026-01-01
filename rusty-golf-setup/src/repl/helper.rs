@@ -1,10 +1,10 @@
-use crate::repl::commands::{find_command, REPL_COMMANDS};
+use crate::repl::commands::{REPL_COMMANDS, find_command};
 use crate::repl::complete::complete_event_prompt;
+use rustyline::Helper;
 use rustyline::completion::{Completer, Pair};
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
 use rustyline::validate::Validator;
-use rustyline::Helper;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -51,14 +51,14 @@ impl Completer for ReplHelper {
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
         let mode = self.state.borrow().mode.clone();
         match mode {
-            ReplCompletionMode::Repl => self.complete_repl(line, pos),
+            ReplCompletionMode::Repl => Ok(Self::complete_repl(line, pos)),
             ReplCompletionMode::PromptEvents(ids) => Ok(complete_event_prompt(line, pos, &ids)),
         }
     }
 }
 
 impl ReplHelper {
-    fn complete_repl(&self, line: &str, pos: usize) -> rustyline::Result<(usize, Vec<Pair>)> {
+    fn complete_repl(line: &str, pos: usize) -> (usize, Vec<Pair>) {
         let prefix = &line[..pos];
         let mut parts = prefix.split_whitespace();
         let first = parts.next().unwrap_or_default();
@@ -81,11 +81,11 @@ impl ReplHelper {
                 })
                 .collect();
             let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
-            return Ok((start, candidates));
+            return (start, candidates);
         }
 
         if prefix.contains(char::is_whitespace) {
-            return Ok((pos, Vec::new()));
+            return (pos, Vec::new());
         }
 
         let candidates = REPL_COMMANDS
@@ -97,7 +97,7 @@ impl ReplHelper {
                 replacement: cmd.to_string(),
             })
             .collect();
-        Ok((0, candidates))
+        (0, candidates)
     }
 }
 

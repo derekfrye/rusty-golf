@@ -1,4 +1,4 @@
-use crate::espn::{fetch_event_names_parallel, list_espn_events, MalformedEspnJson};
+use crate::espn::{MalformedEspnJson, fetch_event_names_parallel, list_espn_events};
 use anyhow::{Context, Result};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};

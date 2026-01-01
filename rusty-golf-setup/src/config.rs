@@ -68,6 +68,11 @@ struct FileConfig {
     wrangler_config_dir: Option<PathBuf>,
 }
 
+/// Load config from CLI and optional TOML file.
+///
+/// # Errors
+/// Returns an error if required CLI values are missing, the config file is
+/// unreadable or invalid, or if auth tokens are malformed.
 pub fn load_config(cli: Cli) -> Result<AppMode> {
     let file_config = match cli.config_toml.as_ref() {
         Some(path) => {
