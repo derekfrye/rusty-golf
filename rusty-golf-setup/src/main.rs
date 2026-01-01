@@ -4,7 +4,9 @@ use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
 use serde::Deserialize;
+use serde_json::Value;
 use std::fs;
+use std::fmt;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, Deserialize, ValueEnum)]
@@ -19,6 +21,8 @@ enum AppMode {
     Seed(SeedOptions),
     NewEvent,
 }
+
+const ESPN_SCOREBOARD_URL: &str = "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=golf&league=pga&region=us&lang=en&contentorigin=espn";
 
 #[derive(Parser, Debug)]
 #[command(about = "Seed Wrangler KV entries from a db_prefill-style eup.json")]
@@ -190,6 +194,7 @@ fn parse_auth_tokens(value: &str) -> Result<Vec<String>> {
 }
 
 fn run_new_event_repl() -> Result<()> {
+    let help_text = "Commands:\n  help, ?, -h, --help  Show this help.\n  list                List events on ESPN API.";
     println!("Entering new_event mode. Press Ctrl-C or Ctrl-D to quit.");
     let mut rl = DefaultEditor::new().context("init repl")?;
     loop {
@@ -200,14 +205,83 @@ fn run_new_event_repl() -> Result<()> {
                     continue;
                 }
                 rl.add_history_entry(input)?;
-                if matches!(input, "exit" | "quit") {
-                    break;
+                match input {
+                    "help" | "?" | "-h" | "--help" => {
+                        println!("{help_text}");
+                    }
+                    "list" => {
+                        match list_espn_events() {
+                            Ok(events) => {
+                                if events.is_empty() {
+                                    println!("No events found.");
+                                } else {
+                                    for (id, name) in events {
+                                        println!("{id} {name}");
+                                    }
+                                }
+                            }
+                            Err(err) => {
+                                if err.is::<MalformedEspnJson>() {
+                                    println!("Fetch to espn returned malformed data.");
+                                } else {
+                                    println!("Fetch to espn failed: {err}");
+                                }
+                            }
+                        }
+                    }
+                    "exit" | "quit" => break,
+                    _ => {
+                        println!("Unknown command: {input}");
+                        println!("{help_text}");
+                    }
                 }
-                println!("(unhandled) {input}");
             }
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => break,
             Err(err) => return Err(err).context("read repl input"),
         }
     }
     Ok(())
+}
+
+#[derive(Debug)]
+struct MalformedEspnJson;
+
+impl fmt::Display for MalformedEspnJson {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "malformed ESPN JSON")
+    }
+}
+
+impl std::error::Error for MalformedEspnJson {}
+
+fn list_espn_events() -> Result<Vec<(String, String)>> {
+    let response = reqwest::blocking::get(ESPN_SCOREBOARD_URL)
+        .context("fetch ESPN events")?
+        .text()
+        .context("read ESPN response body")?;
+    let payload: Value = serde_json::from_str(&response)
+        .map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+    Ok(extract_espn_events(&payload))
+}
+
+fn extract_espn_events(payload: &Value) -> Vec<(String, String)> {
+    let mut events = Vec::new();
+    let sports = payload.get("sports").and_then(Value::as_array);
+    for sport in sports.into_iter().flatten() {
+        let leagues = sport.get("leagues").and_then(Value::as_array);
+        for league in leagues.into_iter().flatten() {
+            let entries = league.get("events").and_then(Value::as_array);
+            for event in entries.into_iter().flatten() {
+                let id = event.get("id").and_then(Value::as_str);
+                let name = event
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .or_else(|| event.get("shortName").and_then(Value::as_str));
+                if let (Some(id), Some(name)) = (id, name) {
+                    events.push((id.to_string(), name.to_string()));
+                }
+            }
+        }
+    }
+    events
 }
