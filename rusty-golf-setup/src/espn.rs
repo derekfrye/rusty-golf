@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use indicatif::ProgressBar;
 use rayon::prelude::*;
 use serde_json::Value;
 use std::fmt;
@@ -49,7 +50,11 @@ pub fn fetch_event_name(event_id: i64, cache_dir: &Path) -> Result<String> {
 }
 
 #[must_use]
-pub fn fetch_event_names_parallel(event_ids: &[i64], cache_dir: &Path) -> Vec<(i64, String)> {
+pub fn fetch_event_names_parallel(
+    event_ids: &[i64],
+    cache_dir: &Path,
+    progress: Option<&ProgressBar>,
+) -> Vec<(i64, String)> {
     if event_ids.is_empty() {
         return Vec::new();
     }
@@ -57,9 +62,13 @@ pub fn fetch_event_names_parallel(event_ids: &[i64], cache_dir: &Path) -> Vec<(i
         return event_ids
             .iter()
             .filter_map(|event_id| {
-                fetch_event_name(*event_id, cache_dir)
+                let fetched = fetch_event_name(*event_id, cache_dir)
                     .ok()
-                    .map(|name| (*event_id, name))
+                    .map(|name| (*event_id, name));
+                if let Some(bar) = progress {
+                    bar.inc(1);
+                }
+                fetched
             })
             .collect();
     };
@@ -67,9 +76,13 @@ pub fn fetch_event_names_parallel(event_ids: &[i64], cache_dir: &Path) -> Vec<(i
         event_ids
             .par_iter()
             .filter_map(|event_id| {
-                fetch_event_name(*event_id, cache_dir)
+                let fetched = fetch_event_name(*event_id, cache_dir)
                     .ok()
-                    .map(|name| (*event_id, name))
+                    .map(|name| (*event_id, name));
+                if let Some(bar) = progress {
+                    bar.inc(1);
+                }
+                fetched
             })
             .collect()
     })

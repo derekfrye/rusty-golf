@@ -2,10 +2,12 @@ use crate::espn::{
     MalformedEspnJson, fetch_event_name, fetch_event_names_parallel, list_espn_events,
 };
 use anyhow::{Context, Result};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 use tempfile::TempDir;
 
 pub(crate) struct ReplState {
@@ -69,8 +71,27 @@ pub(crate) fn ensure_list_events(
         return Ok(state.cached_events.clone().unwrap_or_default());
     }
 
+    let multi = MultiProgress::new();
+    let spinner = multi.add(ProgressBar::new_spinner());
+    let spinner_style = ProgressStyle::with_template("{spinner} {msg}")
+        .unwrap_or_else(|_| ProgressStyle::default_spinner())
+        .tick_chars("|/-\\");
+    spinner.set_style(spinner_style);
+    spinner.set_message("Fetching events");
+    spinner.enable_steady_tick(Duration::from_millis(120));
+
     let mut events = BTreeMap::new();
-    for (id, name) in list_espn_events()? {
+    let fetched_events = match list_espn_events() {
+        Ok(events) => {
+            spinner.finish_and_clear();
+            events
+        }
+        Err(err) => {
+            spinner.abandon_with_message("Fetching events failed");
+            return Err(err);
+        }
+    };
+    for (id, name) in fetched_events {
         events.insert(id, name);
     }
 
@@ -80,8 +101,23 @@ pub(crate) fn ensure_list_events(
             .into_iter()
             .filter(|event_id| !events.contains_key(&event_id.to_string()))
             .collect();
-        for (event_id, name) in fetch_event_names_parallel(&missing_ids, &state.event_cache_dir) {
-            events.insert(event_id.to_string(), name);
+        if !missing_ids.is_empty() {
+            let overall = multi.add(ProgressBar::new(missing_ids.len() as u64));
+            let overall_style = ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}",
+            )
+            .unwrap_or_else(|_| ProgressStyle::default_bar());
+            overall.set_style(overall_style);
+            overall.set_message("Fetching missing event names");
+            overall.enable_steady_tick(Duration::from_millis(120));
+            for (event_id, name) in fetch_event_names_parallel(
+                &missing_ids,
+                &state.event_cache_dir,
+                Some(&overall),
+            ) {
+                events.insert(event_id.to_string(), name);
+            }
+            overall.finish_and_clear();
         }
     }
 

@@ -291,6 +291,9 @@ fn run_setup_event(
         println!("No events found.");
         return Ok(());
     }
+    for (id, name) in &events {
+        println!("{id} {name}");
+    }
 
     let event_ids: Vec<String> = events.iter().map(|(id, _)| id.clone()).collect();
     helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
