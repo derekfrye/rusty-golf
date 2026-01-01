@@ -3,8 +3,10 @@ use crate::repl::commands::{
 };
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};
+use crate::repl::parse::format_parse_error;
 use crate::repl::state::{
-    ReplState, ensure_list_bettors, ensure_list_events, print_list_event_error,
+    ReplState, ensure_list_bettors, ensure_list_events, persist_bettors_selection,
+    print_list_event_error,
 };
 use anyhow::{Context, Result};
 use rustyline::Editor;
@@ -108,6 +110,9 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                                     }
                                 }
                                 Err(ReplPromptError::Interrupted) => {}
+                                Err(ReplPromptError::Invalid(err, line)) => {
+                                    println!("{}", format_parse_error(&line, err.index));
+                                }
                                 Err(ReplPromptError::Failed(err)) => {
                                     return Err(err);
                                 }
@@ -135,10 +140,14 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                                 if selected.is_empty() {
                                     println!("No bettors selected.");
                                 } else {
+                                    persist_bettors_selection(&state, &selected)?;
                                     println!("{}", selected.join(" "));
                                 }
                             }
                             Err(ReplPromptError::Interrupted) => {}
+                            Err(ReplPromptError::Invalid(err, line)) => {
+                                println!("{}", format_parse_error(&line, err.index));
+                            }
                             Err(ReplPromptError::Failed(err)) => {
                                 return Err(err);
                             }

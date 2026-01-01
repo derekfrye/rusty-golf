@@ -11,6 +11,7 @@ pub(crate) struct ReplState {
     cached_bettors: Option<Vec<String>>,
     eup_json_path: Option<PathBuf>,
     event_cache_dir: PathBuf,
+    bettors_selection_path: PathBuf,
     _temp_dir: TempDir,
 }
 
@@ -18,6 +19,7 @@ impl ReplState {
     pub(crate) fn new(eup_json_path: Option<PathBuf>) -> Result<Self> {
         let temp_dir = TempDir::new().context("create event cache dir")?;
         let event_cache_dir = temp_dir.path().join("espn_events");
+        let bettors_selection_path = temp_dir.path().join("bettors.txt");
         fs::create_dir_all(&event_cache_dir)
             .with_context(|| format!("create {}", event_cache_dir.display()))?;
         Ok(Self {
@@ -25,6 +27,7 @@ impl ReplState {
             cached_bettors: None,
             eup_json_path,
             event_cache_dir,
+            bettors_selection_path,
             _temp_dir: temp_dir,
         })
     }
@@ -84,6 +87,16 @@ pub(crate) fn ensure_list_bettors(state: &mut ReplState) -> Result<Vec<String>> 
     let bettors = read_eup_bettors(path)?;
     state.cached_bettors = Some(bettors.clone());
     Ok(bettors)
+}
+
+pub(crate) fn persist_bettors_selection(state: &ReplState, bettors: &[String]) -> Result<()> {
+    let mut contents = bettors.join("\n");
+    if !contents.is_empty() {
+        contents.push('\n');
+    }
+    fs::write(&state.bettors_selection_path, contents)
+        .with_context(|| format!("write {}", state.bettors_selection_path.display()))?;
+    Ok(())
 }
 
 fn read_eup_event_ids(path: &PathBuf) -> Result<Vec<i64>> {
