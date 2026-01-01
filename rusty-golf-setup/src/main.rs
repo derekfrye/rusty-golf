@@ -16,7 +16,8 @@ use rayon::ThreadPoolBuilder;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use tempfile::TempDir;
 
 #[derive(Debug, Clone, Copy, Deserialize, ValueEnum)]
 #[serde(rename_all = "snake_case")]
@@ -291,7 +292,7 @@ fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
     println!("Entering new_event mode. Press Ctrl-C or Ctrl-D to quit.");
     let mut rl = Editor::<ReplHelper, DefaultHistory>::new().context("init repl")?;
     rl.set_helper(Some(ReplHelper));
-    let mut state = ReplState::new(eup_json);
+    let mut state = ReplState::new(eup_json).context("init repl state")?;
     loop {
         match rl.readline("new_event> ") {
             Ok(line) => {
@@ -399,18 +400,25 @@ impl fmt::Display for MalformedEspnJson {
 
 impl std::error::Error for MalformedEspnJson {}
 
-#[derive(Default)]
 struct ReplState {
     cached_events: Option<Vec<(String, String)>>,
     eup_json_path: Option<PathBuf>,
+    event_cache_dir: PathBuf,
+    _temp_dir: TempDir,
 }
 
 impl ReplState {
-    fn new(eup_json_path: Option<PathBuf>) -> Self {
-        Self {
+    fn new(eup_json_path: Option<PathBuf>) -> Result<Self> {
+        let temp_dir = TempDir::new().context("create event cache dir")?;
+        let event_cache_dir = temp_dir.path().join("espn_events");
+        fs::create_dir_all(&event_cache_dir)
+            .with_context(|| format!("create {}", event_cache_dir.display()))?;
+        Ok(Self {
             cached_events: None,
             eup_json_path,
-        }
+            event_cache_dir,
+            _temp_dir: temp_dir,
+        })
     }
 }
 
@@ -476,7 +484,7 @@ fn ensure_list_events(state: &mut ReplState, refresh: bool) -> Result<Vec<(Strin
             .into_iter()
             .filter(|event_id| !events.contains_key(&event_id.to_string()))
             .collect();
-        for (event_id, name) in fetch_event_names_parallel(&missing_ids) {
+        for (event_id, name) in fetch_event_names_parallel(&missing_ids, &state.event_cache_dir) {
             events.insert(event_id.to_string(), name);
         }
     }
@@ -502,14 +510,8 @@ fn read_eup_event_ids(path: &PathBuf) -> Result<Vec<i64>> {
     Ok(ids.into_iter().collect())
 }
 
-fn fetch_event_name(event_id: i64) -> Result<String> {
-    let url = format!("{ESPN_EVENT_URL_PREFIX}{event_id}");
-    let response = reqwest::blocking::get(url)
-        .context("fetch ESPN event")?
-        .text()
-        .context("read ESPN event response body")?;
-    let payload: Value = serde_json::from_str(&response)
-        .map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+fn fetch_event_name(event_id: i64, cache_dir: &Path) -> Result<String> {
+    let payload = fetch_event_json_cached(event_id, cache_dir)?;
     let name = payload
         .get("event")
         .and_then(|event| event.get("name"))
@@ -519,7 +521,7 @@ fn fetch_event_name(event_id: i64) -> Result<String> {
     Ok(name.to_string())
 }
 
-fn fetch_event_names_parallel(event_ids: &[i64]) -> Vec<(i64, String)> {
+fn fetch_event_names_parallel(event_ids: &[i64], cache_dir: &Path) -> Vec<(i64, String)> {
     if event_ids.is_empty() {
         return Vec::new();
     }
@@ -529,7 +531,7 @@ fn fetch_event_names_parallel(event_ids: &[i64]) -> Vec<(i64, String)> {
             return event_ids
                 .iter()
                 .filter_map(|event_id| {
-                    fetch_event_name(*event_id)
+                    fetch_event_name(*event_id, cache_dir)
                         .ok()
                         .map(|name| (*event_id, name))
                 })
@@ -540,12 +542,34 @@ fn fetch_event_names_parallel(event_ids: &[i64]) -> Vec<(i64, String)> {
         event_ids
             .par_iter()
             .filter_map(|event_id| {
-                fetch_event_name(*event_id)
+                fetch_event_name(*event_id, cache_dir)
                     .ok()
                     .map(|name| (*event_id, name))
             })
             .collect()
     })
+}
+
+fn fetch_event_json_cached(event_id: i64, cache_dir: &Path) -> Result<Value> {
+    let cache_path = cache_dir.join(format!("{event_id}.json"));
+    if cache_path.is_file() {
+        let contents = fs::read_to_string(&cache_path)
+            .with_context(|| format!("read {}", cache_path.display()))?;
+        let payload: Value =
+            serde_json::from_str(&contents).map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+        return Ok(payload);
+    }
+
+    let url = format!("{ESPN_EVENT_URL_PREFIX}{event_id}");
+    let response = reqwest::blocking::get(&url)
+        .context("fetch ESPN event")?
+        .text()
+        .context("read ESPN event response body")?;
+    let payload: Value = serde_json::from_str(&response)
+        .map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+    fs::write(&cache_path, response)
+        .with_context(|| format!("write {}", cache_path.display()))?;
+    Ok(payload)
 }
 
 fn extract_espn_events(payload: &Value) -> Vec<(String, String)> {
