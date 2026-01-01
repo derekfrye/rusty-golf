@@ -1,5 +1,5 @@
-use crate::repl::commands::{REPL_COMMANDS, find_command};
-use crate::repl::complete::complete_event_prompt;
+use crate::repl::commands::{find_command, REPL_COMMANDS};
+use crate::repl::complete::complete_items_prompt;
 use rustyline::Helper;
 use rustyline::completion::{Completer, Pair};
 use rustyline::highlight::Highlighter;
@@ -11,7 +11,7 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub(crate) enum ReplCompletionMode {
     Repl,
-    PromptEvents(Vec<String>),
+    PromptItems(Vec<String>),
 }
 
 pub(crate) struct ReplHelperState {
@@ -52,7 +52,7 @@ impl Completer for ReplHelper {
         let mode = self.state.borrow().mode.clone();
         match mode {
             ReplCompletionMode::Repl => Ok(Self::complete_repl(line, pos)),
-            ReplCompletionMode::PromptEvents(ids) => Ok(complete_event_prompt(line, pos, &ids)),
+            ReplCompletionMode::PromptItems(ids) => Ok(complete_items_prompt(line, pos, &ids)),
         }
     }
 }

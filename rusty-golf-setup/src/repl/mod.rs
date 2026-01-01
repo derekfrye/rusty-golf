@@ -2,8 +2,10 @@ use crate::repl::commands::{
     CommandId, SubcommandId, build_repl_help, find_command, find_subcommand, print_subcommand_help,
 };
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
-use crate::repl::prompt::{ReplPromptError, prompt_for_events};
-use crate::repl::state::{ReplState, ensure_list_events, print_list_event_error};
+use crate::repl::prompt::{ReplPromptError, prompt_for_items};
+use crate::repl::state::{
+    ReplState, ensure_list_bettors, ensure_list_events, print_list_event_error,
+};
 use anyhow::{Context, Result};
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
@@ -15,6 +17,7 @@ use std::rc::Rc;
 mod commands;
 mod complete;
 mod helper;
+mod parse;
 mod prompt;
 mod state;
 
@@ -92,8 +95,9 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                                 events.iter().map(|(id, _)| id.clone()).collect();
                             helper_state
                                 .borrow_mut()
-                                .set_mode(ReplCompletionMode::PromptEvents(event_ids));
-                            let response = prompt_for_events(&mut rl);
+                                .set_mode(ReplCompletionMode::PromptItems(event_ids));
+                            let response =
+                                prompt_for_items(&mut rl, "Which events? (csv or space-separated) ");
                             helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
                             match response {
                                 Ok(selected) => {
@@ -111,6 +115,35 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                         }
                         Err(err) => print_list_event_error(&err),
                     },
+                    CommandId::PickBettors => {
+                        let bettors = ensure_list_bettors(&mut state)?;
+                        if bettors.is_empty() {
+                            println!("No bettors found.");
+                        } else {
+                            for bettor in &bettors {
+                                println!("{bettor}");
+                            }
+                        }
+                        helper_state
+                            .borrow_mut()
+                            .set_mode(ReplCompletionMode::PromptItems(bettors));
+                        let response =
+                            prompt_for_items(&mut rl, "Which bettors? (csv or space separated) ");
+                        helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
+                        match response {
+                            Ok(selected) => {
+                                if selected.is_empty() {
+                                    println!("No bettors selected.");
+                                } else {
+                                    println!("{}", selected.join(" "));
+                                }
+                            }
+                            Err(ReplPromptError::Interrupted) => {}
+                            Err(ReplPromptError::Failed(err)) => {
+                                return Err(err);
+                            }
+                        }
+                    }
                     CommandId::Exit | CommandId::Quit => break,
                 }
             }

@@ -8,6 +8,7 @@ use tempfile::TempDir;
 
 pub(crate) struct ReplState {
     cached_events: Option<Vec<(String, String)>>,
+    cached_bettors: Option<Vec<String>>,
     eup_json_path: Option<PathBuf>,
     event_cache_dir: PathBuf,
     _temp_dir: TempDir,
@@ -21,6 +22,7 @@ impl ReplState {
             .with_context(|| format!("create {}", event_cache_dir.display()))?;
         Ok(Self {
             cached_events: None,
+            cached_bettors: None,
             eup_json_path,
             event_cache_dir,
             _temp_dir: temp_dir,
@@ -69,6 +71,21 @@ pub(crate) fn ensure_list_events(
     Ok(cached)
 }
 
+pub(crate) fn ensure_list_bettors(state: &mut ReplState) -> Result<Vec<String>> {
+    if let Some(cached) = state.cached_bettors.as_ref() {
+        return Ok(cached.clone());
+    }
+
+    let Some(path) = state.eup_json_path.as_ref() else {
+        state.cached_bettors = Some(Vec::new());
+        return Ok(Vec::new());
+    };
+
+    let bettors = read_eup_bettors(path)?;
+    state.cached_bettors = Some(bettors.clone());
+    Ok(bettors)
+}
+
 fn read_eup_event_ids(path: &PathBuf) -> Result<Vec<i64>> {
     let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
     let payload: Value =
@@ -82,4 +99,32 @@ fn read_eup_event_ids(path: &PathBuf) -> Result<Vec<i64>> {
         }
     }
     Ok(ids.into_iter().collect())
+}
+
+fn read_eup_bettors(path: &PathBuf) -> Result<Vec<String>> {
+    let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
+    let mut bettors = BTreeSet::new();
+    if let Some(array) = payload.as_array() {
+        for entry in array {
+            if let Some(data_sets) = entry
+                .get("data_to_fill_if_event_and_year_missing")
+                .and_then(Value::as_array)
+            {
+                for data_set in data_sets {
+                    if let Some(players) =
+                        data_set.get("event_user_player").and_then(Value::as_array)
+                    {
+                        for player in players {
+                            if let Some(bettor) = player.get("bettor").and_then(Value::as_str) {
+                                bettors.insert(bettor.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(bettors.into_iter().collect())
 }
