@@ -11,6 +11,8 @@ use rustyline::Editor;
 use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
 use serde::Deserialize;
 use serde_json::Value;
+use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs;
@@ -25,7 +27,7 @@ enum Mode {
 }
 
 enum AppMode {
-    Seed(SeedOptions),
+    Seed(Box<SeedOptions>),
     NewEvent { eup_json: Option<PathBuf> },
 }
 
@@ -241,7 +243,7 @@ fn load_config(cli: Cli) -> Result<AppMode> {
                 flags
             };
 
-            Ok(AppMode::Seed(SeedOptions {
+            Ok(AppMode::Seed(Box::new(SeedOptions {
                 eup_json,
                 kv_env,
                 kv_binding: cli.kv_binding.or(file_config.kv_binding),
@@ -255,7 +257,7 @@ fn load_config(cli: Cli) -> Result<AppMode> {
                 wrangler_config_dir: cli
                     .wrangler_config_dir
                     .or(file_config.wrangler_config_dir),
-            }))
+            })))
         }
         Mode::NewEvent => Ok(AppMode::NewEvent {
             eup_json: cli.eup_json.or(file_config.eup_json),
@@ -318,8 +320,17 @@ fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                         let subcommand = subcommand_token.and_then(|token| {
                             find_subcommand(command.subcommands, token)
                         });
-                        if subcommand_token.is_some() && subcommand.is_none() {
-                            println!("Unknown subcommand: {}", subcommand_token.unwrap());
+                        if let Some(token) = subcommand_token
+                            && subcommand.is_none()
+                        {
+                            println!("Unknown subcommand: {}", token);
+                            print_subcommand_help(command);
+                            continue;
+                        }
+                        if matches!(
+                            subcommand.map(|sub| sub.id),
+                            Some(SubcommandId::Help)
+                        ) {
                             print_subcommand_help(command);
                             continue;
                         }
@@ -327,10 +338,6 @@ fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                             subcommand.map(|sub| sub.id),
                             Some(SubcommandId::Refresh)
                         );
-                        if matches!(subcommand.map(|sub| sub.id), Some(SubcommandId::Help)) {
-                            print_subcommand_help(command);
-                            continue;
-                        }
                         match ensure_list_events(&mut state, refresh) {
                             Ok(events) => {
                                 if events.is_empty() {
@@ -435,9 +442,9 @@ fn print_list_event_error(err: &anyhow::Error) {
 }
 
 fn find_command(name: &str) -> Option<&'static ReplCommand> {
-    REPL_COMMANDS.iter().find(|command| {
-        command.name == name || command.aliases.iter().any(|alias| *alias == name)
-    })
+    REPL_COMMANDS
+        .iter()
+        .find(|command| command.name == name || command.aliases.contains(&name))
 }
 
 fn find_subcommand(
@@ -465,14 +472,12 @@ fn ensure_list_events(state: &mut ReplState, refresh: bool) -> Result<Vec<(Strin
 
     if let Some(path) = state.eup_json_path.as_ref() {
         let eup_event_ids = read_eup_event_ids(path)?;
-        for event_id in eup_event_ids {
-            let id_str = event_id.to_string();
-            if events.contains_key(&id_str) {
-                continue;
-            }
-            if let Ok(name) = fetch_event_name(event_id) {
-                events.insert(id_str, name);
-            }
+        let missing_ids: Vec<i64> = eup_event_ids
+            .into_iter()
+            .filter(|event_id| !events.contains_key(&event_id.to_string()))
+            .collect();
+        for (event_id, name) in fetch_event_names_parallel(&missing_ids) {
+            events.insert(event_id.to_string(), name);
         }
     }
 
@@ -512,6 +517,35 @@ fn fetch_event_name(event_id: i64) -> Result<String> {
         .or_else(|| payload.get("name").and_then(Value::as_str))
         .ok_or_else(|| anyhow::Error::new(MalformedEspnJson))?;
     Ok(name.to_string())
+}
+
+fn fetch_event_names_parallel(event_ids: &[i64]) -> Vec<(i64, String)> {
+    if event_ids.is_empty() {
+        return Vec::new();
+    }
+    let pool = match ThreadPoolBuilder::new().num_threads(4).build() {
+        Ok(pool) => pool,
+        Err(_) => {
+            return event_ids
+                .iter()
+                .filter_map(|event_id| {
+                    fetch_event_name(*event_id)
+                        .ok()
+                        .map(|name| (*event_id, name))
+                })
+                .collect();
+        }
+    };
+    pool.install(|| {
+        event_ids
+            .par_iter()
+            .filter_map(|event_id| {
+                fetch_event_name(*event_id)
+                    .ok()
+                    .map(|name| (*event_id, name))
+            })
+            .collect()
+    })
 }
 
 fn extract_espn_events(payload: &Value) -> Vec<(String, String)> {
@@ -559,7 +593,7 @@ fn build_repl_help() -> String {
 fn prompt_for_events(
     rl: &mut Editor<ReplHelper, DefaultHistory>,
 ) -> Result<Vec<String>, ReplPromptError> {
-    match rl.readline("Which events? ") {
+    match rl.readline("Which events? (csv or space-separated) ") {
         Ok(line) => {
             let trimmed = line.trim();
             if trimmed.is_empty() {
@@ -594,27 +628,26 @@ impl Completer for ReplHelper {
         let first = parts.next().unwrap_or_default();
         let second = parts.next();
 
-        if let Some(command) = find_command(first) {
-            if !command.subcommands.is_empty()
-                && second.is_none()
-                && prefix.contains(char::is_whitespace)
-            {
-                let sub_prefix = prefix
-                    .trim_start_matches(command.name)
-                    .trim_start();
-                let candidates = command
-                    .subcommands
-                    .iter()
-                    .map(|subcommand| subcommand.name)
-                    .filter(|cmd| cmd.starts_with(sub_prefix))
-                    .map(|cmd| Pair {
-                        display: cmd.to_string(),
-                        replacement: cmd.to_string(),
-                    })
-                    .collect();
-                let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
-                return Ok((start, candidates));
-            }
+        if let Some(command) = find_command(first)
+            && !command.subcommands.is_empty()
+            && second.is_none()
+            && prefix.contains(char::is_whitespace)
+        {
+            let sub_prefix = prefix
+                .trim_start_matches(command.name)
+                .trim_start();
+            let candidates = command
+                .subcommands
+                .iter()
+                .map(|subcommand| subcommand.name)
+                .filter(|cmd| cmd.starts_with(sub_prefix))
+                .map(|cmd| Pair {
+                    display: cmd.to_string(),
+                    replacement: cmd.to_string(),
+                })
+                .collect();
+            let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
+            return Ok((start, candidates));
         }
 
         if prefix.contains(char::is_whitespace) {
