@@ -1,5 +1,5 @@
 use crate::repl::commands::{find_command, REPL_COMMANDS};
-use crate::repl::complete::complete_items_prompt;
+use crate::repl::complete::{complete_items_prompt, complete_path_prompt};
 use rustyline::Helper;
 use rustyline::completion::{Completer, Pair};
 use rustyline::highlight::Highlighter;
@@ -14,6 +14,9 @@ pub(crate) enum ReplCompletionMode {
     PromptItems {
         items: Vec<String>,
         quote_items: bool,
+    },
+    PromptPaths {
+        items: Vec<std::path::PathBuf>,
     },
 }
 
@@ -57,6 +60,9 @@ impl Completer for ReplHelper {
             ReplCompletionMode::Repl => Ok(Self::complete_repl(line, pos)),
             ReplCompletionMode::PromptItems { items, quote_items } => {
                 Ok(complete_items_prompt(line, pos, &items, quote_items))
+            }
+            ReplCompletionMode::PromptPaths { items } => {
+                Ok(complete_path_prompt(line, pos, &items))
             }
         }
     }

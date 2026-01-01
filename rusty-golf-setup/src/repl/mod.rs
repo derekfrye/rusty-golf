@@ -338,7 +338,7 @@ fn run_setup_event(
         selections
     };
 
-    let output_path = ensure_output_path(rl, state)?;
+    let output_path = ensure_output_path(rl, helper_state, state)?;
     let existing = load_eup_json(state)?;
     let event_name = events
         .iter()
@@ -391,6 +391,7 @@ fn run_setup_event(
 
 fn ensure_output_path(
     rl: &mut Editor<ReplHelper, DefaultHistory>,
+    helper_state: &Rc<RefCell<ReplHelperState>>,
     state: &ReplState,
 ) -> Result<PathBuf> {
     if let Some(path) = output_json_path(state) {
@@ -407,7 +408,29 @@ fn ensure_output_path(
     }
 
     loop {
-        let path = rl.readline("Output filename? ").context("read output filename")?;
+        let entries = std::env::current_dir()
+            .ok()
+            .and_then(|dir| std::fs::read_dir(dir).ok())
+            .map(|read_dir| {
+                read_dir
+                    .filter_map(|entry| entry.ok())
+                    .filter_map(|entry| {
+                        let file_type = entry.file_type().ok()?;
+                        if file_type.is_dir() {
+                            None
+                        } else {
+                            Some(entry.path())
+                        }
+                    })
+                    .collect::<Vec<PathBuf>>()
+            })
+            .unwrap_or_default();
+        helper_state
+            .borrow_mut()
+            .set_mode(ReplCompletionMode::PromptPaths { items: entries });
+        let read = rl.readline("Output filename? ");
+        helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
+        let path = read.context("read output filename")?;
         let trimmed = path.trim();
         if trimmed.is_empty() {
             continue;
