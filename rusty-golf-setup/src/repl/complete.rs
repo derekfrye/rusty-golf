@@ -16,7 +16,7 @@ pub(crate) fn complete_items_prompt(
     let candidates: Vec<Pair> = items
         .iter()
         .filter(|item| !selected_set.contains(item.as_str()))
-        .filter(|item| item.starts_with(match_token))
+        .filter(|item| matches_token(item, match_token))
         .map(|item| Pair {
             display: item.clone(),
             replacement: format_completion(item, quote_items),
@@ -27,6 +27,20 @@ pub(crate) fn complete_items_prompt(
         return (pos, candidates);
     }
     (start, candidates)
+}
+
+fn matches_token(item: &str, token: &str) -> bool {
+    if token.is_empty() {
+        return true;
+    }
+    let token = token.to_lowercase();
+    let item_lc = item.to_lowercase();
+    if item_lc.starts_with(&token) {
+        return true;
+    }
+    item_lc
+        .split_whitespace()
+        .any(|part| part.starts_with(&token))
 }
 
 fn format_completion(item: &str, quote_items: bool) -> String {
