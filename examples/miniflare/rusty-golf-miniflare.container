@@ -1,0 +1,27 @@
+[Unit]
+Description=Rusty Golf local Miniflare (wrangler dev --local)
+
+[Container]
+Image=localhost/rusty-golf-miniflare:latest
+ContainerName=rusty-golf-miniflare
+WorkingDir=/work
+
+PublishPort=8787:8787
+
+# Adjust these paths if your repo is elsewhere.
+Volume=%h/src/rusty-golf:/work:Z
+Volume=%h/.local/share/rusty-golf-miniflare:/wrangler:Z
+
+Environment=WRANGLER_LOG_DIR=/wrangler/logs
+Environment=XDG_CONFIG_HOME=/wrangler/config
+Environment=WRANGLER_BUILD_LOCK_DIR=/wrangler/locks
+Environment=WRANGLER_ENV=dev
+Environment=RUSTFLAGS=--cfg getrandom_backend="wasm_js"
+Environment=WORKER_BUILD_BIN=/root/.cargo/bin/worker-build
+
+Command=wrangler dev --local --port 8787 --ip 0.0.0.0 \
+  --config /work/rusty-golf-serverless/wrangler.toml --env dev
+
+[Service]
+Restart=always
+RestartSec=2

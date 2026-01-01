@@ -1,6 +1,7 @@
 use crate::error::CoreError;
 use crate::storage::Storage;
 use std::collections::HashMap;
+use std::hash::BuildHasher;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ScoreRequest {
@@ -15,8 +16,9 @@ pub struct ScoreRequest {
 ///
 /// # Errors
 /// Returns an error if required query parameters are missing or invalid.
-#[allow(clippy::implicit_hasher)]
-pub fn parse_score_request(query: &HashMap<String, String>) -> Result<ScoreRequest, CoreError> {
+pub fn parse_score_request<S: BuildHasher>(
+    query: &HashMap<String, String, S>,
+) -> Result<ScoreRequest, CoreError> {
     let event_id = query
         .get("event")
         .and_then(|s| s.trim().parse().ok())
@@ -67,8 +69,8 @@ pub async fn cache_max_age_for_event(
 ///
 /// # Errors
 /// Returns an error if parsing the request or loading cache settings fails.
-pub async fn decode_score_request<T>(
-    query: &HashMap<String, String>,
+pub async fn decode_score_request<T, S: BuildHasher>(
+    query: &HashMap<String, String, S>,
     storage: &dyn Storage,
     builder: impl FnOnce(ScoreRequest, i64) -> T,
 ) -> Result<T, CoreError> {
