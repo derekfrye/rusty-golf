@@ -2,13 +2,15 @@ use crate::repl::commands::{
     CommandId, SubcommandId, build_repl_help, find_command, find_subcommand, print_subcommand_help,
 };
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
-use crate::repl::prompt::{ReplPromptError, prompt_for_items};
 use crate::repl::parse::format_parse_error;
+use crate::repl::prompt::{ReplPromptError, prompt_for_items};
 use crate::repl::state::{
-    ReplState, ensure_list_bettors, ensure_list_events, persist_bettors_selection,
-    print_list_event_error,
+    ReplState, bettors_selection_exists, ensure_list_bettors, ensure_list_events,
+    has_cached_events, load_bettors_selection, load_cached_golfers,
+    persist_bettors_selection, print_list_event_error,
 };
 use anyhow::{Context, Result};
+use serde_json::json;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
@@ -71,7 +73,7 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                         }
                         let refresh =
                             matches!(subcommand.map(|sub| sub.id), Some(SubcommandId::Refresh));
-                        match ensure_list_events(&mut state, refresh) {
+                        match ensure_list_events(&mut state, refresh, true) {
                             Ok(events) => {
                                 if events.is_empty() {
                                     println!("No events found.");
@@ -84,7 +86,8 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                             Err(err) => print_list_event_error(&err),
                         }
                     }
-                    CommandId::GetAvailableGolfers => match ensure_list_events(&mut state, false) {
+                    CommandId::GetAvailableGolfers => {
+                        match ensure_list_events(&mut state, false, false) {
                         Ok(events) => {
                             if events.is_empty() {
                                 println!("No events found.");
@@ -95,9 +98,10 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                             }
                             let event_ids: Vec<String> =
                                 events.iter().map(|(id, _)| id.clone()).collect();
-                            helper_state
-                                .borrow_mut()
-                                .set_mode(ReplCompletionMode::PromptItems(event_ids));
+                            helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
+                                items: event_ids,
+                                quote_items: false,
+                            });
                             let response =
                                 prompt_for_items(&mut rl, "Which events? (csv or space-separated) ");
                             helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
@@ -119,37 +123,77 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
                             }
                         }
                         Err(err) => print_list_event_error(&err),
-                    },
-                    CommandId::PickBettors => {
-                        let bettors = ensure_list_bettors(&mut state)?;
-                        if bettors.is_empty() {
-                            println!("No bettors found.");
-                        } else {
-                            for bettor in &bettors {
-                                println!("{bettor}");
-                            }
                         }
-                        helper_state
-                            .borrow_mut()
-                            .set_mode(ReplCompletionMode::PromptItems(bettors));
-                        let response =
-                            prompt_for_items(&mut rl, "Which bettors? (csv or space separated) ");
-                        helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
-                        match response {
-                            Ok(selected) => {
-                                if selected.is_empty() {
-                                    println!("No bettors selected.");
-                                } else {
-                                    persist_bettors_selection(&state, &selected)?;
-                                    println!("{}", selected.join(" "));
+                    }
+                    CommandId::PickBettors => {
+                        handle_pick_bettors(&mut rl, &helper_state, &mut state)?;
+                    }
+                    CommandId::SetGolfersByBettor => {
+                        if !has_cached_events(&state)? {
+                            println!("no events in cache; run list_events first.");
+                            continue;
+                        }
+
+                        if !bettors_selection_exists(&state) {
+                            handle_pick_bettors(&mut rl, &helper_state, &mut state)?;
+                        }
+
+                        if !bettors_selection_exists(&state) {
+                            println!("No bettors selected.");
+                            continue;
+                        }
+
+                        let bettors = load_bettors_selection(&state)?;
+                        if bettors.is_empty() {
+                            println!("No bettors selected.");
+                            continue;
+                        }
+
+                        let golfers = load_cached_golfers(&state)?;
+                        if golfers.is_empty() {
+                            println!("No golfers found in cache.");
+                            continue;
+                        }
+                        let golfer_names: Vec<String> =
+                            golfers.iter().map(|(name, _)| name.clone()).collect();
+                        let golfer_lookup: std::collections::BTreeMap<String, i64> =
+                            golfers.into_iter().collect();
+
+                        for bettor in bettors {
+                            helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
+                                items: golfer_names.clone(),
+                                quote_items: true,
+                            });
+                            let prompt = format!(
+                                "Which golfers for {bettor}? (csv or space separated, quote-delimited) "
+                            );
+                            let response = prompt_for_items(&mut rl, &prompt);
+                            helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
+                            match response {
+                                Ok(selected) => {
+                                    let mut entries = Vec::new();
+                                    for golfer in selected {
+                                        match golfer_lookup.get(&golfer) {
+                                            Some(id) => {
+                                                entries.push(json!({
+                                                    "bettor": bettor.clone(),
+                                                    "golfer_espn_id": id,
+                                                }));
+                                            }
+                                            None => {
+                                                println!("Unknown golfer: {golfer}");
+                                            }
+                                        }
+                                    }
+                                    println!("{}", serde_json::to_string(&entries)?);
                                 }
-                            }
-                            Err(ReplPromptError::Interrupted) => {}
-                            Err(ReplPromptError::Invalid(err, line)) => {
-                                println!("{}", format_parse_error(&line, err.index));
-                            }
-                            Err(ReplPromptError::Failed(err)) => {
-                                return Err(err);
+                                Err(ReplPromptError::Interrupted) => {}
+                                Err(ReplPromptError::Invalid(err, line)) => {
+                                    println!("{}", format_parse_error(&line, err.index));
+                                }
+                                Err(ReplPromptError::Failed(err)) => {
+                                    return Err(err);
+                                }
                             }
                         }
                     }
@@ -158,6 +202,45 @@ pub fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
             }
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => break,
             Err(err) => return Err(err).context("read repl input"),
+        }
+    }
+    Ok(())
+}
+
+fn handle_pick_bettors(
+    rl: &mut Editor<ReplHelper, DefaultHistory>,
+    helper_state: &Rc<RefCell<ReplHelperState>>,
+    state: &mut ReplState,
+) -> Result<()> {
+    let bettors = ensure_list_bettors(state)?;
+    if bettors.is_empty() {
+        println!("No bettors found.");
+    } else {
+        for bettor in &bettors {
+            println!("{bettor}");
+        }
+    }
+    helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
+        items: bettors,
+        quote_items: false,
+    });
+    let response = prompt_for_items(rl, "Which bettors? (csv or space separated) ");
+    helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
+    match response {
+        Ok(selected) => {
+            if selected.is_empty() {
+                println!("No bettors selected.");
+            } else {
+                persist_bettors_selection(state, &selected)?;
+                println!("{}", selected.join(" "));
+            }
+        }
+        Err(ReplPromptError::Interrupted) => {}
+        Err(ReplPromptError::Invalid(err, line)) => {
+            println!("{}", format_parse_error(&line, err.index));
+        }
+        Err(ReplPromptError::Failed(err)) => {
+            return Err(err);
         }
     }
     Ok(())

@@ -1,4 +1,6 @@
-use crate::espn::{MalformedEspnJson, fetch_event_names_parallel, list_espn_events};
+use crate::espn::{
+    MalformedEspnJson, fetch_event_name, fetch_event_names_parallel, list_espn_events,
+};
 use anyhow::{Context, Result};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -48,6 +50,7 @@ pub(crate) fn print_list_event_error(err: &anyhow::Error) {
 pub(crate) fn ensure_list_events(
     state: &mut ReplState,
     refresh: bool,
+    warm_cache: bool,
 ) -> Result<Vec<(String, String)>> {
     if state.cached_events.is_some() && !refresh {
         return Ok(state.cached_events.clone().unwrap_or_default());
@@ -70,6 +73,9 @@ pub(crate) fn ensure_list_events(
     }
 
     let cached: Vec<(String, String)> = events.into_iter().collect();
+    if warm_cache {
+        warm_event_cache(&cached, &state.event_cache_dir)?;
+    }
     state.cached_events = Some(cached.clone());
     Ok(cached)
 }
@@ -96,6 +102,81 @@ pub(crate) fn persist_bettors_selection(state: &ReplState, bettors: &[String]) -
     }
     fs::write(&state.bettors_selection_path, contents)
         .with_context(|| format!("write {}", state.bettors_selection_path.display()))?;
+    Ok(())
+}
+
+pub(crate) fn bettors_selection_exists(state: &ReplState) -> bool {
+    state.bettors_selection_path.is_file()
+}
+
+pub(crate) fn load_bettors_selection(state: &ReplState) -> Result<Vec<String>> {
+    let contents = fs::read_to_string(&state.bettors_selection_path)
+        .with_context(|| format!("read {}", state.bettors_selection_path.display()))?;
+    let bettors = contents
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect();
+    Ok(bettors)
+}
+
+pub(crate) fn has_cached_events(state: &ReplState) -> Result<bool> {
+    let mut entries = fs::read_dir(&state.event_cache_dir)
+        .with_context(|| format!("read {}", state.event_cache_dir.display()))?;
+    Ok(entries.any(|entry| {
+        entry
+            .ok()
+            .and_then(|entry| entry.path().extension().map(|ext| ext == "json"))
+            .unwrap_or(false)
+    }))
+}
+
+pub(crate) fn load_cached_golfers(
+    state: &ReplState,
+) -> Result<Vec<(String, i64)>> {
+    let entries = fs::read_dir(&state.event_cache_dir)
+        .with_context(|| format!("read {}", state.event_cache_dir.display()))?;
+    let mut golfers = BTreeMap::new();
+    for entry in entries {
+        let path = entry
+            .with_context(|| format!("read {}", state.event_cache_dir.display()))?
+            .path();
+        if path.extension().map_or(true, |ext| ext != "json") {
+            continue;
+        }
+        let contents = fs::read_to_string(&path)
+            .with_context(|| format!("read {}", path.display()))?;
+        let payload: Value =
+            serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
+        if let Some(leaderboard) = payload.get("leaderboard").and_then(Value::as_array) {
+            for entry in leaderboard {
+                let name = entry
+                    .get("displayName")
+                    .and_then(Value::as_str)
+                    .or_else(|| entry.get("fullName").and_then(Value::as_str));
+                let id = entry.get("id").and_then(Value::as_str);
+                if let (Some(name), Some(id)) = (name, id) {
+                    if let Ok(id) = id.parse::<i64>() {
+                        golfers.entry(name.to_string()).or_insert(id);
+                    }
+                }
+            }
+        }
+    }
+    Ok(golfers.into_iter().collect())
+}
+
+fn warm_event_cache(events: &[(String, String)], cache_dir: &PathBuf) -> Result<()> {
+    for (event_id, _) in events {
+        let cache_path = cache_dir.join(format!("{event_id}.json"));
+        if cache_path.is_file() {
+            continue;
+        }
+        if let Ok(event_id) = event_id.parse::<i64>() {
+            let _ = fetch_event_name(event_id, cache_dir)?;
+        }
+    }
     Ok(())
 }
 

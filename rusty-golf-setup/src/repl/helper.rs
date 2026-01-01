@@ -11,7 +11,10 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub(crate) enum ReplCompletionMode {
     Repl,
-    PromptItems(Vec<String>),
+    PromptItems {
+        items: Vec<String>,
+        quote_items: bool,
+    },
 }
 
 pub(crate) struct ReplHelperState {
@@ -52,7 +55,9 @@ impl Completer for ReplHelper {
         let mode = self.state.borrow().mode.clone();
         match mode {
             ReplCompletionMode::Repl => Ok(Self::complete_repl(line, pos)),
-            ReplCompletionMode::PromptItems(ids) => Ok(complete_items_prompt(line, pos, &ids)),
+            ReplCompletionMode::PromptItems { items, quote_items } => {
+                Ok(complete_items_prompt(line, pos, &items, quote_items))
+            }
         }
     }
 }

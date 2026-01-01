@@ -4,6 +4,7 @@ pub(crate) enum CommandId {
     ListEvents,
     GetAvailableGolfers,
     PickBettors,
+    SetGolfersByBettor,
     Exit,
     Quit,
 }
@@ -67,6 +68,13 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         id: CommandId::PickBettors,
         name: "pick_bettors",
         description: "Prompt for bettor names.",
+        aliases: &[],
+        subcommands: &[],
+    },
+    ReplCommand {
+        id: CommandId::SetGolfersByBettor,
+        name: "set_golfers_by_bettor",
+        description: "Prompt for golfers for each bettor.",
         aliases: &[],
         subcommands: &[],
     },
