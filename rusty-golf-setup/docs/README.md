@@ -13,6 +13,7 @@ Optional args:
 
 - `--config-toml` Path to a TOML config file. Values from CLI flags override it.
 - `--kv-binding` KV binding name (useful for `wrangler --local`).
+- `--auth-tokens` CSV list of tokens to allow `/listing?auth_token=...` access (min 8 chars each).
 - `--event-id` Filter to a single event id.
 - `--refresh-from-espn` Value written into `event_details.json` (default: `1`).
 - `--wrangler-config` Path to `wrangler.toml` (default: `rusty-golf-serverless/wrangler.toml`).
@@ -46,6 +47,7 @@ All keys are optional. CLI values override config values.
 eup_json = "tests/test5_dbprefill.json"
 kv_env = "dev"
 kv_binding = "djf_rusty_golf_kv"
+auth_tokens = "changeme-token-1,changeme-token-2"
 event_id = 401703504
 refresh_from_espn = 1
 wrangler_config = "rusty-golf-serverless/wrangler.toml"
@@ -69,12 +71,17 @@ Then it uploads them to KV using:
 - `event:<event_id>:details`
 - `event:<event_id>:golfers`
 - `event:<event_id>:player_factors`
+- `event:<event_id>:auth_tokens` (if `--auth-tokens` is provided)
 
 It also writes seeded-at metadata keys:
 
 - `event:<event_id>:details:seeded_at`
 - `event:<event_id>:golfers:seeded_at`
 - `event:<event_id>:player_factors:seeded_at`
+
+When `--auth-tokens` is provided, it stores them for `/listing` access:
+
+- `event:<event_id>:auth_tokens`
 
 ## Limitations
 

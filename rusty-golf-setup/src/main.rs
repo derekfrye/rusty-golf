@@ -17,6 +17,8 @@ struct Cli {
     #[arg(long)]
     kv_binding: Option<String>,
     #[arg(long)]
+    auth_tokens: Option<String>,
+    #[arg(long)]
     event_id: Option<i64>,
     #[arg(long)]
     refresh_from_espn: Option<i64>,
@@ -39,6 +41,7 @@ struct FileConfig {
     eup_json: Option<PathBuf>,
     kv_env: Option<String>,
     kv_binding: Option<String>,
+    auth_tokens: Option<String>,
     event_id: Option<i64>,
     refresh_from_espn: Option<i64>,
     wrangler_config: Option<PathBuf>,
@@ -76,6 +79,10 @@ fn load_config(cli: Cli) -> Result<SeedOptions> {
         .ok_or_else(|| anyhow!("missing --kv-env"))?;
 
     let event_id = cli.event_id.or(file_config.event_id);
+    let auth_tokens = match cli.auth_tokens.or(file_config.auth_tokens) {
+        Some(value) => Some(parse_auth_tokens(&value)?),
+        None => None,
+    };
     let refresh_from_espn = cli
         .refresh_from_espn
         .or(file_config.refresh_from_espn)
@@ -119,6 +126,7 @@ fn load_config(cli: Cli) -> Result<SeedOptions> {
         eup_json,
         kv_env,
         kv_binding: cli.kv_binding.or(file_config.kv_binding),
+        auth_tokens,
         event_id,
         refresh_from_espn,
         wrangler_config,
@@ -129,4 +137,25 @@ fn load_config(cli: Cli) -> Result<SeedOptions> {
             .wrangler_config_dir
             .or(file_config.wrangler_config_dir),
     })
+}
+
+fn parse_auth_tokens(value: &str) -> Result<Vec<String>> {
+    let tokens: Vec<String> = value
+        .split(',')
+        .map(|token| token.trim())
+        .filter(|token| !token.is_empty())
+        .map(str::to_string)
+        .collect();
+    if tokens.is_empty() {
+        return Err(anyhow!("auth tokens list is empty"));
+    }
+    for token in &tokens {
+        if token.chars().count() < 8 {
+            return Err(anyhow!("auth token must be at least 8 characters"));
+        }
+        if token.chars().any(|ch| ch.is_control()) {
+            return Err(anyhow!("auth token contains non-printable characters"));
+        }
+    }
+    Ok(tokens)
 }

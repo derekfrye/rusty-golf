@@ -8,7 +8,7 @@ pub use rusty_golf_core as core;
 #[cfg(target_arch = "wasm32")]
 use espn_client::ServerlessEspnClient;
 #[cfg(target_arch = "wasm32")]
-use storage::ServerlessStorage;
+use storage::{EventListing, ServerlessStorage};
 #[cfg(target_arch = "wasm32")]
 use worker::{event, Env, Request, Response, Result, RouteContext, Router};
 #[cfg(target_arch = "wasm32")]
@@ -43,6 +43,16 @@ fn respond_html(body: String) -> Result<Response> {
         .set("Content-Type", "text/html")
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
     Ok(resp)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn escape_html(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -122,6 +132,58 @@ async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Response>
 async fn index_handler() -> Result<Response> {
     let markup = render_index_template("Scoreboard");
     respond_html(markup.into_string())
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let query = parse_query_params(&req)?;
+    let auth_token = match query.get("auth_token") {
+        Some(value) if !value.trim().is_empty() => value.trim(),
+        _ => return Response::error("auth_token is required", 401),
+    };
+    let storage = storage_from_env(&ctx.env)?;
+    if !storage
+        .auth_token_valid(auth_token)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?
+    {
+        return Response::error("auth_token is invalid", 401);
+    }
+
+    let entries = storage
+        .list_event_listings()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let body = render_listing(entries);
+    respond_html(body)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn render_listing(entries: Vec<EventListing>) -> String {
+    let mut body = String::from(
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>KV Events</title></head><body>",
+    );
+    body.push_str("<h1>KV Events</h1>");
+    if entries.is_empty() {
+        body.push_str("<p>No events found.</p>");
+    } else {
+        body.push_str("<table>");
+        body.push_str("<thead><tr><th>Event ID</th><th>Event Name</th><th>Step Factor</th><th>Refresh</th></tr></thead><tbody>");
+        for entry in entries {
+            body.push_str("<tr><td>");
+            body.push_str(&entry.event_id.to_string());
+            body.push_str("</td><td>");
+            body.push_str(&escape_html(&entry.event_name));
+            body.push_str("</td><td>");
+            body.push_str(&entry.score_view_step_factor.to_string());
+            body.push_str("</td><td>");
+            body.push_str(&entry.refresh_from_espn.to_string());
+            body.push_str("</td></tr>");
+        }
+        body.push_str("</tbody></table>");
+    }
+    body.push_str("</body></html>");
+    body
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -256,6 +318,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             Response::ok("ok")
         })
         .get_async("/scores", |req, ctx| async move { scores_handler(req, ctx).await })
+        .get_async("/listing", |req, ctx| async move { listing_handler(req, ctx).await })
         .get_async("/scores/summary", |req, ctx| async move {
             scores_summary_handler(req, ctx).await
         })

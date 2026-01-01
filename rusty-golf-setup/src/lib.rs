@@ -12,6 +12,7 @@ pub struct SeedOptions {
     pub eup_json: PathBuf,
     pub kv_env: String,
     pub event_id: Option<i64>,
+    pub auth_tokens: Option<Vec<String>>,
     pub refresh_from_espn: i64,
     pub wrangler_config: PathBuf,
     pub wrangler_env: String,
@@ -43,6 +44,10 @@ pub fn seed_kv_from_eup(options: SeedOptions) -> Result<()> {
     let temp_dir = TempDir::new().context("create temp dir")?;
     for event in &events {
         write_event_files(event, options.refresh_from_espn, temp_dir.path())?;
+        if let Some(tokens) = options.auth_tokens.as_ref() {
+            let event_dir = temp_dir.path().join(event.event.to_string());
+            write_auth_tokens(tokens, &event_dir)?;
+        }
     }
 
     for event in &events {
@@ -127,6 +132,11 @@ struct PlayerFactor<'a> {
     golfer_espn_id: i64,
     bettor_name: &'a str,
     step_factor: &'a serde_json::Value,
+}
+
+#[derive(Debug, Serialize)]
+struct AuthTokensDoc<'a> {
+    tokens: &'a [String],
 }
 
 #[derive(Debug, Serialize)]
@@ -252,6 +262,12 @@ fn write_event_files(event: &EupEvent, refresh_from_espn: i64, root: &Path) -> R
     Ok(())
 }
 
+fn write_auth_tokens(tokens: &[String], event_dir: &Path) -> Result<()> {
+    let payload = AuthTokensDoc { tokens };
+    write_json(event_dir.join("auth_tokens.json"), &payload)?;
+    Ok(())
+}
+
 fn write_json<T: Serialize>(path: PathBuf, data: &T) -> Result<()> {
     let file = fs::File::create(&path).with_context(|| format!("create {}", path.display()))?;
     serde_json::to_writer(&file, data).with_context(|| format!("write {}", path.display()))?;
@@ -268,7 +284,7 @@ fn seed_event_kv(
     wrangler_config_dir: Option<&Path>,
 ) -> Result<()> {
     let event_dir = root.join(event_id.to_string());
-    let entries = [
+    let mut entries = vec![
         (
             format!("event:{event_id}:details"),
             event_dir.join("event_details.json"),
@@ -294,6 +310,10 @@ fn seed_event_kv(
             event_dir.join("seeded_at.json"),
         ),
     ];
+    let auth_tokens_path = event_dir.join("auth_tokens.json");
+    if auth_tokens_path.is_file() {
+        entries.push((format!("event:{event_id}:auth_tokens"), auth_tokens_path));
+    }
 
     for (key, path) in entries {
         let mut command = Command::new("wrangler");

@@ -46,3 +46,11 @@ wrangler kv key get --remote --preview false \
   --namespace-id <namespace_id> \
   "event:401703521:golfers"
 ```
+
+## Listing endpoint
+`/listing` shows KV events when called with an auth token set via `rusty-golf-setup`.
+
+Example:
+```
+/listing?auth_token=changeme-token-1
+```

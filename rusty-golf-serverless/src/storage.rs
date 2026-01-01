@@ -15,6 +15,14 @@ pub struct ServerlessStorage {
     bucket: Bucket,
 }
 
+#[derive(Clone)]
+pub struct EventListing {
+    pub event_id: i32,
+    pub event_name: String,
+    pub score_view_step_factor: f32,
+    pub refresh_from_espn: i64,
+}
+
 impl ServerlessStorage {
     pub const KV_BINDING: &str = "djf_rusty_golf_kv";
     pub const R2_BINDING: &str = "SCORES_R2";
@@ -119,6 +127,64 @@ impl ServerlessStorage {
             .map_err(|e| StorageError::new(e.to_string()))?;
         Ok(())
     }
+
+    async fn kv_list_keys_with_prefix(&self, prefix: &str) -> Result<Vec<String>, StorageError> {
+        let mut keys = Vec::new();
+        let mut cursor: Option<String> = None;
+        loop {
+            let mut builder = self.kv.list().prefix(prefix.to_string());
+            if let Some(cursor_value) = cursor {
+                builder = builder.cursor(cursor_value);
+            }
+            let response = builder
+                .execute()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))?;
+            keys.extend(response.keys.into_iter().map(|key| key.name));
+            if response.list_complete {
+                break;
+            }
+            cursor = response.cursor;
+        }
+        Ok(keys)
+    }
+
+    pub async fn list_event_listings(&self) -> Result<Vec<EventListing>, StorageError> {
+        let keys = self.kv_list_keys_with_prefix("event:").await?;
+        let mut entries = Vec::new();
+        for key in keys {
+            let event_id = match parse_event_id(&key, ":details") {
+                Some(value) => value,
+                None => continue,
+            };
+            let doc: EventDetailsDoc = self.kv_get_json(&key).await?;
+            entries.push(EventListing {
+                event_id,
+                event_name: doc.event_name,
+                score_view_step_factor: doc.score_view_step_factor,
+                refresh_from_espn: doc.refresh_from_espn,
+            });
+        }
+        entries.sort_by_key(|entry| entry.event_id);
+        Ok(entries)
+    }
+
+    pub async fn auth_token_valid(&self, token: &str) -> Result<bool, StorageError> {
+        let keys = self.kv_list_keys_with_prefix("event:").await?;
+        for key in keys {
+            if !key.ends_with(":auth_tokens") {
+                continue;
+            }
+            let doc: AuthTokensDoc = match self.kv_get_json(&key).await {
+                Ok(value) => value,
+                Err(_) => continue,
+            };
+            if doc.tokens.iter().any(|stored| stored == token) {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -143,6 +209,11 @@ struct PlayerFactorEntry {
     golfer_espn_id: i64,
     bettor_name: String,
     step_factor: f32,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AuthTokensDoc {
+    tokens: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -278,4 +349,14 @@ fn parse_rfc3339(value: &str) -> Result<NaiveDateTime, chrono::ParseError> {
 
 fn format_rfc3339(value: NaiveDateTime) -> String {
     DateTime::<Utc>::from_naive_utc_and_offset(value, Utc).to_rfc3339()
+}
+
+fn parse_event_id(key: &str, suffix: &str) -> Option<i32> {
+    let prefix = "event:";
+    if !key.starts_with(prefix) || !key.ends_with(suffix) {
+        return None;
+    }
+    let start = prefix.len();
+    let end = key.len().saturating_sub(suffix.len());
+    key.get(start..end)?.parse().ok()
 }
