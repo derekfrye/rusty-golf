@@ -1,19 +1,44 @@
 # Serverless Notes
 
-## Seed KV for an event (dev or prod)
-The seed script writes event details, golfers, and player_factors into the KV namespace
-configured in `rusty-golf-serverless/wrangler.toml` for the selected env.
+## Deploy (Cloudflare Workers)
+Prereqs:
+- Install `wrangler` and authenticate with Cloudflare.
+- Ensure the `wasm32-unknown-unknown` target is installed: `rustup target add wasm32-unknown-unknown`.
 
-Usage:
+Deploy to dev:
 ```bash
-rusty-golf-serverless/scripts/seed_kv_from_eup.sh \
-  ~/docker/golf/eup.json dev 401703521
+wrangler deploy --config rusty-golf-serverless/wrangler.toml --env dev
+```
+
+Deploy to prod:
+```bash
+wrangler deploy --config rusty-golf-serverless/wrangler.toml --env prod
 ```
 
 Notes:
-- The second argument must be `dev` or `prod`.
-- The script looks up `kv_namespaces[0].id` for that env; it fails if missing.
-- Wrangler runs in remote mode by default in the script.
+- KV/R2 bindings and routes are defined per env in `rusty-golf-serverless/wrangler.toml`.
+- After deploy, seed KV/R2 for a specific event using the scripts below.
+
+## Seed KV for an event (dev or prod)
+Use `rusty-golf-setup` to seed event details, golfers, and player_factors into the KV
+namespace configured in `rusty-golf-serverless/wrangler.toml`.
+
+Usage:
+```bash
+cargo run -p rusty-golf-setup -- \
+  --eup-json ~/docker/golf/eup.json \
+  --kv-env dev \
+  --event-id 401703521 \
+  --wrangler-config rusty-golf-serverless/wrangler.toml \
+  --wrangler-env dev \
+  --wrangler-flag --remote \
+  --wrangler-flag --preview \
+  --wrangler-flag false
+```
+
+Notes:
+- `--kv-env` must be `dev` or `prod`.
+- Use `--kv-binding` if you want to target a specific binding instead of the namespace id.
 
 Verify a seeded key:
 ```bash

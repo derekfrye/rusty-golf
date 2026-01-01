@@ -69,3 +69,7 @@ Then it uploads them to KV using:
 - `event:<event_id>:details`
 - `event:<event_id>:golfers`
 - `event:<event_id>:player_factors`
+
+## Limitations
+
+- KV-only: this tool does not seed R2 objects. Use `rusty-golf-serverless/scripts/seed_event.sh` for KV + R2.
