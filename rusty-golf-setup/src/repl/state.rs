@@ -11,14 +11,19 @@ use tempfile::TempDir;
 pub(crate) struct ReplState {
     cached_events: Option<Vec<(String, String)>>,
     cached_bettors: Option<Vec<String>>,
+    golfers_by_bettor: Option<Vec<GolferSelection>>,
     eup_json_path: Option<PathBuf>,
     event_cache_dir: PathBuf,
     bettors_selection_path: PathBuf,
+    output_json_path: Option<PathBuf>,
     _temp_dir: TempDir,
 }
 
 impl ReplState {
-    pub(crate) fn new(eup_json_path: Option<PathBuf>) -> Result<Self> {
+    pub(crate) fn new(
+        eup_json_path: Option<PathBuf>,
+        output_json_path: Option<PathBuf>,
+    ) -> Result<Self> {
         let temp_dir = TempDir::new().context("create event cache dir")?;
         let event_cache_dir = temp_dir.path().join("espn_events");
         let bettors_selection_path = temp_dir.path().join("bettors.txt");
@@ -27,12 +32,20 @@ impl ReplState {
         Ok(Self {
             cached_events: None,
             cached_bettors: None,
+            golfers_by_bettor: None,
             eup_json_path,
             event_cache_dir,
             bettors_selection_path,
+            output_json_path,
             _temp_dir: temp_dir,
         })
     }
+}
+
+#[derive(Clone)]
+pub(crate) struct GolferSelection {
+    pub(crate) bettor: String,
+    pub(crate) golfer_espn_id: i64,
 }
 
 pub(crate) fn list_event_error_message(err: &anyhow::Error) -> String {
@@ -121,6 +134,34 @@ pub(crate) fn load_bettors_selection(state: &ReplState) -> Result<Vec<String>> {
     Ok(bettors)
 }
 
+pub(crate) fn eup_event_exists(state: &ReplState, event_id: i64) -> Result<bool> {
+    let Some(path) = state.eup_json_path.as_ref() else {
+        return Ok(false);
+    };
+    let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
+    if let Some(array) = payload.as_array() {
+        return Ok(array
+            .iter()
+            .any(|entry| entry.get("event").and_then(Value::as_i64) == Some(event_id)));
+    }
+    Ok(false)
+}
+
+pub(crate) fn load_eup_json(state: &ReplState) -> Result<Vec<Value>> {
+    let Some(path) = state.eup_json_path.as_ref() else {
+        return Ok(Vec::new());
+    };
+    let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
+    let Some(array) = payload.as_array() else {
+        return Err(anyhow::Error::msg("eup json must be an array"));
+    };
+    Ok(array.to_vec())
+}
+
 pub(crate) fn has_cached_events(state: &ReplState) -> Result<bool> {
     let mut entries = fs::read_dir(&state.event_cache_dir)
         .with_context(|| format!("read {}", state.event_cache_dir.display()))?;
@@ -165,6 +206,45 @@ pub(crate) fn load_cached_golfers(
         }
     }
     Ok(golfers.into_iter().collect())
+}
+
+pub(crate) fn load_event_golfers(state: &ReplState, event_id: &str) -> Result<Vec<(String, i64)>> {
+    let cache_path = state.event_cache_dir.join(format!("{event_id}.json"));
+    let contents = fs::read_to_string(&cache_path)
+        .with_context(|| format!("read {}", cache_path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", cache_path.display()))?;
+    let mut golfers = Vec::new();
+    if let Some(leaderboard) = payload.get("leaderboard").and_then(Value::as_array) {
+        for entry in leaderboard {
+            let name = entry
+                .get("displayName")
+                .and_then(Value::as_str)
+                .or_else(|| entry.get("fullName").and_then(Value::as_str));
+            let id = entry.get("id").and_then(Value::as_str);
+            if let (Some(name), Some(id)) = (name, id) {
+                if let Ok(id) = id.parse::<i64>() {
+                    golfers.push((name.to_string(), id));
+                }
+            }
+        }
+    }
+    Ok(golfers)
+}
+
+pub(crate) fn set_golfers_by_bettor(
+    state: &mut ReplState,
+    selections: Vec<GolferSelection>,
+) {
+    state.golfers_by_bettor = Some(selections);
+}
+
+pub(crate) fn take_golfers_by_bettor(state: &mut ReplState) -> Option<Vec<GolferSelection>> {
+    state.golfers_by_bettor.take()
+}
+
+pub(crate) fn output_json_path(state: &ReplState) -> Option<PathBuf> {
+    state.output_json_path.clone()
 }
 
 fn warm_event_cache(events: &[(String, String)], cache_dir: &PathBuf) -> Result<()> {

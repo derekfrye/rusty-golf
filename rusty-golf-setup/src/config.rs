@@ -15,7 +15,10 @@ pub enum Mode {
 
 pub enum AppMode {
     Seed(Box<SeedOptions>),
-    NewEvent { eup_json: Option<PathBuf> },
+    NewEvent {
+        eup_json: Option<PathBuf>,
+        output_json: Option<PathBuf>,
+    },
 }
 
 #[derive(Parser, Debug)]
@@ -49,6 +52,8 @@ pub struct Cli {
     wrangler_log_dir: Option<PathBuf>,
     #[arg(long)]
     wrangler_config_dir: Option<PathBuf>,
+    #[arg(long)]
+    output_json: Option<PathBuf>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -66,6 +71,7 @@ struct FileConfig {
     wrangler_kv_flags: Option<Vec<String>>,
     wrangler_log_dir: Option<PathBuf>,
     wrangler_config_dir: Option<PathBuf>,
+    output_json: Option<PathBuf>,
 }
 
 /// Load config from CLI and optional TOML file.
@@ -159,6 +165,7 @@ pub fn load_config(cli: Cli) -> Result<AppMode> {
         }
         Mode::NewEvent => Ok(AppMode::NewEvent {
             eup_json: cli.eup_json.or(file_config.eup_json),
+            output_json: cli.output_json.or(file_config.output_json),
         }),
     }
 }

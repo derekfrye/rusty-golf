@@ -8,6 +8,9 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     match load_config(cli)? {
         AppMode::Seed(config) => seed_kv_from_eup(&config),
-        AppMode::NewEvent { eup_json } => run_new_event_repl(eup_json),
+        AppMode::NewEvent {
+            eup_json,
+            output_json,
+        } => run_new_event_repl(eup_json, output_json),
     }
 }
