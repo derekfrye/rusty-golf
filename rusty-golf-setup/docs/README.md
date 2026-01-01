@@ -4,13 +4,14 @@ CLI utility to seed Wrangler KV entries from a db_prefill-style EUP JSON file.
 
 ## Usage
 
-Required args:
+Required args (seed mode):
 
 - `--eup-json` Path to the EUP JSON file.
 - `--kv-env` Wrangler env to target (`dev` or `prod`).
 
 Optional args:
 
+- `--mode` Operation mode (`seed` default, `new_event` starts an interactive REPL).
 - `--config-toml` Path to a TOML config file. Values from CLI flags override it.
 - `--kv-binding` KV binding name (useful for `wrangler --local`).
 - `--auth-tokens` CSV list of tokens to allow `/listing?auth_token=...` access (min 8 chars each).
@@ -44,6 +45,7 @@ cargo run -p rusty-golf-setup -- \
 All keys are optional. CLI values override config values.
 
 ```toml
+mode = "seed"
 eup_json = "tests/test5_dbprefill.json"
 kv_env = "dev"
 kv_binding = "djf_rusty_golf_kv"
