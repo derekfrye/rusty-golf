@@ -11,8 +11,9 @@ use rustyline::Editor;
 use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
 use serde::Deserialize;
 use serde_json::Value;
-use std::fs;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
+use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, Deserialize, ValueEnum)]
@@ -25,32 +26,90 @@ enum Mode {
 
 enum AppMode {
     Seed(SeedOptions),
-    NewEvent,
+    NewEvent { eup_json: Option<PathBuf> },
 }
 
 const ESPN_SCOREBOARD_URL: &str = "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=golf&league=pga&region=us&lang=en&contentorigin=espn";
+const ESPN_EVENT_URL_PREFIX: &str =
+    "https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/players?region=us&lang=en&event=";
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CommandId {
+    Help,
+    ListEvents,
+    GetAvailableGolfers,
+    Exit,
+    Quit,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SubcommandId {
+    Help,
+    Refresh,
+}
 
 struct ReplCommand {
+    id: CommandId,
+    name: &'static str,
+    description: &'static str,
+    aliases: &'static [&'static str],
+    subcommands: &'static [ReplSubcommand],
+}
+
+struct ReplSubcommand {
+    id: SubcommandId,
     name: &'static str,
     description: &'static str,
 }
 
+const LIST_EVENTS_SUBCOMMANDS: &[ReplSubcommand] = &[
+    ReplSubcommand {
+        id: SubcommandId::Help,
+        name: "help",
+        description: "display this help screen",
+    },
+    ReplSubcommand {
+        id: SubcommandId::Refresh,
+        name: "refresh",
+        description: "if passed, hit espn api again to refresh current events.",
+    },
+];
+
 const REPL_COMMANDS: &[ReplCommand] = &[
     ReplCommand {
+        id: CommandId::Help,
         name: "help",
         description: "Show this help.",
+        aliases: &["?", "-h", "--help"],
+        subcommands: &[],
     },
     ReplCommand {
+        id: CommandId::ListEvents,
         name: "list_events",
         description: "List events on ESPN API.",
+        aliases: &[],
+        subcommands: LIST_EVENTS_SUBCOMMANDS,
     },
     ReplCommand {
+        id: CommandId::GetAvailableGolfers,
+        name: "get_available_golfers",
+        description: "Prompt for event IDs to use for golfers.",
+        aliases: &[],
+        subcommands: &[],
+    },
+    ReplCommand {
+        id: CommandId::Exit,
         name: "exit",
         description: "Exit the REPL.",
+        aliases: &[],
+        subcommands: &[],
     },
     ReplCommand {
+        id: CommandId::Quit,
         name: "quit",
         description: "Exit the REPL.",
+        aliases: &[],
+        subcommands: &[],
     },
 ];
 
@@ -108,7 +167,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     match load_config(cli)? {
         AppMode::Seed(config) => seed_kv_from_eup(&config),
-        AppMode::NewEvent => run_new_event_repl(),
+        AppMode::NewEvent { eup_json } => run_new_event_repl(eup_json),
     }
 }
 
@@ -198,7 +257,9 @@ fn load_config(cli: Cli) -> Result<AppMode> {
                     .or(file_config.wrangler_config_dir),
             }))
         }
-        Mode::NewEvent => Ok(AppMode::NewEvent),
+        Mode::NewEvent => Ok(AppMode::NewEvent {
+            eup_json: cli.eup_json.or(file_config.eup_json),
+        }),
     }
 }
 
@@ -223,11 +284,12 @@ fn parse_auth_tokens(value: &str) -> Result<Vec<String>> {
     Ok(tokens)
 }
 
-fn run_new_event_repl() -> Result<()> {
+fn run_new_event_repl(eup_json: Option<PathBuf>) -> Result<()> {
     let help_text = build_repl_help();
     println!("Entering new_event mode. Press Ctrl-C or Ctrl-D to quit.");
     let mut rl = Editor::<ReplHelper, DefaultHistory>::new().context("init repl")?;
     rl.set_helper(Some(ReplHelper));
+    let mut state = ReplState::new(eup_json);
     loop {
         match rl.readline("new_event> ") {
             Ok(line) => {
@@ -236,12 +298,40 @@ fn run_new_event_repl() -> Result<()> {
                     continue;
                 }
                 rl.add_history_entry(input)?;
-                match input {
-                    "help" | "?" | "-h" | "--help" => {
+                let mut parts = input.split_whitespace();
+                let command_token = parts.next().unwrap_or_default();
+                let command = match find_command(command_token) {
+                    Some(command) => command,
+                    None => {
+                        println!("Unknown command: {input}");
+                        println!("{help_text}");
+                        continue;
+                    }
+                };
+
+                match command.id {
+                    CommandId::Help => {
                         println!("{help_text}");
                     }
-                    "list_events" => {
-                        match list_espn_events() {
+                    CommandId::ListEvents => {
+                        let subcommand_token = parts.next();
+                        let subcommand = subcommand_token.and_then(|token| {
+                            find_subcommand(command.subcommands, token)
+                        });
+                        if subcommand_token.is_some() && subcommand.is_none() {
+                            println!("Unknown subcommand: {}", subcommand_token.unwrap());
+                            print_subcommand_help(command);
+                            continue;
+                        }
+                        let refresh = matches!(
+                            subcommand.map(|sub| sub.id),
+                            Some(SubcommandId::Refresh)
+                        );
+                        if matches!(subcommand.map(|sub| sub.id), Some(SubcommandId::Help)) {
+                            print_subcommand_help(command);
+                            continue;
+                        }
+                        match ensure_list_events(&mut state, refresh) {
                             Ok(events) => {
                                 if events.is_empty() {
                                     println!("No events found.");
@@ -251,20 +341,37 @@ fn run_new_event_repl() -> Result<()> {
                                     }
                                 }
                             }
-                            Err(err) => {
-                                if err.is::<MalformedEspnJson>() {
-                                    println!("Fetch to espn returned malformed data.");
-                                } else {
-                                    println!("Fetch to espn failed: {err}");
-                                }
-                            }
+                            Err(err) => print_list_event_error(&err),
                         }
                     }
-                    "exit" | "quit" => break,
-                    _ => {
-                        println!("Unknown command: {input}");
-                        println!("{help_text}");
+                    CommandId::GetAvailableGolfers => {
+                        match ensure_list_events(&mut state, false) {
+                            Ok(events) => {
+                                if events.is_empty() {
+                                    println!("No events found.");
+                                } else {
+                                    for (id, name) in &events {
+                                        println!("{id} {name}");
+                                    }
+                                }
+                                match prompt_for_events(&mut rl) {
+                                    Ok(selected) => {
+                                        if selected.is_empty() {
+                                            println!("No events selected.");
+                                        } else {
+                                            println!("{}", selected.join(" "));
+                                        }
+                                    }
+                                    Err(ReplPromptError::Interrupted) => continue,
+                                    Err(ReplPromptError::Failed(err)) => {
+                                        return Err(err);
+                                    }
+                                }
+                            }
+                            Err(err) => print_list_event_error(&err),
+                        }
                     }
+                    CommandId::Exit | CommandId::Quit => break,
                 }
             }
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => break,
@@ -285,6 +392,26 @@ impl fmt::Display for MalformedEspnJson {
 
 impl std::error::Error for MalformedEspnJson {}
 
+#[derive(Default)]
+struct ReplState {
+    cached_events: Option<Vec<(String, String)>>,
+    eup_json_path: Option<PathBuf>,
+}
+
+impl ReplState {
+    fn new(eup_json_path: Option<PathBuf>) -> Self {
+        Self {
+            cached_events: None,
+            eup_json_path,
+        }
+    }
+}
+
+enum ReplPromptError {
+    Interrupted,
+    Failed(anyhow::Error),
+}
+
 fn list_espn_events() -> Result<Vec<(String, String)>> {
     let response = reqwest::blocking::get(ESPN_SCOREBOARD_URL)
         .context("fetch ESPN events")?
@@ -293,6 +420,98 @@ fn list_espn_events() -> Result<Vec<(String, String)>> {
     let payload: Value = serde_json::from_str(&response)
         .map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
     Ok(extract_espn_events(&payload))
+}
+
+fn list_event_error_message(err: &anyhow::Error) -> String {
+    if err.is::<MalformedEspnJson>() {
+        "Fetch to espn returned malformed data.".to_string()
+    } else {
+        format!("Fetch to espn failed: {err}")
+    }
+}
+
+fn print_list_event_error(err: &anyhow::Error) {
+    println!("{}", list_event_error_message(err));
+}
+
+fn find_command(name: &str) -> Option<&'static ReplCommand> {
+    REPL_COMMANDS.iter().find(|command| {
+        command.name == name || command.aliases.iter().any(|alias| *alias == name)
+    })
+}
+
+fn find_subcommand(
+    subcommands: &'static [ReplSubcommand],
+    name: &str,
+) -> Option<&'static ReplSubcommand> {
+    subcommands.iter().find(|subcommand| subcommand.name == name)
+}
+
+fn print_subcommand_help(command: &ReplCommand) {
+    for subcommand in command.subcommands {
+        println!("{} {}", subcommand.name, subcommand.description);
+    }
+}
+
+fn ensure_list_events(state: &mut ReplState, refresh: bool) -> Result<Vec<(String, String)>> {
+    if state.cached_events.is_some() && !refresh {
+        return Ok(state.cached_events.clone().unwrap_or_default());
+    }
+
+    let mut events = BTreeMap::new();
+    for (id, name) in list_espn_events()? {
+        events.insert(id, name);
+    }
+
+    if let Some(path) = state.eup_json_path.as_ref() {
+        let eup_event_ids = read_eup_event_ids(path)?;
+        for event_id in eup_event_ids {
+            let id_str = event_id.to_string();
+            if events.contains_key(&id_str) {
+                continue;
+            }
+            if let Ok(name) = fetch_event_name(event_id) {
+                events.insert(id_str, name);
+            }
+        }
+    }
+
+    let cached: Vec<(String, String)> = events.into_iter().collect();
+    state.cached_events = Some(cached.clone());
+    Ok(cached)
+}
+
+fn read_eup_event_ids(path: &PathBuf) -> Result<Vec<i64>> {
+    let contents =
+        fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
+    let mut ids = BTreeSet::new();
+    if let Some(array) = payload.as_array() {
+        for entry in array {
+            if let Some(event_id) = entry.get("event").and_then(Value::as_i64) {
+                ids.insert(event_id);
+            }
+        }
+    }
+    Ok(ids.into_iter().collect())
+}
+
+fn fetch_event_name(event_id: i64) -> Result<String> {
+    let url = format!("{ESPN_EVENT_URL_PREFIX}{event_id}");
+    let response = reqwest::blocking::get(url)
+        .context("fetch ESPN event")?
+        .text()
+        .context("read ESPN event response body")?;
+    let payload: Value = serde_json::from_str(&response)
+        .map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+    let name = payload
+        .get("event")
+        .and_then(|event| event.get("name"))
+        .and_then(Value::as_str)
+        .or_else(|| payload.get("name").and_then(Value::as_str))
+        .ok_or_else(|| anyhow::Error::new(MalformedEspnJson))?;
+    Ok(name.to_string())
 }
 
 fn extract_espn_events(payload: &Value) -> Vec<(String, String)> {
@@ -319,18 +538,44 @@ fn extract_espn_events(payload: &Value) -> Vec<(String, String)> {
 
 fn build_repl_help() -> String {
     let mut help = String::from("Commands:");
-    help.push_str("\n  help, ?, -h, --help  Show this help.");
     for command in REPL_COMMANDS {
-        if command.name == "help" {
-            continue;
-        }
+        let names = if command.aliases.is_empty() {
+            command.name.to_string()
+        } else {
+            let mut parts = Vec::with_capacity(command.aliases.len() + 1);
+            parts.push(command.name);
+            parts.extend(command.aliases);
+            parts.join(", ")
+        };
         help.push_str("\n  ");
-        help.push_str(command.name);
-        let padding = 18usize.saturating_sub(command.name.len());
+        help.push_str(&names);
+        let padding = 22usize.saturating_sub(names.len());
         help.push_str(&" ".repeat(padding.max(2)));
         help.push_str(command.description);
     }
     help
+}
+
+fn prompt_for_events(
+    rl: &mut Editor<ReplHelper, DefaultHistory>,
+) -> Result<Vec<String>, ReplPromptError> {
+    match rl.readline("Which events? ") {
+        Ok(line) => {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                return Ok(Vec::new());
+            }
+            let normalized = trimmed.replace(',', " ");
+            let ids = normalized
+                .split_whitespace()
+                .filter(|id| !id.is_empty())
+                .map(str::to_string)
+                .collect();
+            Ok(ids)
+        }
+        Err(ReadlineError::Interrupted | ReadlineError::Eof) => Err(ReplPromptError::Interrupted),
+        Err(err) => Err(ReplPromptError::Failed(anyhow::Error::from(err))),
+    }
 }
 
 struct ReplHelper;
@@ -345,14 +590,40 @@ impl Completer for ReplHelper {
         _ctx: &rustyline::Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
         let prefix = &line[..pos];
+        let mut parts = prefix.split_whitespace();
+        let first = parts.next().unwrap_or_default();
+        let second = parts.next();
+
+        if let Some(command) = find_command(first) {
+            if !command.subcommands.is_empty()
+                && second.is_none()
+                && prefix.contains(char::is_whitespace)
+            {
+                let sub_prefix = prefix
+                    .trim_start_matches(command.name)
+                    .trim_start();
+                let candidates = command
+                    .subcommands
+                    .iter()
+                    .map(|subcommand| subcommand.name)
+                    .filter(|cmd| cmd.starts_with(sub_prefix))
+                    .map(|cmd| Pair {
+                        display: cmd.to_string(),
+                        replacement: cmd.to_string(),
+                    })
+                    .collect();
+                let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
+                return Ok((start, candidates));
+            }
+        }
+
         if prefix.contains(char::is_whitespace) {
             return Ok((pos, Vec::new()));
         }
 
         let candidates = REPL_COMMANDS
             .iter()
-            .map(|command| command.name)
-            .chain(["?", "-h", "--help"])
+            .flat_map(|command| command.aliases.iter().copied().chain([command.name]))
             .filter(|cmd| cmd.starts_with(prefix))
             .map(|cmd| Pair {
                 display: cmd.to_string(),
