@@ -11,7 +11,7 @@ use std::path::PathBuf;
 #[serde(rename_all = "snake_case")]
 enum Mode {
     Seed,
-    #[value(rename = "new_event")]
+    #[value(name = "new_event")]
     NewEvent,
 }
 
@@ -89,7 +89,10 @@ fn load_config(cli: Cli) -> Result<AppMode> {
         None => FileConfig::default(),
     };
 
-    let mode = cli.mode.or(file_config.mode).unwrap_or(Mode::Seed);
+    let mode = cli
+        .mode
+        .or(file_config.mode)
+        .ok_or_else(|| anyhow!("missing --mode"))?;
     match mode {
         Mode::Seed => {
             let eup_json = cli

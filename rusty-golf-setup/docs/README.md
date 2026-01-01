@@ -9,9 +9,12 @@ Required args (seed mode):
 - `--eup-json` Path to the EUP JSON file.
 - `--kv-env` Wrangler env to target (`dev` or `prod`).
 
+Required args:
+
+- `--mode` Operation mode (`seed` or `new_event`).
+
 Optional args:
 
-- `--mode` Operation mode (`seed` default, `new_event` starts an interactive REPL).
 - `--config-toml` Path to a TOML config file. Values from CLI flags override it.
 - `--kv-binding` KV binding name (useful for `wrangler --local`).
 - `--auth-tokens` CSV list of tokens to allow `/listing?auth_token=...` access (min 8 chars each).
