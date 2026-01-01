@@ -53,6 +53,10 @@ impl ServerlessStorage {
         format!("event:{event_id}:last_refresh")
     }
 
+    fn kv_seeded_at_key(event_id: i32, suffix: &str) -> String {
+        format!("event:{event_id}:{suffix}:seeded_at")
+    }
+
     async fn kv_get_json<T>(&self, key: &str) -> Result<T, StorageError>
     where
         T: for<'de> Deserialize<'de>,
@@ -147,6 +151,11 @@ struct LastRefreshDoc {
     source: RefreshSource,
 }
 
+#[derive(Serialize, Deserialize)]
+struct SeededAtDoc {
+    seeded_at: String,
+}
+
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl Storage for ServerlessStorage {
     async fn get_event_details(&self, event_id: i32) -> Result<EventDetails, StorageError> {
@@ -227,6 +236,12 @@ impl Storage for ServerlessStorage {
         };
         let kv_key = Self::kv_last_refresh_key(event_id);
         self.kv_put_json(&kv_key, &last_refresh).await?;
+
+        let seeded_at = SeededAtDoc {
+            seeded_at: format_rfc3339(now),
+        };
+        let seeded_key = Self::kv_seeded_at_key(event_id, "last_refresh");
+        self.kv_put_json(&seeded_key, &seeded_at).await?;
         Ok(())
     }
 
@@ -235,6 +250,9 @@ impl Storage for ServerlessStorage {
         event_id: i32,
         max_age_seconds: i64,
     ) -> Result<bool, StorageError> {
+        if max_age_seconds <= 0 {
+            return Ok(false);
+        }
         let details_key = Self::kv_event_details_key(event_id);
         if self.kv.get(&details_key).text().await.ok().flatten().is_none() {
             return Ok(false);
@@ -250,7 +268,7 @@ impl Storage for ServerlessStorage {
             .map_err(|e| StorageError::new(e.to_string()))?;
         let now = Utc::now().naive_utc();
         let diff = now.signed_duration_since(last_refresh_ts);
-        Ok(diff.num_seconds() >= max_age_seconds)
+        Ok(diff.num_seconds() <= max_age_seconds)
     }
 }
 

@@ -70,6 +70,14 @@ Then it uploads them to KV using:
 - `event:<event_id>:golfers`
 - `event:<event_id>:player_factors`
 
+It also writes seeded-at metadata keys:
+
+- `event:<event_id>:details:seeded_at`
+- `event:<event_id>:golfers:seeded_at`
+- `event:<event_id>:player_factors:seeded_at`
+
 ## Limitations
 
-- KV-only: this tool does not seed R2 objects. Use `rusty-golf-serverless/scripts/seed_event.sh` for KV + R2.
+- KV-only: this tool does not seed R2 objects. R2 stays empty until the serverless app
+  fetches ESPN data on a request and writes `events/<event_id>/scores.json` and
+  `cache/espn/<event_id>.json`, or you seed them with a separate tool (note, you probably don't have to seed R2 since `-serverless` does it on first need.

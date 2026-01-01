@@ -47,7 +47,7 @@ pub async fn cache_max_age_for_event(
 ) -> Result<i64, CoreError> {
     let cache_max_age = match storage.get_event_details(event_id).await {
         Ok(event_details) => match event_details.refresh_from_espn {
-            1 => 99,
+            1 => 300,
             _ => 0,
         },
         Err(_) => 0,

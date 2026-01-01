@@ -21,7 +21,7 @@ Notes:
 
 ## Seed KV for an event (dev or prod)
 Use `rusty-golf-setup` to seed event details, golfers, and player_factors into the KV
-namespace configured in `rusty-golf-serverless/wrangler.toml`.
+namespace configured in `rusty-golf-serverless/wrangler.toml`. You only have to seed KV; on first run the `-serverless` app will store data in R2.
 
 Usage:
 ```bash

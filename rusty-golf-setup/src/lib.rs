@@ -1,4 +1,5 @@
 use anyhow::{anyhow, bail, Context, Result};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -128,6 +129,11 @@ struct PlayerFactor<'a> {
     step_factor: &'a serde_json::Value,
 }
 
+#[derive(Debug, Serialize)]
+struct SeededAtDoc {
+    seeded_at: String,
+}
+
 fn load_kv_namespace_id(config_path: &Path, kv_env: &str) -> Result<String> {
     let contents = fs::read_to_string(config_path)
         .with_context(|| format!("read wrangler config {}", config_path.display()))?;
@@ -238,6 +244,11 @@ fn write_event_files(event: &EupEvent, refresh_from_espn: i64, root: &Path) -> R
         .collect();
     write_json(event_dir.join("player_factors.json"), &player_factors)?;
 
+    let seeded_at = SeededAtDoc {
+        seeded_at: Utc::now().to_rfc3339(),
+    };
+    write_json(event_dir.join("seeded_at.json"), &seeded_at)?;
+
     Ok(())
 }
 
@@ -269,6 +280,18 @@ fn seed_event_kv(
         (
             format!("event:{event_id}:player_factors"),
             event_dir.join("player_factors.json"),
+        ),
+        (
+            format!("event:{event_id}:details:seeded_at"),
+            event_dir.join("seeded_at.json"),
+        ),
+        (
+            format!("event:{event_id}:golfers:seeded_at"),
+            event_dir.join("seeded_at.json"),
+        ),
+        (
+            format!("event:{event_id}:player_factors:seeded_at"),
+            event_dir.join("seeded_at.json"),
         ),
     ];
 
