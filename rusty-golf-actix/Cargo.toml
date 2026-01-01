@@ -39,3 +39,6 @@ scraper = "0"
 
 # [patch.crates-io]
 # sql-middleware = { path = "../sql-middleware" }
+
+[lints.rust]
+unsafe_code = "forbid"

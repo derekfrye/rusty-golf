@@ -11,6 +11,10 @@ pub struct ScoreRequest {
     pub expanded: bool,
 }
 
+/// Parse query parameters into a score request.
+///
+/// # Errors
+/// Returns an error if required query parameters are missing or invalid.
 #[allow(clippy::implicit_hasher)]
 pub fn parse_score_request(query: &HashMap<String, String>) -> Result<ScoreRequest, CoreError> {
     let event_id = query
@@ -41,6 +45,10 @@ pub fn parse_score_request(query: &HashMap<String, String>) -> Result<ScoreReque
     })
 }
 
+/// Fetch cache max age for an event.
+///
+/// # Errors
+/// Returns an error if event details cannot be retrieved.
 pub async fn cache_max_age_for_event(
     storage: &dyn Storage,
     event_id: i32,
@@ -55,6 +63,10 @@ pub async fn cache_max_age_for_event(
     Ok(cache_max_age)
 }
 
+/// Parse a score request and build a derived value.
+///
+/// # Errors
+/// Returns an error if parsing the request or loading cache settings fails.
 pub async fn decode_score_request<T>(
     query: &HashMap<String, String>,
     storage: &dyn Storage,

@@ -46,6 +46,9 @@ impl R2Storage {
     /// Optional:
     /// - `R2_REGION` (defaults to `auto`)
     /// - `R2_SERVICE` (defaults to `s3`)
+    ///
+    /// # Errors
+    /// Returns an error if required environment variables are missing.
     pub fn config_from_env() -> Result<R2StorageConfig, StorageError> {
         dotenvy::dotenv().ok();
 
@@ -225,6 +228,10 @@ impl SigV4Signer {
 }
 
 pub trait S3Signer: Send + Sync {
+    /// Sign a request and return the headers to attach.
+    ///
+    /// # Errors
+    /// Returns an error if the request cannot be signed.
     fn sign(
         &self,
         method: &str,
@@ -392,9 +399,8 @@ impl Storage for R2Storage {
         max_age_seconds: i64,
     ) -> Result<bool, StorageError> {
         let key = Self::scores_key(event_id);
-        let scores = match self.get_json::<ScoresAndLastRefresh>(&key).await? {
-            Some(scores) => scores,
-            None => return Ok(false),
+        let Some(scores) = self.get_json::<ScoresAndLastRefresh>(&key).await? else {
+            return Ok(false);
         };
 
         let now = chrono::Utc::now().naive_utc();

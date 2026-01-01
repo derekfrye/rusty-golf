@@ -22,7 +22,12 @@ pub struct SeedOptions {
     pub kv_binding: Option<String>,
 }
 
-pub fn seed_kv_from_eup(options: SeedOptions) -> Result<()> {
+/// Seed Wrangler KV entries from a EUP JSON payload.
+///
+/// # Errors
+/// Returns an error if the input files are missing, invalid, or if the KV
+/// writes fail.
+pub fn seed_kv_from_eup(options: &SeedOptions) -> Result<()> {
     if options.kv_env != "dev" && options.kv_env != "prod" {
         bail!("kv_env must be 'dev' or 'prod'");
     }
@@ -165,7 +170,7 @@ fn load_kv_namespace_id(config_path: &Path, kv_env: &str) -> Result<String> {
     })?;
     let namespace = namespaces
         .first()
-        .ok_or_else(|| anyhow!("kv_namespaces empty for env '{}'", kv_env))?;
+        .ok_or_else(|| anyhow!("kv_namespaces empty for env '{kv_env}'"))?;
     let id = namespace.id.as_ref().ok_or_else(|| {
         anyhow!(
             "missing kv_namespaces[0].id for env '{}' in {}",
@@ -194,7 +199,7 @@ fn load_events(eup_path: &Path, event_id_filter: Option<i64>) -> Result<Vec<EupE
 fn write_event_files(event: &EupEvent, refresh_from_espn: i64, root: &Path) -> Result<()> {
     let data_to_fill = event
         .data_to_fill_if_event_and_year_missing
-        .get(0)
+        .first()
         .ok_or_else(|| anyhow!("no data_to_fill_if_event_and_year_missing for {}", event.event))?;
 
     let event_dir = root.join(event.event.to_string());
@@ -206,7 +211,7 @@ fn write_event_files(event: &EupEvent, refresh_from_espn: i64, root: &Path) -> R
         score_view_step_factor: &event.score_view_step_factor,
         refresh_from_espn,
     };
-    write_json(event_dir.join("event_details.json"), &details)?;
+    write_json(&event_dir.join("event_details.json"), &details)?;
 
     let mut golfers_by_id = HashMap::new();
     for golfer in &data_to_fill.golfers {
@@ -239,7 +244,7 @@ fn write_event_files(event: &EupEvent, refresh_from_espn: i64, root: &Path) -> R
         eup_id += 1;
     }
 
-    write_json(event_dir.join("golfers.json"), &golfers_out)?;
+    write_json(&event_dir.join("golfers.json"), &golfers_out)?;
 
     let player_factors: Vec<PlayerFactor<'_>> = data_to_fill
         .event_user_player
@@ -252,24 +257,24 @@ fn write_event_files(event: &EupEvent, refresh_from_espn: i64, root: &Path) -> R
             })
         })
         .collect();
-    write_json(event_dir.join("player_factors.json"), &player_factors)?;
+    write_json(&event_dir.join("player_factors.json"), &player_factors)?;
 
     let seeded_at = SeededAtDoc {
         seeded_at: Utc::now().to_rfc3339(),
     };
-    write_json(event_dir.join("seeded_at.json"), &seeded_at)?;
+    write_json(&event_dir.join("seeded_at.json"), &seeded_at)?;
 
     Ok(())
 }
 
 fn write_auth_tokens(tokens: &[String], event_dir: &Path) -> Result<()> {
     let payload = AuthTokensDoc { tokens };
-    write_json(event_dir.join("auth_tokens.json"), &payload)?;
+    write_json(&event_dir.join("auth_tokens.json"), &payload)?;
     Ok(())
 }
 
-fn write_json<T: Serialize>(path: PathBuf, data: &T) -> Result<()> {
-    let file = fs::File::create(&path).with_context(|| format!("create {}", path.display()))?;
+fn write_json<T: Serialize>(path: &Path, data: &T) -> Result<()> {
+    let file = fs::File::create(path).with_context(|| format!("create {}", path.display()))?;
     serde_json::to_writer(&file, data).with_context(|| format!("write {}", path.display()))?;
     Ok(())
 }
@@ -342,7 +347,7 @@ fn seed_event_kv(
 
         let status = command.status().context("run wrangler kv key put")?;
         if !status.success() {
-            bail!("wrangler failed with status {}", status);
+            bail!("wrangler failed with status {status}");
         }
     }
 

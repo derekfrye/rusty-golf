@@ -1,6 +1,10 @@
 use crate::model::{StringStat, take_a_char_off};
 use chrono::DateTime;
 
+/// Convert a tee time string into a display-ready value.
+///
+/// # Panics
+/// Panics if the hardcoded fallback timestamp or UTC offset is invalid.
 #[must_use]
 pub fn process_tee_time(tee_time: &str) -> Option<StringStat> {
     let mut_tee_time = if tee_time.ends_with('Z') {

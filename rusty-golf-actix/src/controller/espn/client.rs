@@ -13,6 +13,12 @@ impl ActixEspnClient {
     }
 }
 
+impl Default for ActixEspnClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait::async_trait]
 impl EspnApiClient for ActixEspnClient {
     async fn get_json_from_espn(

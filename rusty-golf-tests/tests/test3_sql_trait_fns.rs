@@ -26,7 +26,7 @@ async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>>
     }
 
     if std::env::var("R2_ENDPOINT").is_ok() {
-        print!("R2 test portions will run\n");
+        println!("R2 test portions will run");
     }
 
     let x = "file::memory:?cache=shared".to_string();

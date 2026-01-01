@@ -15,3 +15,6 @@ sql-middleware = "0.4.0"
 tokio = { version = "1", features = ["full"] }
 rusty-golf = { path = "../rusty-golf-actix" }
 rusty-golf-setup = { path = "../rusty-golf-setup" }
+
+[lints.rust]
+unsafe_code = "forbid"

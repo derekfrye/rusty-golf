@@ -37,17 +37,25 @@ pub trait EspnApiClient {
     }
 }
 
+/// Fetch ESPN JSON and merge it into score records.
+///
+/// # Errors
+/// Returns an error if the ESPN request fails or data cannot be processed.
 pub async fn go_get_espn_data(
     api: &dyn EspnApiClient,
-    scores: Vec<Scores>,
+    scores: &[Scores],
     year: i32,
     event_id: i32,
 ) -> Result<Vec<Scores>, CoreError> {
-    let json_responses = api.get_json_from_espn(&scores, year, event_id).await?;
+    let json_responses = api.get_json_from_espn(scores, year, event_id).await?;
     let statistics = process_json_to_statistics(&json_responses)?;
-    merge_statistics_with_scores(&statistics, &scores)
+    merge_statistics_with_scores(&statistics, scores)
 }
 
+/// Fetch scores with optional caching and fallback logic.
+///
+/// # Errors
+/// Returns an error if ESPN fetch, cache read/write, or fallback retrieval fails.
 pub async fn fetch_scores_from_espn(
     api: &dyn EspnApiClient,
     storage: &dyn Storage,
@@ -57,19 +65,18 @@ pub async fn fetch_scores_from_espn(
     use_cache: bool,
     cache_max_age: i64,
 ) -> Result<ScoresAndLastRefresh, CoreError> {
-    if use_cache {
-        if let Some(cached) = crate::score::context::load_cached_scores(
+    if use_cache
+        && let Some(cached) = crate::score::context::load_cached_scores(
             storage,
             event_id,
             cache_max_age,
         )
         .await?
-        {
-            return Ok(cached);
-        }
+    {
+        return Ok(cached);
     }
 
-    let fetched_scores = match go_get_espn_data(api, scores, year, event_id).await {
+    let fetched_scores = match go_get_espn_data(api, &scores, year, event_id).await {
         Ok(fetched) => fetched,
         Err(err) => {
             if let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await {

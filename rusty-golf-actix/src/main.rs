@@ -80,10 +80,10 @@ async fn init_config_and_pool(
     if args.db_type == DatabaseType::Postgres {
         let mut postgres_config = PgConfig::new();
         postgres_config.dbname = Some(args.db_name.clone());
-        postgres_config.host = args.db_host.clone();
+        postgres_config.host.clone_from(&args.db_host);
         postgres_config.port = args.db_port;
-        postgres_config.user = args.db_user.clone();
-        postgres_config.password = args.db_password.clone();
+        postgres_config.user.clone_from(&args.db_user);
+        postgres_config.password.clone_from(&args.db_password);
 
         let postgres_options = PostgresOptions::new(postgres_config);
         let pool = ConfigAndPool::new_postgres(postgres_options).await?;

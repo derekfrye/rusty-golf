@@ -1,12 +1,12 @@
-use serde_json::Value;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
+
 use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
 
 #[tokio::test(flavor = "multi_thread")]
-async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
+async fn test08_listing_endpoint() -> Result<(), Box<dyn Error>> {
     if !run_serverless_enabled()? {
         eprintln!("Skipping serverless test: RUN_SERVERLESS=1 not set in .env");
         return Ok(());
@@ -18,18 +18,11 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
 
     let workspace_root = workspace_root();
     let wrangler_config = workspace_root.join("rusty-golf-serverless/wrangler.toml");
-
-    let wrangler_log_dir = workspace_root.join(".wrangler-logs");
+    let wrangler_log_dir = workspace_root.join(".wrangler-logs-listing");
     let wrangler_log_dir_str = wrangler_log_dir.to_str().unwrap_or_default();
-    let wrangler_config_dir = workspace_root.join(".wrangler-config");
+    let wrangler_config_dir = workspace_root.join(".wrangler-config-listing");
     let wrangler_config_dir_str = wrangler_config_dir.to_str().unwrap_or_default();
-    println!(
-        "Using wrangler config: {}, log dir: {}",
-        wrangler_config.display(),
-        wrangler_log_dir.display()
-    );
-    let now = chrono::Local::now();
-    println!("Starting build_local at {}", now.format("%H:%M:%S"));
+
     run_script(
         &workspace_root.join("rusty-golf-serverless/scripts/build_local.sh"),
         &[
@@ -39,8 +32,6 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         ],
         &workspace_root,
     )?;
-    let now = chrono::Local::now();
-    println!("build_local completed at {}", now.format("%H:%M:%S"));
 
     let wrangler_kv_flags = format!(
         "--local --preview false --config {} --env dev",
@@ -48,27 +39,29 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     );
     let wrangler_r2_flags = format!("--local --config {} --env dev", wrangler_config.display());
 
-    let event_id = 401_580_351_i64;
+    let auth_token = "listing-token-123";
+    let auth_tokens = vec![auth_token.to_string()];
     let wrangler_kv_flag_list = wrangler_kv_flags
         .split_whitespace()
         .map(ToString::to_string)
         .collect::<Vec<_>>();
-    seed_kv_from_eup(&SeedOptions {
-        eup_json: workspace_root.join("rusty-golf-tests/tests/test5_dbprefill.json"),
-        kv_env: "dev".to_string(),
-        kv_binding: Some("djf_rusty_golf_kv".to_string()),
-        auth_tokens: None,
-        event_id: Some(event_id),
-        refresh_from_espn: 1,
-        wrangler_config: wrangler_config.clone(),
-        wrangler_env: "dev".to_string(),
-        wrangler_kv_flags: wrangler_kv_flag_list,
-        wrangler_log_dir: Some(wrangler_log_dir.clone()),
-        wrangler_config_dir: Some(wrangler_config_dir.clone()),
-    })?;
 
-    let now = chrono::Local::now();
-    println!("Seeding test data via seed_test1_local.sh at {}", now.format("%H:%M:%S"));
+    for event_id in [401_703_504_i64, 401_703_521_i64] {
+        seed_kv_from_eup(&SeedOptions {
+            eup_json: workspace_root.join("rusty-golf-tests/tests/test5_dbprefill.json"),
+            kv_env: "dev".to_string(),
+            kv_binding: Some("djf_rusty_golf_kv".to_string()),
+            auth_tokens: Some(auth_tokens.clone()),
+            event_id: Some(event_id),
+            refresh_from_espn: 1,
+            wrangler_config: wrangler_config.clone(),
+            wrangler_env: "dev".to_string(),
+            wrangler_kv_flags: wrangler_kv_flag_list.clone(),
+            wrangler_log_dir: Some(wrangler_log_dir.clone()),
+            wrangler_config_dir: Some(wrangler_config_dir.clone()),
+        })?;
+    }
+
     run_script(
         &workspace_root.join("rusty-golf-serverless/scripts/seed_test1_local.sh"),
         &[
@@ -81,21 +74,17 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         ],
         &workspace_root,
     )?;
-    let now = chrono::Local::now();
-    println!("seed_test1_local completed at {}", now.format("%H:%M:%S"));
 
     let stdout_path = wrangler_log_dir.join("wrangler-dev-stdout.log");
     let stderr_path = wrangler_log_dir.join("wrangler-dev-stderr.log");
     let stdout_file = std::fs::File::create(&stdout_path)?;
     let stderr_file = std::fs::File::create(&stderr_path)?;
 
-    let now = chrono::Local::now();
-    println!("Starting wrangler dev at {}", now.format("%H:%M:%S"));
     let child = Command::new("bash")
         .arg(
             workspace_root.join("rusty-golf-serverless/scripts/start_miniflare_local.sh"),
         )
-        .arg("8787")
+        .arg("8788")
         .arg(wrangler_config)
         .current_dir(&workspace_root)
         .env("WRANGLER_LOG_DIR", wrangler_log_dir_str)
@@ -103,11 +92,9 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         .stdout(Stdio::from(stdout_file))
         .stderr(Stdio::from(stderr_file))
         .spawn()?;
-    let now = chrono::Local::now();
-    println!("wrangler dev started at {}", now.format("%H:%M:%S"));
     let _guard = ChildGuard { child };
 
-    if let Err(err) = wait_for_health("http://127.0.0.1:8787/health").await {
+    if let Err(err) = wait_for_health("http://127.0.0.1:8788/health").await {
         let stdout = std::fs::read_to_string(&stdout_path).unwrap_or_default();
         let stderr = std::fs::read_to_string(&stderr_path).unwrap_or_default();
         return Err(format!(
@@ -115,82 +102,24 @@ async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
         )
         .into());
     }
-    println!("wrangler dev health check passed");
 
     let resp = reqwest::get(format!(
-        "http://127.0.0.1:8787/scores?event={event_id}&yr=2024&cache=1&json=1"
+        "http://127.0.0.1:8788/listing?auth_token={auth_token}"
     ))
-        .await?;
-    println!("Received response from /scores endpoint");
+    .await?;
     assert!(resp.status().is_success(), "Unexpected status: {}", resp.status());
-    let body: Value = resp.json().await?;
-    assert!(body.is_object(), "Response is not a JSON object; got {body:?}");
-
-    let bettor_struct = body
-        .get("bettor_struct")
-        .and_then(|v| v.as_array())
-        .expect("Response JSON does not contain 'bettor_struct' array");
-    assert_eq!(bettor_struct.len(), 5, "Unexpected number of bettors returned");
-
-    let reference_result: Value =
-        serde_json::from_str(include_str!("test1_expected_output.json"))?;
-    let reference_array = reference_result
-        .get("bettor_struct")
-        .and_then(|v| v.as_array())
-        .expect("Reference JSON missing bettor_struct");
-
-    for bettor in bettor_struct {
-        let bettor_name = bettor
-            .get("bettor_name")
-            .and_then(Value::as_str)
-            .expect("Score entry missing 'bettor_name'");
-        let total_score = bettor
-            .get("total_score")
-            .and_then(Value::as_i64)
-            .expect("Score entry missing 'total_score'");
-        let scoreboard_position = bettor
-            .get("scoreboard_position")
-            .and_then(Value::as_i64)
-            .expect("Score entry missing 'scoreboard_position'");
-        let scoreboard_position_name = bettor
-            .get("scoreboard_position_name")
-            .and_then(Value::as_str)
-            .expect("Score entry missing 'scoreboard_position_name'");
-
-        let reference_bettor = reference_array
-            .iter()
-            .find(|candidate| {
-                candidate.get("bettor_name").and_then(Value::as_str) == Some(bettor_name)
-            })
-            .unwrap_or_else(|| panic!("Reference JSON missing bettor '{bettor_name}'"));
-
-        assert_eq!(
-            total_score,
-            reference_bettor
-                .get("total_score")
-                .and_then(Value::as_i64)
-                .expect("Reference entry missing total_score"),
-            "Total score mismatch for bettor '{bettor_name}'"
-        );
-
-        assert_eq!(
-            scoreboard_position,
-            reference_bettor
-                .get("scoreboard_position")
-                .and_then(Value::as_i64)
-                .expect("Reference entry missing scoreboard_position"),
-            "Scoreboard position mismatch for bettor '{bettor_name}'"
-        );
-
-        assert_eq!(
-            scoreboard_position_name,
-            reference_bettor
-                .get("scoreboard_position_name")
-                .and_then(Value::as_str)
-                .expect("Reference entry missing scoreboard_position_name"),
-            "Scoreboard position name mismatch for bettor '{bettor_name}'"
-        );
-    }
+    let body = resp.text().await?;
+    assert!(body.contains("<table>"), "Listing HTML missing table");
+    assert!(body.contains("401703504"), "Listing missing event 401703504");
+    assert!(
+        body.contains("Masters Tournament 2025"),
+        "Listing missing Masters Tournament 2025"
+    );
+    assert!(body.contains("401703521"), "Listing missing event 401703521");
+    assert!(
+        body.contains("The Open 2025"),
+        "Listing missing The Open 2025"
+    );
 
     Ok(())
 }

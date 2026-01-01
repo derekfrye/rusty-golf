@@ -4,6 +4,10 @@ use crate::error::CoreError;
 use crate::model::{IntStat, PlayerJsonResponse, Scores, Statistic};
 use serde_json::Value;
 
+/// Convert ESPN JSON responses into internal statistics records.
+///
+/// # Errors
+/// Returns an error if required fields are missing or malformed.
 pub fn process_json_to_statistics(
     json_responses: &PlayerJsonResponse,
 ) -> Result<Vec<Statistic>, CoreError> {
@@ -63,6 +67,10 @@ pub fn process_json_to_statistics(
     Ok(golfer_scores)
 }
 
+/// Merge statistics with their matching score entries.
+///
+/// # Errors
+/// Returns an error if a statistic cannot be matched to a score entry.
 pub fn merge_statistics_with_scores(
     statistics: &[Statistic],
     scores: &[Scores],

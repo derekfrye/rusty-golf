@@ -13,6 +13,7 @@ pub struct ScoreContext {
     pub player_step_factors: HashMap<(i64, String), f32>,
 }
 
+#[must_use]
 pub fn score_data_from_scores(scores: &ScoresAndLastRefresh) -> ScoreData {
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &scores.score_struct {
@@ -57,6 +58,10 @@ pub fn score_data_from_scores(scores: &ScoresAndLastRefresh) -> ScoreData {
     }
 }
 
+/// Load scores and compute the score data view model.
+///
+/// # Errors
+/// Returns an error if storage or ESPN fetch operations fail.
 pub async fn load_scores_data(
     storage: &dyn Storage,
     espn_api: &dyn EspnApiClient,
@@ -79,6 +84,10 @@ pub async fn load_scores_data(
     Ok(score_data_from_scores(&scores_and_refresh))
 }
 
+/// Load full score context, including step factors.
+///
+/// # Errors
+/// Returns an error if storage or ESPN fetch operations fail.
 pub async fn load_score_context(
     storage: &dyn Storage,
     espn_api: &dyn EspnApiClient,
@@ -109,6 +118,10 @@ pub async fn load_score_context(
     })
 }
 
+/// Load cached scores if they are still valid.
+///
+/// # Errors
+/// Returns an error if the cache lookup fails.
 pub async fn load_cached_scores(
     storage: &dyn Storage,
     event_id: i32,
@@ -127,6 +140,10 @@ pub async fn load_cached_scores(
     }
 }
 
+/// Store scores and reload them from storage.
+///
+/// # Errors
+/// Returns an error if the store or reload fails.
 pub async fn store_scores_and_reload(
     storage: &dyn Storage,
     event_id: i32,

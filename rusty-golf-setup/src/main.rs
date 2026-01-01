@@ -55,7 +55,7 @@ struct FileConfig {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let config = load_config(cli)?;
-    seed_kv_from_eup(config)
+    seed_kv_from_eup(&config)
 }
 
 fn load_config(cli: Cli) -> Result<SeedOptions> {
@@ -142,7 +142,7 @@ fn load_config(cli: Cli) -> Result<SeedOptions> {
 fn parse_auth_tokens(value: &str) -> Result<Vec<String>> {
     let tokens: Vec<String> = value
         .split(',')
-        .map(|token| token.trim())
+        .map(str::trim)
         .filter(|token| !token.is_empty())
         .map(str::to_string)
         .collect();
@@ -153,7 +153,7 @@ fn parse_auth_tokens(value: &str) -> Result<Vec<String>> {
         if token.chars().count() < 8 {
             return Err(anyhow!("auth token must be at least 8 characters"));
         }
-        if token.chars().any(|ch| ch.is_control()) {
+        if token.chars().any(char::is_control) {
             return Err(anyhow!("auth token contains non-printable characters"));
         }
     }
