@@ -1,0 +1,116 @@
+{
+    "sports": [
+        {
+            "id": "1100",
+            "uid": "s:1100",
+            "guid": "6fa31473-a322-3ed5-ac85-4e76b37065f3",
+            "name": "Golf",
+            "slug": "golf",
+            "logos": [
+                {
+                    "href": "https://a.espncdn.com/combiner/i?img=/redesign/assets/img/icons/ESPN-icon-golf.png",
+                    "alt": "",
+                    "rel": [
+                        "full",
+                        "default"
+                    ],
+                    "width": 500,
+                    "height": 500
+                },
+                {
+                    "href": "https://a.espncdn.com/combiner/i?img=/redesign/assets/img/icons/ESPN-icon-golf.png",
+                    "alt": "",
+                    "rel": [
+                        "full",
+                        "dark"
+                    ],
+                    "width": 500,
+                    "height": 500
+                }
+            ],
+            "leagues": [
+                {
+                    "id": "1106",
+                    "uid": "s:1100~l:1106",
+                    "name": "PGA TOUR",
+                    "abbreviation": "PGA",
+                    "shortName": "PGA TOUR",
+                    "slug": "pga",
+                    "tag": "pga",
+                    "isTournament": false,
+                    "smartdates": [
+                        "2026-01-08T08:00Z",
+                        "2026-01-09T08:00Z",
+                        "2026-01-10T08:00Z"
+                    ],
+                    "events": [
+                        {
+                            "id": "401811927",
+                            "uid": "s:1100~l:1106~e:401811927~c:401811927",
+                            "guid": "53261bdc-cee9-35ca-95a5-71c95dfc48aa",
+                            "date": "2026-01-08T05:00:00Z",
+                            "endDate": "2026-01-11T05:00:00Z",
+                            "timeValid": false,
+                            "recent": false,
+                            "name": "The Sentry",
+                            "shortName": "The Sentry",
+                            "links": [
+                                {
+                                    "rel": [
+                                        "summary",
+                                        "desktop",
+                                        "event"
+                                    ],
+                                    "href": "https://www.espn.com/golf/leaderboard?tournamentId=401811927",
+                                    "text": "Leaderboard"
+                                }
+                            ],
+                            "gamecastAvailable": false,
+                            "playByPlayAvailable": false,
+                            "commentaryAvailable": false,
+                            "wallclockAvailable": false,
+                            "fauxcastAvailable": false,
+                            "onWatch": false,
+                            "competitionId": "401811927",
+                            "season": 2026,
+                            "seasonStartDate": "2026-01-08T05:00:00Z",
+                            "seasonEndDate": "2026-09-27T04:00:00Z",
+                            "seasonType": "2",
+                            "seasonTypeHasGroups": false,
+                            "primary": true,
+                            "scoringSystem": "Medal",
+                            "group": {
+                                "groupId": "2",
+                                "name": "Regular Season",
+                                "abbreviation": "reg",
+                                "shortName": "reg"
+                            },
+                            "link": "https://www.espn.com/golf/leaderboard?tournamentId=401811927",
+                            "status": "post",
+                            "summary": "Complete",
+                            "period": 0,
+                            "defendingChampion": "Hideki Matsuyama",
+                            "defendingChampionFlag": "https://a.espncdn.com/i/teamlogos/countries/500/jpn.png",
+                            "fullStatus": {
+                                "period": 0,
+                                "type": {
+                                    "id": "5",
+                                    "name": "STATUS_CANCELED",
+                                    "state": "post",
+                                    "completed": false,
+                                    "description": "Canceled",
+                                    "detail": "Final",
+                                    "shortDetail": "Complete"
+                                },
+                                "hadPlayoff": false
+                            },
+                            "conferenceCompetition": false,
+                            "onDisneyNetwork": false,
+                            "appLinks": []
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

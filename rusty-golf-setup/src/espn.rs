@@ -20,11 +20,48 @@ impl fmt::Display for MalformedEspnJson {
 
 impl std::error::Error for MalformedEspnJson {}
 
+pub trait EspnClient: Send + Sync {
+    fn list_events(&self) -> Result<Vec<(String, String)>>;
+    fn fetch_event_name(&self, event_id: i64, cache_dir: &Path) -> Result<String>;
+    fn fetch_event_names_parallel(
+        &self,
+        event_ids: &[i64],
+        cache_dir: &Path,
+        progress: Option<&ProgressBar>,
+    ) -> Vec<(i64, String)>;
+    fn fetch_event_json_cached(&self, event_id: i64, cache_dir: &Path) -> Result<Value>;
+}
+
+pub struct HttpEspnClient;
+
+impl EspnClient for HttpEspnClient {
+    fn list_events(&self) -> Result<Vec<(String, String)>> {
+        list_espn_events_http()
+    }
+
+    fn fetch_event_name(&self, event_id: i64, cache_dir: &Path) -> Result<String> {
+        fetch_event_name_http(event_id, cache_dir)
+    }
+
+    fn fetch_event_names_parallel(
+        &self,
+        event_ids: &[i64],
+        cache_dir: &Path,
+        progress: Option<&ProgressBar>,
+    ) -> Vec<(i64, String)> {
+        fetch_event_names_parallel_http(event_ids, cache_dir, progress)
+    }
+
+    fn fetch_event_json_cached(&self, event_id: i64, cache_dir: &Path) -> Result<Value> {
+        fetch_event_json_cached_http(event_id, cache_dir)
+    }
+}
+
 /// Fetch the current ESPN event list.
 ///
 /// # Errors
 /// Returns an error if the HTTP request fails or the response is not JSON.
-pub fn list_espn_events() -> Result<Vec<(String, String)>> {
+fn list_espn_events_http() -> Result<Vec<(String, String)>> {
     let response = reqwest::blocking::get(ESPN_SCOREBOARD_URL)
         .context("fetch ESPN events")?
         .text()
@@ -38,8 +75,8 @@ pub fn list_espn_events() -> Result<Vec<(String, String)>> {
 ///
 /// # Errors
 /// Returns an error if the event response is invalid or cannot be read.
-pub fn fetch_event_name(event_id: i64, cache_dir: &Path) -> Result<String> {
-    let payload = fetch_event_json_cached(event_id, cache_dir)?;
+fn fetch_event_name_http(event_id: i64, cache_dir: &Path) -> Result<String> {
+    let payload = fetch_event_json_cached_http(event_id, cache_dir)?;
     let name = payload
         .get("event")
         .and_then(|event| event.get("name"))
@@ -50,7 +87,7 @@ pub fn fetch_event_name(event_id: i64, cache_dir: &Path) -> Result<String> {
 }
 
 #[must_use]
-pub fn fetch_event_names_parallel(
+fn fetch_event_names_parallel_http(
     event_ids: &[i64],
     cache_dir: &Path,
     progress: Option<&ProgressBar>,
@@ -62,7 +99,7 @@ pub fn fetch_event_names_parallel(
         return event_ids
             .iter()
             .filter_map(|event_id| {
-                let fetched = fetch_event_name(*event_id, cache_dir)
+                let fetched = fetch_event_name_http(*event_id, cache_dir)
                     .ok()
                     .map(|name| (*event_id, name));
                 if let Some(bar) = progress {
@@ -76,7 +113,7 @@ pub fn fetch_event_names_parallel(
         event_ids
             .par_iter()
             .filter_map(|event_id| {
-                let fetched = fetch_event_name(*event_id, cache_dir)
+                let fetched = fetch_event_name_http(*event_id, cache_dir)
                     .ok()
                     .map(|name| (*event_id, name));
                 if let Some(bar) = progress {
@@ -92,7 +129,7 @@ pub fn fetch_event_names_parallel(
 ///
 /// # Errors
 /// Returns an error if the cache cannot be read/written or ESPN returns bad JSON.
-pub fn fetch_event_json_cached(event_id: i64, cache_dir: &Path) -> Result<Value> {
+fn fetch_event_json_cached_http(event_id: i64, cache_dir: &Path) -> Result<Value> {
     let cache_path = cache_dir.join(format!("{event_id}.json"));
     if cache_path.is_file() {
         let contents = fs::read_to_string(&cache_path)

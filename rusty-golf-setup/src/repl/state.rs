@@ -1,12 +1,11 @@
-use crate::espn::{
-    MalformedEspnJson, fetch_event_name, fetch_event_names_parallel, list_espn_events,
-};
+use crate::espn::{EspnClient, HttpEspnClient, MalformedEspnJson};
 use anyhow::{Context, Result};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 use tempfile::TempDir;
 
@@ -18,6 +17,7 @@ pub(crate) struct ReplState {
     event_cache_dir: PathBuf,
     bettors_selection_path: PathBuf,
     output_json_path: Option<PathBuf>,
+    espn: Arc<dyn EspnClient>,
     _temp_dir: TempDir,
 }
 
@@ -25,6 +25,18 @@ impl ReplState {
     pub(crate) fn new(
         eup_json_path: Option<PathBuf>,
         output_json_path: Option<PathBuf>,
+    ) -> Result<Self> {
+        Self::new_with_client(
+            eup_json_path,
+            output_json_path,
+            Arc::new(HttpEspnClient),
+        )
+    }
+
+    pub(crate) fn new_with_client(
+        eup_json_path: Option<PathBuf>,
+        output_json_path: Option<PathBuf>,
+        espn: Arc<dyn EspnClient>,
     ) -> Result<Self> {
         let temp_dir = TempDir::new().context("create event cache dir")?;
         let event_cache_dir = temp_dir.path().join("espn_events");
@@ -39,6 +51,7 @@ impl ReplState {
             event_cache_dir,
             bettors_selection_path,
             output_json_path,
+            espn,
             _temp_dir: temp_dir,
         })
     }
@@ -81,7 +94,7 @@ pub(crate) fn ensure_list_events(
     spinner.enable_steady_tick(Duration::from_millis(120));
 
     let mut events = BTreeMap::new();
-    let fetched_events = match list_espn_events() {
+    let fetched_events = match state.espn.list_events() {
         Ok(events) => {
             spinner.finish_and_clear();
             events
@@ -110,7 +123,7 @@ pub(crate) fn ensure_list_events(
             overall.set_style(overall_style);
             overall.set_message("Fetching missing event names");
             overall.enable_steady_tick(Duration::from_millis(120));
-            for (event_id, name) in fetch_event_names_parallel(
+            for (event_id, name) in state.espn.fetch_event_names_parallel(
                 &missing_ids,
                 &state.event_cache_dir,
                 Some(&overall),
@@ -123,7 +136,7 @@ pub(crate) fn ensure_list_events(
 
     let cached: Vec<(String, String)> = events.into_iter().collect();
     if warm_cache {
-        warm_event_cache(&cached, &state.event_cache_dir)?;
+        warm_event_cache(&cached, &state.event_cache_dir, &state.espn)?;
     }
     state.cached_events = Some(cached.clone());
     Ok(cached)
@@ -283,14 +296,18 @@ pub(crate) fn output_json_path(state: &ReplState) -> Option<PathBuf> {
     state.output_json_path.clone()
 }
 
-fn warm_event_cache(events: &[(String, String)], cache_dir: &PathBuf) -> Result<()> {
+fn warm_event_cache(
+    events: &[(String, String)],
+    cache_dir: &PathBuf,
+    espn: &Arc<dyn EspnClient>,
+) -> Result<()> {
     for (event_id, _) in events {
         let cache_path = cache_dir.join(format!("{event_id}.json"));
         if cache_path.is_file() {
             continue;
         }
         if let Ok(event_id) = event_id.parse::<i64>() {
-            let _ = fetch_event_name(event_id, cache_dir)?;
+            let _ = espn.fetch_event_name(event_id, cache_dir)?;
         }
     }
     Ok(())

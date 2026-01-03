@@ -18,14 +18,32 @@ pub enum AppMode {
     NewEvent {
         eup_json: Option<PathBuf>,
         output_json: Option<PathBuf>,
+        one_shot: bool,
+        event_id: Option<i64>,
+        golfers_by_bettor: Option<Vec<GolferByBettorInput>>,
     },
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct GolferByBettorInput {
+    pub bettor: String,
+    pub golfer: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum GolfersByBettorConfig {
+    Json(String),
+    Entries(Vec<GolferByBettorInput>),
+}
+
 #[derive(Parser, Debug)]
-#[command(about = "Seed Wrangler KV entries from a db_prefill-style eup.json")]
+#[command(about = "Setup rusty-golf events, incl. seeding Wrangler KV entries.")]
 pub struct Cli {
     #[arg(long, value_enum)]
     mode: Option<Mode>,
+    #[arg(long)]
+    one_shot: bool,
     #[arg(long)]
     config_toml: Option<PathBuf>,
     #[arg(long)]
@@ -54,6 +72,8 @@ pub struct Cli {
     wrangler_config_dir: Option<PathBuf>,
     #[arg(long)]
     output_json: Option<PathBuf>,
+    #[arg(long)]
+    golfers_by_bettor: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -72,6 +92,10 @@ struct FileConfig {
     wrangler_log_dir: Option<PathBuf>,
     wrangler_config_dir: Option<PathBuf>,
     output_json: Option<PathBuf>,
+    #[serde(rename = "one-shot")]
+    one_shot: Option<bool>,
+    #[serde(rename = "golfers-by-bettor")]
+    golfers_by_bettor: Option<GolfersByBettorConfig>,
 }
 
 /// Load config from CLI and optional TOML file.
@@ -96,6 +120,9 @@ pub fn load_config(cli: Cli) -> Result<AppMode> {
         .ok_or_else(|| anyhow!("missing --mode"))?;
     match mode {
         Mode::Seed => {
+            if cli.one_shot || file_config.one_shot.unwrap_or(false) {
+                return Err(anyhow!("--one-shot is only valid with --mode=new_event"));
+            }
             let eup_json = cli
                 .eup_json
                 .or(file_config.eup_json)
@@ -163,10 +190,45 @@ pub fn load_config(cli: Cli) -> Result<AppMode> {
                 wrangler_config_dir: cli.wrangler_config_dir.or(file_config.wrangler_config_dir),
             })))
         }
-        Mode::NewEvent => Ok(AppMode::NewEvent {
-            eup_json: cli.eup_json.or(file_config.eup_json),
-            output_json: cli.output_json.or(file_config.output_json),
-        }),
+        Mode::NewEvent => {
+            let one_shot = if cli.one_shot {
+                true
+            } else {
+                file_config.one_shot.unwrap_or(false)
+            };
+            let output_json = cli.output_json.or(file_config.output_json);
+            let event_id = cli.event_id.or(file_config.event_id);
+            let golfers_by_bettor = if let Some(value) = cli.golfers_by_bettor {
+                Some(parse_golfers_by_bettor(&value)?)
+            } else if let Some(value) = file_config.golfers_by_bettor {
+                Some(match value {
+                    GolfersByBettorConfig::Json(raw) => parse_golfers_by_bettor(&raw)?,
+                    GolfersByBettorConfig::Entries(entries) => entries,
+                })
+            } else {
+                None
+            };
+
+            if one_shot {
+                if event_id.is_none() {
+                    return Err(anyhow!("missing --event-id for --one-shot"));
+                }
+                if output_json.is_none() {
+                    return Err(anyhow!("missing --output-json for --one-shot"));
+                }
+                if golfers_by_bettor.is_none() {
+                    return Err(anyhow!("missing --golfers-by-bettor for --one-shot"));
+                }
+            }
+
+            Ok(AppMode::NewEvent {
+                eup_json: cli.eup_json.or(file_config.eup_json),
+                output_json,
+                one_shot,
+                event_id,
+                golfers_by_bettor,
+            })
+        }
     }
 }
 
@@ -189,4 +251,13 @@ fn parse_auth_tokens(value: &str) -> Result<Vec<String>> {
         }
     }
     Ok(tokens)
+}
+
+fn parse_golfers_by_bettor(value: &str) -> Result<Vec<GolferByBettorInput>> {
+    let entries: Vec<GolferByBettorInput> =
+        serde_json::from_str(value).context("parse golfers-by-bettor JSON")?;
+    if entries.is_empty() {
+        return Err(anyhow!("golfers-by-bettor list is empty"));
+    }
+    Ok(entries)
 }
