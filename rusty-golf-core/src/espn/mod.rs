@@ -1,9 +1,9 @@
 pub mod processing;
 
-use async_trait::async_trait;
 use crate::error::CoreError;
 use crate::model::{PlayerJsonResponse, RefreshSource, Scores, ScoresAndLastRefresh};
 use crate::storage::Storage;
+use async_trait::async_trait;
 use processing::{merge_statistics_with_scores, process_json_to_statistics};
 use std::collections::HashMap;
 
@@ -66,12 +66,8 @@ pub async fn fetch_scores_from_espn(
     cache_max_age: i64,
 ) -> Result<ScoresAndLastRefresh, CoreError> {
     if use_cache
-        && let Some(cached) = crate::score::context::load_cached_scores(
-            storage,
-            event_id,
-            cache_max_age,
-        )
-        .await?
+        && let Some(cached) =
+            crate::score::context::load_cached_scores(storage, event_id, cache_max_age).await?
     {
         return Ok(cached);
     }
@@ -103,8 +99,10 @@ fn merge_scores_for_event(
     fetched_scores: Vec<Scores>,
     existing_scores: Option<Vec<Scores>>,
 ) -> Vec<Scores> {
-    let fetched_by_id: HashMap<i64, Scores> =
-        fetched_scores.into_iter().map(|score| (score.eup_id, score)).collect();
+    let fetched_by_id: HashMap<i64, Scores> = fetched_scores
+        .into_iter()
+        .map(|score| (score.eup_id, score))
+        .collect();
     let existing_by_id: HashMap<i64, Scores> = existing_scores
         .unwrap_or_default()
         .into_iter()

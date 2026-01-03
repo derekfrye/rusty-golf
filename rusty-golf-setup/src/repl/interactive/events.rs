@@ -41,14 +41,14 @@ pub(super) fn handle_get_available_golfers(
     match ensure_list_events(state, false, false) {
         Ok(events) => {
             print_events(&events);
-            let event_ids: Vec<String> =
-                events.iter().map(|(id, _)| id.clone()).collect();
-            helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
-                items: event_ids,
-                quote_items: false,
-            });
-            let response =
-                prompt_for_items(rl, "Which events? (csv or space-separated) ");
+            let event_ids: Vec<String> = events.iter().map(|(id, _)| id.clone()).collect();
+            helper_state
+                .borrow_mut()
+                .set_mode(ReplCompletionMode::PromptItems {
+                    items: event_ids,
+                    quote_items: false,
+                });
+            let response = prompt_for_items(rl, "Which events? (csv or space-separated) ");
             helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
             match response {
                 Ok(selected) => {

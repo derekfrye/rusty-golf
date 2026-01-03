@@ -1,6 +1,6 @@
 #![cfg(target_arch = "wasm32")]
 
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use rusty_golf_core::error::CoreError;
 use rusty_golf_core::espn::EspnApiClient;
 use rusty_golf_core::model::{PlayerJsonResponse, Scores};

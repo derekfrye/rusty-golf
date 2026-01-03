@@ -1,10 +1,7 @@
 use super::{GolferSelection, ReplState};
 use std::path::PathBuf;
 
-pub(crate) fn set_golfers_by_bettor(
-    state: &mut ReplState,
-    selections: Vec<GolferSelection>,
-) {
+pub(crate) fn set_golfers_by_bettor(state: &mut ReplState, selections: Vec<GolferSelection>) {
     state.golfers_by_bettor = Some(selections);
 }
 

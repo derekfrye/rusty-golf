@@ -27,10 +27,12 @@ pub(super) fn run_setup_event(
     }
 
     let event_ids: Vec<String> = events.iter().map(|(id, _)| id.clone()).collect();
-    helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
-        items: event_ids,
-        quote_items: false,
-    });
+    helper_state
+        .borrow_mut()
+        .set_mode(ReplCompletionMode::PromptItems {
+            items: event_ids,
+            quote_items: false,
+        });
     let response = prompt_for_items(rl, "Setup which event? ");
     helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
     let selected_event = match response {

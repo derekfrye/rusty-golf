@@ -4,9 +4,8 @@ use sql_middleware::middleware::ConfigAndPool;
 use std::collections::HashMap;
 
 use crate::model::{
-    RefreshSource, Scores, ScoresAndLastRefresh, event_and_scores_already_in_db,
-    get_event_details, get_golfers_from_db, get_player_step_factors, get_scores_from_db,
-    store_scores_in_db,
+    RefreshSource, Scores, ScoresAndLastRefresh, event_and_scores_already_in_db, get_event_details,
+    get_golfers_from_db, get_player_step_factors, get_scores_from_db, store_scores_in_db,
 };
 
 pub mod r2;
@@ -68,11 +67,7 @@ impl Storage for SqlStorage {
             .map_err(|e| StorageError::new(e.to_string()))
     }
 
-    async fn store_scores(
-        &self,
-        event_id: i32,
-        scores: &[Scores],
-    ) -> Result<(), StorageError> {
+    async fn store_scores(&self, event_id: i32, scores: &[Scores]) -> Result<(), StorageError> {
         store_scores_in_db(&self.config_and_pool, event_id, scores)
             .await
             .map_err(|e| StorageError::new(e.to_string()))

@@ -1,6 +1,4 @@
-use crate::repl::commands::{
-    CommandId, build_repl_help, find_command,
-};
+use crate::repl::commands::{CommandId, build_repl_help, find_command};
 use crate::repl::helper::{ReplHelper, ReplHelperState};
 use crate::repl::state::ReplState;
 use anyhow::{Context, Result};
@@ -25,10 +23,7 @@ use setup::run_setup_event;
 ///
 /// # Errors
 /// Returns an error if the REPL or ESPN interactions fail.
-pub fn run_new_event_repl(
-    eup_json: Option<PathBuf>,
-    output_json: Option<PathBuf>,
-) -> Result<()> {
+pub fn run_new_event_repl(eup_json: Option<PathBuf>, output_json: Option<PathBuf>) -> Result<()> {
     let help_text = build_repl_help();
     println!("Entering new_event mode. Press Ctrl-C or Ctrl-D to quit.");
     let mut rl = Editor::<ReplHelper, DefaultHistory>::new().context("init repl")?;
@@ -91,8 +86,7 @@ fn handle_repl_line(
             handle_pick_bettors(rl, helper_state, state)?;
         }
         CommandId::SetGolfersByBettor => {
-            let selections =
-                select_golfers_by_bettor(rl, helper_state, state, true)?;
+            let selections = select_golfers_by_bettor(rl, helper_state, state, true)?;
             crate::repl::state::set_golfers_by_bettor(state, selections);
         }
         CommandId::SetupEvent => {

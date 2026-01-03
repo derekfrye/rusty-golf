@@ -59,8 +59,7 @@ pub trait Storage: Send + Sync {
         event_id: i32,
         source: RefreshSource,
     ) -> Result<ScoresAndLastRefresh, StorageError>;
-    async fn store_scores(&self, event_id: i32, scores: &[Scores])
-        -> Result<(), StorageError>;
+    async fn store_scores(&self, event_id: i32, scores: &[Scores]) -> Result<(), StorageError>;
     async fn event_and_scores_already_in_db(
         &self,
         event_id: i32,
@@ -82,8 +81,7 @@ pub trait Storage {
         event_id: i32,
         source: RefreshSource,
     ) -> Result<ScoresAndLastRefresh, StorageError>;
-    async fn store_scores(&self, event_id: i32, scores: &[Scores])
-        -> Result<(), StorageError>;
+    async fn store_scores(&self, event_id: i32, scores: &[Scores]) -> Result<(), StorageError>;
     async fn event_and_scores_already_in_db(
         &self,
         event_id: i32,

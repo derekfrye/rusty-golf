@@ -29,9 +29,7 @@ pub(crate) fn complete_path_prompt(
     paths: &[PathBuf],
 ) -> (usize, Vec<Pair>) {
     complete_prompt(line, pos, |selected_set, current_token| {
-        let match_token = current_token
-            .trim_start_matches(['"', '\''])
-            .to_lowercase();
+        let match_token = current_token.trim_start_matches(['"', '\'']).to_lowercase();
         paths
             .iter()
             .filter_map(|path| {

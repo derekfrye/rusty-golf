@@ -244,8 +244,7 @@ fn assert_bar_widths_match(
     }
 }
 
-fn save_debug_html(debug_path: &Path, html_output: &str) -> Result<(), Box<dyn std::error::Error>>
-{
+fn save_debug_html(debug_path: &Path, html_output: &str) -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(debug_path)?;
     let debug_file = debug_path.join("actual_output.html");
     let mut file = std::fs::File::create(&debug_file)?;

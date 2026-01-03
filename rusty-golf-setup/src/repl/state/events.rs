@@ -29,10 +29,9 @@ pub(crate) fn ensure_list_events(
         return Ok(state.cached_events.clone().unwrap_or_default());
     }
 
-    let overall_style = ProgressStyle::with_template(
-        "[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}",
-    )
-    .unwrap_or_else(|_| ProgressStyle::default_bar());
+    let overall_style =
+        ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
+            .unwrap_or_else(|_| ProgressStyle::default_bar());
 
     let mut events = BTreeMap::new();
     let mut missing_ids: Vec<i64> = Vec::new();

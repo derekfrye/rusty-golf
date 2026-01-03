@@ -46,12 +46,16 @@ pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<App
         .or_else(|| file_config.wrangler_env.clone())
         .unwrap_or_else(|| "dev".to_string());
     let wrangler_flags = resolve_wrangler_flags(cli, file_config, &wrangler_config);
-    let wrangler_kv_flags = resolve_wrangler_kv_flags(cli, file_config, &wrangler_flags, &wrangler_env);
+    let wrangler_kv_flags =
+        resolve_wrangler_kv_flags(cli, file_config, &wrangler_flags, &wrangler_env);
 
     Ok(AppMode::Seed(Box::new(SeedOptions {
         eup_json,
         kv_env,
-        kv_binding: cli.kv_binding.clone().or_else(|| file_config.kv_binding.clone()),
+        kv_binding: cli
+            .kv_binding
+            .clone()
+            .or_else(|| file_config.kv_binding.clone()),
         auth_tokens,
         event_id,
         refresh_from_espn,

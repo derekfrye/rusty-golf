@@ -1,8 +1,8 @@
 use crate::error::CoreError;
-use crate::espn::{fetch_scores_from_espn, EspnApiClient};
+use crate::espn::{EspnApiClient, fetch_scores_from_espn};
+use crate::model::format_time_ago_for_score_view;
 use crate::model::{Bettors, RefreshSource, ScoreData, Scores, ScoresAndLastRefresh};
 use crate::storage::Storage;
-use crate::model::format_time_ago_for_score_view;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -132,9 +132,7 @@ pub async fn load_cached_scores(
         .await
         .unwrap_or(false)
     {
-        Ok(Some(
-            storage.get_scores(event_id, RefreshSource::Db).await?,
-        ))
+        Ok(Some(storage.get_scores(event_id, RefreshSource::Db).await?))
     } else {
         Ok(None)
     }
@@ -150,7 +148,5 @@ pub async fn store_scores_and_reload(
     scores: &[Scores],
 ) -> Result<ScoresAndLastRefresh, CoreError> {
     storage.store_scores(event_id, scores).await?;
-    Ok(storage
-        .get_scores(event_id, RefreshSource::Espn)
-        .await?)
+    Ok(storage.get_scores(event_id, RefreshSource::Espn).await?)
 }

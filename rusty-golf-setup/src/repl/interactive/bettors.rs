@@ -21,10 +21,12 @@ pub(super) fn handle_pick_bettors(
             println!("{bettor}");
         }
     }
-    helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
-        items: bettors,
-        quote_items: false,
-    });
+    helper_state
+        .borrow_mut()
+        .set_mode(ReplCompletionMode::PromptItems {
+            items: bettors,
+            quote_items: false,
+        });
     let response = prompt_for_items(rl, "Which bettors? (csv or space separated) ");
     helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
     match response {

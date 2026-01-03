@@ -15,14 +15,10 @@ pub(crate) use bettors::{
     bettors_selection_exists, ensure_list_bettors, load_bettors_selection,
     persist_bettors_selection,
 };
-pub(crate) use cache::{
-    has_cached_events, load_cached_golfers, load_event_golfers,
-};
+pub(crate) use cache::{has_cached_events, load_cached_golfers, load_event_golfers};
 pub(crate) use eup::{eup_event_exists, load_eup_json};
 pub(crate) use events::{ensure_list_events, print_list_event_error};
-pub(crate) use golfers::{
-    output_json_path, set_golfers_by_bettor, take_golfers_by_bettor,
-};
+pub(crate) use golfers::{output_json_path, set_golfers_by_bettor, take_golfers_by_bettor};
 
 pub(crate) struct ReplState {
     pub(crate) cached_events: Option<Vec<(String, String)>>,
@@ -41,11 +37,7 @@ impl ReplState {
         eup_json_path: Option<PathBuf>,
         output_json_path: Option<PathBuf>,
     ) -> Result<Self> {
-        Self::new_with_client(
-            eup_json_path,
-            output_json_path,
-            Arc::new(HttpEspnClient),
-        )
+        Self::new_with_client(eup_json_path, output_json_path, Arc::new(HttpEspnClient))
     }
 
     pub(crate) fn new_with_client(

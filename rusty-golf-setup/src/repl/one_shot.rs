@@ -19,13 +19,7 @@ pub fn run_new_event_one_shot(
     event_id: i64,
     golfers_by_bettor: Vec<GolferByBettorInput>,
 ) -> Result<()> {
-    run_new_event_one_shot_with_client(
-        eup_json,
-        output_json,
-        event_id,
-        golfers_by_bettor,
-        None,
-    )
+    run_new_event_one_shot_with_client(eup_json, output_json, event_id, golfers_by_bettor, None)
 }
 
 /// Run the one-shot event setup flow with an injected ESPN client.

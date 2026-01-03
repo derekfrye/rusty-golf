@@ -2,17 +2,15 @@ use serde_json::Value;
 // use sqlx::sqlite::SqlitePoolOptions;
 // use rusty_golf::controller::score;
 use rusty_golf::controller::score::get_data_for_scores_page;
-use rusty_golf::model::{Bettors, ScoreData, ScoresAndLastRefresh};
 use rusty_golf::model::format_time_ago_for_score_view;
+use rusty_golf::model::{Bettors, ScoreData, ScoresAndLastRefresh};
 use rusty_golf::storage::{R2Storage, SqlStorage};
 use rusty_golf::view::score::{
     render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
 };
 use rusty_golf_core::storage::Storage;
 
-use sql_middleware::middleware::{
-    ConfigAndPool as ConfigAndPool2, QueryAndParams, SqliteOptions,
-};
+use sql_middleware::middleware::{ConfigAndPool as ConfigAndPool2, QueryAndParams, SqliteOptions};
 
 #[tokio::test]
 async fn test3_sqlx_trait_get_scores() -> Result<(), Box<dyn std::error::Error>> {
@@ -95,10 +93,7 @@ fn reference_json() -> Result<Value, Box<dyn std::error::Error>> {
     Ok(serde_json::from_str(reference_result_str)?)
 }
 
-fn assert_bryson_scores(
-    score_data: &ScoreData,
-    reference_result: &Value,
-) -> BrysonExpectations {
+fn assert_bryson_scores(score_data: &ScoreData, reference_result: &Value) -> BrysonExpectations {
     let bryson_espn_entry = score_data
         .score_struct
         .iter()
@@ -192,13 +187,11 @@ async fn run_r2_checks(
         .find(|s| s.golfer_name == "Bryson DeChambeau")
         .expect("R2 scores missing Bryson DeChambeau");
     assert_eq!(
-        expectations.total_score,
-        r2_bryson.detailed_statistics.total_score,
+        expectations.total_score, r2_bryson.detailed_statistics.total_score,
         "R2 total score mismatch for Bryson DeChambeau"
     );
     assert_eq!(
-        expectations.reference_eup_id,
-        r2_bryson.eup_id,
+        expectations.reference_eup_id, r2_bryson.eup_id,
         "R2 eup_id mismatch for Bryson DeChambeau"
     );
     let r2_line_score = r2_bryson
@@ -208,7 +201,10 @@ async fn run_r2_checks(
         .find(|s| s.hole == 13 && s.round == 2)
         .expect("R2 line score missing")
         .score;
-    assert_eq!(expectations.line_score, r2_line_score, "R2 line score mismatch");
+    assert_eq!(
+        expectations.line_score, r2_line_score,
+        "R2 line score mismatch"
+    );
 
     let r2_data = build_score_data_from_scores(&r2_scores);
     let from_db_scores = storage

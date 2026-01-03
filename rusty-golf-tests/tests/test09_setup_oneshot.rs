@@ -12,10 +12,10 @@ use serde_json::Value;
 #[test]
 fn test09_setup_oneshot() -> Result<()> {
     let fixture_root = fixture_root();
-    let dbprefill_path =
-        fixture_root.join("../test5_dbprefill.json").canonicalize().unwrap_or_else(|_| {
-            fixture_root.join("../test5_dbprefill.json")
-        });
+    let dbprefill_path = fixture_root
+        .join("../test5_dbprefill.json")
+        .canonicalize()
+        .unwrap_or_else(|_| fixture_root.join("../test5_dbprefill.json"));
     let event_ids = first_two_event_ids(&dbprefill_path)?;
 
     let client: Arc<dyn EspnClient> = Arc::new(FixtureEspnClient::new(fixture_root.clone()));
@@ -53,10 +53,9 @@ fn output_path(event_id: i64) -> PathBuf {
 }
 
 fn first_two_event_ids(path: &Path) -> Result<Vec<i64>> {
-    let contents = fs::read_to_string(path)
-        .with_context(|| format!("read {}", path.display()))?;
-    let payload: Value = serde_json::from_str(&contents)
-        .with_context(|| format!("parse {}", path.display()))?;
+    let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
     let array = payload
         .as_array()
         .ok_or_else(|| anyhow!("dbprefill JSON is not an array"))?;
@@ -71,10 +70,9 @@ fn first_two_event_ids(path: &Path) -> Result<Vec<i64>> {
 }
 
 fn load_dbprefill_event(path: &Path, event_id: i64) -> Result<Value> {
-    let contents = fs::read_to_string(path)
-        .with_context(|| format!("read {}", path.display()))?;
-    let payload: Value = serde_json::from_str(&contents)
-        .with_context(|| format!("parse {}", path.display()))?;
+    let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
     let array = payload
         .as_array()
         .ok_or_else(|| anyhow!("dbprefill JSON is not an array"))?;
@@ -117,15 +115,11 @@ fn build_one_shot_inputs_from_dbprefill(
     Ok(selections)
 }
 
-fn load_fixture_golfers_by_id(
-    fixture_root: &Path,
-    event_id: i64,
-) -> Result<HashMap<i64, String>> {
+fn load_fixture_golfers_by_id(fixture_root: &Path, event_id: i64) -> Result<HashMap<i64, String>> {
     let path = fixture_root.join(format!("event_{event_id}.json"));
-    let contents = fs::read_to_string(&path)
-        .with_context(|| format!("read {}", path.display()))?;
-    let payload: Value = serde_json::from_str(&contents)
-        .with_context(|| format!("parse {}", path.display()))?;
+    let contents = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
     let mut golfers = HashMap::new();
     if let Some(leaderboard) = payload.get("leaderboard").and_then(Value::as_array) {
         for entry in leaderboard {
@@ -158,10 +152,9 @@ fn assert_output_matches_expected(
     event_id: i64,
     expected_entry: &Value,
 ) -> Result<()> {
-    let contents = fs::read_to_string(path)
-        .with_context(|| format!("read {}", path.display()))?;
-    let payload: Value = serde_json::from_str(&contents)
-        .with_context(|| format!("parse {}", path.display()))?;
+    let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
     let array = payload
         .as_array()
         .ok_or_else(|| anyhow!("output JSON is not an array"))?;
@@ -210,8 +203,7 @@ fn assert_event_matches_expected(actual: &Value, expected: &Value) -> Result<()>
 fn assert_values_match(expected: &Value, actual: &Value, path: &str) -> Result<()> {
     match (expected, actual) {
         (Value::Object(expected_map), Value::Object(actual_map)) => {
-            let expected_keys: BTreeSet<&str> =
-                expected_map.keys().map(String::as_str).collect();
+            let expected_keys: BTreeSet<&str> = expected_map.keys().map(String::as_str).collect();
             let actual_keys: BTreeSet<&str> = actual_map.keys().map(String::as_str).collect();
             if expected_keys != actual_keys {
                 return Err(anyhow!(
@@ -239,8 +231,7 @@ fn assert_values_match(expected: &Value, actual: &Value, path: &str) -> Result<(
             }
             let mut expected_items: Vec<String> =
                 expected_arr.iter().map(canonicalize_value).collect();
-            let mut actual_items: Vec<String> =
-                actual_arr.iter().map(canonicalize_value).collect();
+            let mut actual_items: Vec<String> = actual_arr.iter().map(canonicalize_value).collect();
             expected_items.sort();
             actual_items.sort();
             if expected_items != actual_items {

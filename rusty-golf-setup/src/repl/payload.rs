@@ -53,10 +53,8 @@ fn build_golfers_payload(
     golfers: &[(String, i64)],
     selections: &[GolferSelection],
 ) -> Result<Vec<Value>> {
-    let golfers_by_id: HashMap<i64, &String> = golfers
-        .iter()
-        .map(|(name, id)| (*id, name))
-        .collect();
+    let golfers_by_id: HashMap<i64, &String> =
+        golfers.iter().map(|(name, id)| (*id, name)).collect();
     let mut seen_golfers = HashSet::new();
     let mut selected_golfers = Vec::new();
     for entry in selections {

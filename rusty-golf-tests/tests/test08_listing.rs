@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 
-use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
+use rusty_golf_setup::{SeedOptions, seed_kv_from_eup};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test08_listing_endpoint() -> Result<(), Box<dyn Error>> {
@@ -82,11 +82,7 @@ fn ensure_command(cmd: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_script(
-    script_path: &Path,
-    envs: &[(&str, &str)],
-    cwd: &Path,
-) -> Result<(), Box<dyn Error>> {
+fn run_script(script_path: &Path, envs: &[(&str, &str)], cwd: &Path) -> Result<(), Box<dyn Error>> {
     let output = Command::new("bash")
         .arg(script_path)
         .envs(envs.iter().copied())
@@ -148,7 +144,10 @@ fn wrangler_flags(config: &Path) -> WranglerFlags {
     }
 }
 
-fn build_local(workspace_root: &Path, wrangler_paths: &WranglerPaths) -> Result<(), Box<dyn Error>> {
+fn build_local(
+    workspace_root: &Path,
+    wrangler_paths: &WranglerPaths,
+) -> Result<(), Box<dyn Error>> {
     let wrangler_log_dir_str = wrangler_paths.log_dir.to_str().unwrap_or_default();
     let wrangler_config_dir_str = wrangler_paths.config_dir.to_str().unwrap_or_default();
     run_script(
@@ -223,9 +222,7 @@ fn start_miniflare(
     let wrangler_config_dir_str = wrangler_paths.config_dir.to_str().unwrap_or_default();
 
     let child = Command::new("bash")
-        .arg(
-            workspace_root.join("rusty-golf-serverless/scripts/start_miniflare_local.sh"),
-        )
+        .arg(workspace_root.join("rusty-golf-serverless/scripts/start_miniflare_local.sh"))
         .arg(port)
         .arg(&wrangler_paths.config)
         .current_dir(workspace_root)
@@ -268,15 +265,25 @@ async fn assert_listing_response(auth_token: &str) -> Result<(), Box<dyn Error>>
         "http://127.0.0.1:8788/listing?auth_token={auth_token}"
     ))
     .await?;
-    assert!(resp.status().is_success(), "Unexpected status: {}", resp.status());
+    assert!(
+        resp.status().is_success(),
+        "Unexpected status: {}",
+        resp.status()
+    );
     let body = resp.text().await?;
     assert!(body.contains("<table>"), "Listing HTML missing table");
-    assert!(body.contains("401703504"), "Listing missing event 401703504");
+    assert!(
+        body.contains("401703504"),
+        "Listing missing event 401703504"
+    );
     assert!(
         body.contains("Masters Tournament 2025"),
         "Listing missing Masters Tournament 2025"
     );
-    assert!(body.contains("401703521"), "Listing missing event 401703521");
+    assert!(
+        body.contains("401703521"),
+        "Listing missing event 401703521"
+    );
     assert!(
         body.contains("The Open 2025"),
         "Listing missing The Open 2025"

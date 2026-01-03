@@ -82,8 +82,7 @@ impl ServerlessStorage {
     where
         T: Serialize + ?Sized,
     {
-        let payload = serde_json::to_string(value)
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let payload = serde_json::to_string(value).map_err(|e| StorageError::new(e.to_string()))?;
         self.kv
             .put(key, payload)
             .map_err(|e| StorageError::new(e.to_string()))?
@@ -118,8 +117,7 @@ impl ServerlessStorage {
     where
         T: Serialize + ?Sized,
     {
-        let payload = serde_json::to_string(value)
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let payload = serde_json::to_string(value).map_err(|e| StorageError::new(e.to_string()))?;
         self.bucket
             .put(key.to_string(), payload)
             .execute()
@@ -287,11 +285,7 @@ impl Storage for ServerlessStorage {
         Ok(scores)
     }
 
-    async fn store_scores(
-        &self,
-        event_id: i32,
-        scores: &[Scores],
-    ) -> Result<(), StorageError> {
+    async fn store_scores(&self, event_id: i32, scores: &[Scores]) -> Result<(), StorageError> {
         let now = Utc::now().naive_utc();
         let payload = ScoresAndLastRefresh {
             score_struct: scores.to_vec(),
@@ -325,7 +319,15 @@ impl Storage for ServerlessStorage {
             return Ok(false);
         }
         let details_key = Self::kv_event_details_key(event_id);
-        if self.kv.get(&details_key).text().await.ok().flatten().is_none() {
+        if self
+            .kv
+            .get(&details_key)
+            .text()
+            .await
+            .ok()
+            .flatten()
+            .is_none()
+        {
             return Ok(false);
         }
 
@@ -335,8 +337,8 @@ impl Storage for ServerlessStorage {
             Err(_) => return Ok(false),
         };
 
-        let last_refresh_ts = parse_rfc3339(&last_refresh.ts)
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let last_refresh_ts =
+            parse_rfc3339(&last_refresh.ts).map_err(|e| StorageError::new(e.to_string()))?;
         let now = Utc::now().naive_utc();
         let diff = now.signed_duration_since(last_refresh_ts);
         Ok(diff.num_seconds() <= max_age_seconds)

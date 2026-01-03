@@ -1,4 +1,4 @@
-use crate::repl::commands::{find_command, REPL_COMMANDS};
+use crate::repl::commands::{REPL_COMMANDS, find_command};
 use crate::repl::complete::{complete_items_prompt, complete_path_prompt};
 use rustyline::Helper;
 use rustyline::completion::{Completer, Pair};

@@ -1,5 +1,5 @@
-use rusty_golf_core::error::CoreError;
 use crate::mvu::score::{Deps, Msg, ScoreModel, update};
+use rusty_golf_core::error::CoreError;
 use serde_json::json;
 
 /// Runs the MVU loop for the scores model: seeds with `init_msg` and drains effects.

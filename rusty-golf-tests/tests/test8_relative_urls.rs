@@ -16,15 +16,13 @@ async fn test_scores_hx_routes_are_relative() -> Result<(), Box<dyn std::error::
 
     let storage = rusty_golf::storage::SqlStorage::new(test_ctx.config_and_pool.clone());
     let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(storage))
-            .service(
-                web::scope("/golf")
-                    .route("/scores", web::get().to(scores))
-                    .route("/scores/summary", web::get().to(scores_summary))
-                    .route("/scores/chart", web::get().to(scores_chart))
-                    .route("/scores/linescore", web::get().to(scores_linescore)),
-            ),
+        App::new().app_data(web::Data::new(storage)).service(
+            web::scope("/golf")
+                .route("/scores", web::get().to(scores))
+                .route("/scores/summary", web::get().to(scores_summary))
+                .route("/scores/chart", web::get().to(scores_chart))
+                .route("/scores/linescore", web::get().to(scores_linescore)),
+        ),
     )
     .await;
 

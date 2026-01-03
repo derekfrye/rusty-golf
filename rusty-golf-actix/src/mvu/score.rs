@@ -163,12 +163,10 @@ pub async fn run_effect(effect: Effect, model: &ScoreModel, deps: Deps<'_>) -> M
                 Err(e) => Msg::Failed(e),
             }
         }
-        Effect::LoadEventConfig => {
-            match deps.storage.get_event_details(model.event_id).await {
-                Ok(event_details) => Msg::EventConfigLoaded(event_details.score_view_step_factor),
-                Err(e) => Msg::Failed(CoreError::from(e)),
-            }
-        }
+        Effect::LoadEventConfig => match deps.storage.get_event_details(model.event_id).await {
+            Ok(event_details) => Msg::EventConfigLoaded(event_details.score_view_step_factor),
+            Err(e) => Msg::Failed(CoreError::from(e)),
+        },
         Effect::LoadPlayerFactors => {
             match deps.storage.get_player_step_factors(model.event_id).await {
                 Ok(factors) => Msg::PlayerFactorsLoaded(factors),

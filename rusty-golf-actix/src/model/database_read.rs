@@ -1,8 +1,6 @@
-use sql_middleware::middleware::{
-    ConfigAndPool, CustomDbRow, MiddlewarePoolConnection, ResultSet,
-};
-use sql_middleware::middleware::RowValues as RowValues2;
 use sql_middleware::SqlMiddlewareDbError;
+use sql_middleware::middleware::RowValues as RowValues2;
+use sql_middleware::middleware::{ConfigAndPool, CustomDbRow, MiddlewarePoolConnection, ResultSet};
 
 use crate::model::score::Statistic;
 use crate::model::types::{RefreshSource, Scores, ScoresAndLastRefresh};
@@ -60,8 +58,7 @@ pub async fn get_scores_from_db(
 ) -> Result<ScoresAndLastRefresh, SqlMiddlewareDbError> {
     let mut conn = config_and_pool.get_connection().await?;
     let query = get_scores_query(&conn);
-    let res =
-        execute_query(&mut conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
+    let res = execute_query(&mut conn, query, vec![RowValues2::Int(i64::from(event_id))]).await?;
 
     let last_time_updated = get_last_timestamp(&res.results);
 

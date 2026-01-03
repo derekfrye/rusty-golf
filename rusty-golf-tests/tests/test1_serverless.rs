@@ -1,9 +1,9 @@
+use rusty_golf_setup::{SeedOptions, seed_kv_from_eup};
 use serde_json::Value;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::Duration;
-use rusty_golf_setup::{seed_kv_from_eup, SeedOptions};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test1_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
@@ -77,11 +77,7 @@ fn ensure_command(cmd: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_script(
-    script_path: &Path,
-    envs: &[(&str, &str)],
-    cwd: &Path,
-) -> Result<(), Box<dyn Error>> {
+fn run_script(script_path: &Path, envs: &[(&str, &str)], cwd: &Path) -> Result<(), Box<dyn Error>> {
     let output = Command::new("bash")
         .arg(script_path)
         .envs(envs.iter().copied())
@@ -143,7 +139,10 @@ fn wrangler_flags(config: &Path) -> WranglerFlags {
     }
 }
 
-fn build_local(workspace_root: &Path, wrangler_paths: &WranglerPaths) -> Result<(), Box<dyn Error>> {
+fn build_local(
+    workspace_root: &Path,
+    wrangler_paths: &WranglerPaths,
+) -> Result<(), Box<dyn Error>> {
     println!(
         "Using wrangler config: {}, log dir: {}",
         wrangler_paths.config.display(),
@@ -199,7 +198,10 @@ fn seed_r2(
     wrangler_flags: &WranglerFlags,
 ) -> Result<(), Box<dyn Error>> {
     let now = chrono::Local::now();
-    println!("Seeding test data via seed_test1_local.sh at {}", now.format("%H:%M:%S"));
+    println!(
+        "Seeding test data via seed_test1_local.sh at {}",
+        now.format("%H:%M:%S")
+    );
     let wrangler_log_dir_str = wrangler_paths.log_dir.to_str().unwrap_or_default();
     let wrangler_config_dir_str = wrangler_paths.config_dir.to_str().unwrap_or_default();
     run_script(
@@ -234,9 +236,7 @@ fn start_miniflare(
     let now = chrono::Local::now();
     println!("Starting wrangler dev at {}", now.format("%H:%M:%S"));
     let child = Command::new("bash")
-        .arg(
-            workspace_root.join("rusty-golf-serverless/scripts/start_miniflare_local.sh"),
-        )
+        .arg(workspace_root.join("rusty-golf-serverless/scripts/start_miniflare_local.sh"))
         .arg(port)
         .arg(&wrangler_paths.config)
         .current_dir(workspace_root)
@@ -282,18 +282,28 @@ async fn assert_scores_response(event_id: i64) -> Result<(), Box<dyn Error>> {
     ))
     .await?;
     println!("Received response from /scores endpoint");
-    assert!(resp.status().is_success(), "Unexpected status: {}", resp.status());
+    assert!(
+        resp.status().is_success(),
+        "Unexpected status: {}",
+        resp.status()
+    );
     let body: Value = resp.json().await?;
-    assert!(body.is_object(), "Response is not a JSON object; got {body:?}");
+    assert!(
+        body.is_object(),
+        "Response is not a JSON object; got {body:?}"
+    );
 
     let bettor_struct = body
         .get("bettor_struct")
         .and_then(|v| v.as_array())
         .expect("Response JSON does not contain 'bettor_struct' array");
-    assert_eq!(bettor_struct.len(), 5, "Unexpected number of bettors returned");
+    assert_eq!(
+        bettor_struct.len(),
+        5,
+        "Unexpected number of bettors returned"
+    );
 
-    let reference_result: Value =
-        serde_json::from_str(include_str!("test1_expected_output.json"))?;
+    let reference_result: Value = serde_json::from_str(include_str!("test1_expected_output.json"))?;
     let reference_array = reference_result
         .get("bettor_struct")
         .and_then(|v| v.as_array())

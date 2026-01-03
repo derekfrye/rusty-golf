@@ -34,8 +34,9 @@ async fn setup_db() -> Result<ConfigAndPool, Box<dyn std::error::Error>> {
     Ok(config_and_pool)
 }
 
-fn load_detailed_scores(event_id: i32) -> Result<SummaryDetailedScores, Box<dyn std::error::Error>>
-{
+fn load_detailed_scores(
+    event_id: i32,
+) -> Result<SummaryDetailedScores, Box<dyn std::error::Error>> {
     let detailed_scores_vec: Vec<DetailedScore> = serde_json::from_str(match event_id {
         401_580_355 => include_str!("test7/detailed_scores_401580355.json"),
         401_703_504 => include_str!("test7/detailed_scores_401703504.json"),
@@ -47,8 +48,9 @@ fn load_detailed_scores(event_id: i32) -> Result<SummaryDetailedScores, Box<dyn 
     })
 }
 
-fn load_summary_scores(event_id: i32) -> Result<AllBettorScoresByRound, Box<dyn std::error::Error>>
-{
+fn load_summary_scores(
+    event_id: i32,
+) -> Result<AllBettorScoresByRound, Box<dyn std::error::Error>> {
     let summary_scores_obj: serde_json::Value = serde_json::from_str(match event_id {
         401_580_355 => include_str!("test7/summary_scores_x_401580355.json"),
         401_703_504 => include_str!("test7/summary_scores_x_401703504.json"),
@@ -131,10 +133,7 @@ async fn count_event_user_player_with_step_factor(
     Ok(count)
 }
 
-fn save_debug_html(
-    event_id: i32,
-    html_output: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn save_debug_html(event_id: i32, html_output: &str) -> Result<(), Box<dyn std::error::Error>> {
     let debug_dir_path = format!("tests/test7/debug_{event_id}");
     let debug_dir = Path::new(&debug_dir_path);
     std::fs::create_dir_all(debug_dir)?;

@@ -1,6 +1,6 @@
+use sql_middleware::SqlMiddlewareDbError;
 use sql_middleware::middleware::{ConfigAndPool, MiddlewarePoolConnection};
 use sql_middleware::middleware::{QueryAndParams as QueryAndParams2, RowValues as RowValues2};
-use sql_middleware::SqlMiddlewareDbError;
 
 use crate::model::types::Scores;
 
@@ -106,9 +106,7 @@ async fn execute_sqlite_queries(
     };
 
     let insert_sql = first.query.clone();
-    let mut prepared = sqlite_conn
-        .prepare_sqlite_statement(&insert_sql)
-        .await?;
+    let mut prepared = sqlite_conn.prepare_sqlite_statement(&insert_sql).await?;
 
     for query in queries {
         prepared.execute(&query.params).await?;

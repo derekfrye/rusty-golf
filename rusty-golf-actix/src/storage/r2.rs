@@ -1,5 +1,5 @@
 use chrono::{NaiveDateTime, Utc};
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE};
+use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
 use rusty_golf_core::storage::{EventDetails, Storage, StorageError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -52,10 +52,10 @@ impl R2Storage {
     pub fn config_from_env() -> Result<R2StorageConfig, StorageError> {
         dotenvy::dotenv().ok();
 
-        let endpoint = std::env::var("R2_ENDPOINT")
-            .map_err(|_| StorageError::new("missing R2_ENDPOINT"))?;
-        let bucket = std::env::var("R2_BUCKET")
-            .map_err(|_| StorageError::new("missing R2_BUCKET"))?;
+        let endpoint =
+            std::env::var("R2_ENDPOINT").map_err(|_| StorageError::new("missing R2_ENDPOINT"))?;
+        let bucket =
+            std::env::var("R2_BUCKET").map_err(|_| StorageError::new("missing R2_BUCKET"))?;
         let access_key_id = std::env::var("R2_ACCESS_KEY_ID")
             .or_else(|_| std::env::var("AWS_ACCESS_KEY_ID"))
             .map_err(|_| StorageError::new("missing R2_ACCESS_KEY_ID"))?;
@@ -124,9 +124,7 @@ impl R2Storage {
         let url = self.object_url(key);
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        let headers = self
-            .signer
-            .sign("PUT", &url, headers, Some(&body))?;
+        let headers = self.signer.sign("PUT", &url, headers, Some(&body))?;
 
         let resp = self
             .client
@@ -154,14 +152,13 @@ impl R2Storage {
         let Some(bytes) = self.get_object(key).await? else {
             return Ok(None);
         };
-        let parsed = serde_json::from_slice::<T>(&bytes)
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let parsed =
+            serde_json::from_slice::<T>(&bytes).map_err(|e| StorageError::new(e.to_string()))?;
         Ok(Some(parsed))
     }
 
     async fn put_json<T: Serialize>(&self, key: &str, value: &T) -> Result<(), StorageError> {
-        let body =
-            serde_json::to_vec(value).map_err(|e| StorageError::new(e.to_string()))?;
+        let body = serde_json::to_vec(value).map_err(|e| StorageError::new(e.to_string()))?;
         self.put_object(key, body).await
     }
 
@@ -196,9 +193,7 @@ impl S3Signer for MissingSigner {
         _headers: HeaderMap,
         _body: Option<&[u8]>,
     ) -> Result<HeaderMap, StorageError> {
-        Err(StorageError::new(
-            "S3 signer not configured for R2Storage",
-        ))
+        Err(StorageError::new("S3 signer not configured for R2Storage"))
     }
 }
 
@@ -250,8 +245,7 @@ impl S3Signer for SigV4Signer {
         body: Option<&[u8]>,
     ) -> Result<HeaderMap, StorageError> {
         let body = body.unwrap_or(&[]);
-        let url = Url::parse(url)
-            .map_err(|e| StorageError::new(format!("invalid url: {e}")))?;
+        let url = Url::parse(url).map_err(|e| StorageError::new(format!("invalid url: {e}")))?;
 
         let host = url
             .host_str()
@@ -380,11 +374,7 @@ impl Storage for R2Storage {
         Ok(scores)
     }
 
-    async fn store_scores(
-        &self,
-        event_id: i32,
-        scores: &[Scores],
-    ) -> Result<(), StorageError> {
+    async fn store_scores(&self, event_id: i32, scores: &[Scores]) -> Result<(), StorageError> {
         let payload = ScoresAndLastRefresh {
             score_struct: scores.to_vec(),
             last_refresh: chrono::Utc::now().naive_utc(),

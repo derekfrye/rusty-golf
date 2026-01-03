@@ -7,10 +7,10 @@ use crate::repl::state::{
     load_bettors_selection, load_cached_golfers,
 };
 use anyhow::Result;
-use serde_json::Value;
-use serde_json::json;
 use rustyline::Editor;
 use rustyline::history::DefaultHistory;
+use serde_json::Value;
+use serde_json::json;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -51,13 +51,14 @@ pub(super) fn select_golfers_by_bettor(
 
     let mut selections = Vec::new();
     for bettor in bettors {
-        helper_state.borrow_mut().set_mode(ReplCompletionMode::PromptItems {
-            items: golfer_names.clone(),
-            quote_items: true,
-        });
-        let prompt = format!(
-            "Which golfers for {bettor}? (csv or space separated, quote-delimited) "
-        );
+        helper_state
+            .borrow_mut()
+            .set_mode(ReplCompletionMode::PromptItems {
+                items: golfer_names.clone(),
+                quote_items: true,
+            });
+        let prompt =
+            format!("Which golfers for {bettor}? (csv or space separated, quote-delimited) ");
         let response = prompt_for_items(rl, &prompt);
         helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
         match response {

@@ -29,7 +29,10 @@ pub(crate) fn build_new_event_mode(cli: &Cli, file_config: &FileConfig) -> Resul
     }
 
     Ok(AppMode::NewEvent {
-        eup_json: cli.eup_json.clone().or_else(|| file_config.eup_json.clone()),
+        eup_json: cli
+            .eup_json
+            .clone()
+            .or_else(|| file_config.eup_json.clone()),
         output_json,
         one_shot,
         event_id,

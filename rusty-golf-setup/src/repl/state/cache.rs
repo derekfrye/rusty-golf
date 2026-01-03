@@ -1,5 +1,5 @@
-use crate::espn::EspnClient;
 use super::ReplState;
+use crate::espn::EspnClient;
 use anyhow::{Context, Result};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -29,8 +29,8 @@ pub(crate) fn load_cached_golfers(state: &ReplState) -> Result<Vec<(String, i64)
         if path.extension().is_none_or(|ext| ext != "json") {
             continue;
         }
-        let contents = fs::read_to_string(&path)
-            .with_context(|| format!("read {}", path.display()))?;
+        let contents =
+            fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
         let payload: Value =
             serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
         if let Some(leaderboard) = payload.get("leaderboard").and_then(Value::as_array) {
@@ -55,8 +55,8 @@ pub(crate) fn load_event_golfers(state: &ReplState, event_id: &str) -> Result<Ve
     let cache_path = state.event_cache_dir.join(format!("{event_id}.json"));
     let contents = fs::read_to_string(&cache_path)
         .with_context(|| format!("read {}", cache_path.display()))?;
-    let payload: Value =
-        serde_json::from_str(&contents).with_context(|| format!("parse {}", cache_path.display()))?;
+    let payload: Value = serde_json::from_str(&contents)
+        .with_context(|| format!("parse {}", cache_path.display()))?;
     let mut golfers = Vec::new();
     if let Some(leaderboard) = payload.get("leaderboard").and_then(Value::as_array) {
         for entry in leaderboard {

@@ -1,7 +1,7 @@
 #[cfg(target_arch = "wasm32")]
-pub mod storage;
-#[cfg(target_arch = "wasm32")]
 mod espn_client;
+#[cfg(target_arch = "wasm32")]
+pub mod storage;
 
 pub use rusty_golf_core as core;
 
@@ -10,17 +10,18 @@ use espn_client::ServerlessEspnClient;
 #[cfg(target_arch = "wasm32")]
 use storage::{EventListing, ServerlessStorage};
 #[cfg(target_arch = "wasm32")]
-use worker::{event, Env, Request, Response, Result, RouteContext, Router};
+use worker::{Env, Request, Response, Result, RouteContext, Router, event};
 #[cfg(target_arch = "wasm32")]
 use {
     rusty_golf_core::score::{
-        cache_max_age_for_event, load_score_context, parse_score_request,
-        group_by_bettor_golfer_round, group_by_bettor_name_and_round,
+        cache_max_age_for_event, group_by_bettor_golfer_round, group_by_bettor_name_and_round,
+        load_score_context, parse_score_request,
     },
     rusty_golf_core::view::index::render_index_template,
     rusty_golf_core::view::score::{
-        render_drop_down_bar_pure, render_line_score_tables, render_scores_template_pure,
-        render_summary_scores, scores_and_last_refresh_to_line_score_tables, RefreshData,
+        RefreshData, render_drop_down_bar_pure, render_line_score_tables,
+        render_scores_template_pure, render_summary_scores,
+        scores_and_last_refresh_to_line_score_tables,
     },
     std::collections::HashMap,
 };
@@ -112,8 +113,7 @@ async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Response>
     if score_req.want_json {
         Response::from_json(&context.data)
     } else {
-        let bettor_struct =
-            scores_and_last_refresh_to_line_score_tables(&context.from_db_scores);
+        let bettor_struct = scores_and_last_refresh_to_line_score_tables(&context.from_db_scores);
         let markup = render_scores_template_pure(
             &context.data,
             score_req.expanded,
@@ -317,8 +317,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let _storage = storage_from_env(&ctx.env)?;
             Response::ok("ok")
         })
-        .get_async("/scores", |req, ctx| async move { scores_handler(req, ctx).await })
-        .get_async("/listing", |req, ctx| async move { listing_handler(req, ctx).await })
+        .get_async("/scores", |req, ctx| async move {
+            scores_handler(req, ctx).await
+        })
+        .get_async("/listing", |req, ctx| async move {
+            listing_handler(req, ctx).await
+        })
         .get_async("/scores/summary", |req, ctx| async move {
             scores_summary_handler(req, ctx).await
         })
