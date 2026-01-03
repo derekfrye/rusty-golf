@@ -10,114 +10,39 @@ use std::path::Path;
 
 use sql_middleware::middleware::{ConfigAndPool, DatabaseType, QueryAndParams, SqliteOptions};
 
+fn detailed_score(
+    bettor_name: &str,
+    golfer_name: &str,
+    golfer_espn_id: i64,
+    scores: [i32; 2],
+) -> DetailedScore {
+    DetailedScore {
+        bettor_name: bettor_name.to_string(),
+        golfer_name: golfer_name.to_string(),
+        golfer_espn_id,
+        rounds: vec![0, 1],
+        scores: vec![scores[0], scores[1]],
+    }
+}
+
 fn build_detailed_scores() -> SummaryDetailedScores {
     SummaryDetailedScores {
         detailed_scores: vec![
-            DetailedScore {
-                bettor_name: "Player1".to_string(),
-                golfer_name: "Scottie Scheffler".to_string(),
-                golfer_espn_id: 1_234_567,
-                rounds: vec![0, 1],
-                scores: vec![-3, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player1".to_string(),
-                golfer_name: "Collin Morikawa".to_string(),
-                golfer_espn_id: 1_234_568,
-                rounds: vec![0, 1],
-                scores: vec![-2, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player1".to_string(),
-                golfer_name: "Min Woo Lee".to_string(),
-                golfer_espn_id: 1_234_569,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player2".to_string(),
-                golfer_name: "Bryson DeChambeau".to_string(),
-                golfer_espn_id: 1_234_570,
-                rounds: vec![0, 1],
-                scores: vec![-1, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player2".to_string(),
-                golfer_name: "Justin Thomas".to_string(),
-                golfer_espn_id: 1_234_571,
-                rounds: vec![0, 1],
-                scores: vec![1, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player2".to_string(),
-                golfer_name: "Hideki Matsuyama".to_string(),
-                golfer_espn_id: 1_234_572,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player3".to_string(),
-                golfer_name: "Rory McIlroy".to_string(),
-                golfer_espn_id: 1_234_573,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player3".to_string(),
-                golfer_name: "Ludvig Åberg".to_string(),
-                golfer_espn_id: 1_234_574,
-                rounds: vec![0, 1],
-                scores: vec![1, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player3".to_string(),
-                golfer_name: "Sepp Straka".to_string(),
-                golfer_espn_id: 1_234_575,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player4".to_string(),
-                golfer_name: "Brooks Koepka".to_string(),
-                golfer_espn_id: 1_234_576,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player4".to_string(),
-                golfer_name: "Viktor Hovland".to_string(),
-                golfer_espn_id: 1_234_577,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player4".to_string(),
-                golfer_name: "Jason Day".to_string(),
-                golfer_espn_id: 1_234_578,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player5".to_string(),
-                golfer_name: "Xander Schauffele".to_string(),
-                golfer_espn_id: 1_234_579,
-                rounds: vec![0, 1],
-                scores: vec![3, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player5".to_string(),
-                golfer_name: "Jon Rahm".to_string(),
-                golfer_espn_id: 1_234_580,
-                rounds: vec![0, 1],
-                scores: vec![1, 0],
-            },
-            DetailedScore {
-                bettor_name: "Player5".to_string(),
-                golfer_name: "Will Zalatoris".to_string(),
-                golfer_espn_id: 1_234_581,
-                rounds: vec![0, 1],
-                scores: vec![0, 0],
-            },
+            detailed_score("Player1", "Scottie Scheffler", 1_234_567, [-3, 0]),
+            detailed_score("Player1", "Collin Morikawa", 1_234_568, [-2, 0]),
+            detailed_score("Player1", "Min Woo Lee", 1_234_569, [0, 0]),
+            detailed_score("Player2", "Bryson DeChambeau", 1_234_570, [-1, 0]),
+            detailed_score("Player2", "Justin Thomas", 1_234_571, [1, 0]),
+            detailed_score("Player2", "Hideki Matsuyama", 1_234_572, [0, 0]),
+            detailed_score("Player3", "Rory McIlroy", 1_234_573, [0, 0]),
+            detailed_score("Player3", "Ludvig Åberg", 1_234_574, [1, 0]),
+            detailed_score("Player3", "Sepp Straka", 1_234_575, [0, 0]),
+            detailed_score("Player4", "Brooks Koepka", 1_234_576, [0, 0]),
+            detailed_score("Player4", "Viktor Hovland", 1_234_577, [0, 0]),
+            detailed_score("Player4", "Jason Day", 1_234_578, [0, 0]),
+            detailed_score("Player5", "Xander Schauffele", 1_234_579, [3, 0]),
+            detailed_score("Player5", "Jon Rahm", 1_234_580, [1, 0]),
+            detailed_score("Player5", "Will Zalatoris", 1_234_581, [0, 0]),
         ],
     }
 }

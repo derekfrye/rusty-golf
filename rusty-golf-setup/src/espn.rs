@@ -21,7 +21,15 @@ impl fmt::Display for MalformedEspnJson {
 impl std::error::Error for MalformedEspnJson {}
 
 pub trait EspnClient: Send + Sync {
+    /// List available ESPN events.
+    ///
+    /// # Errors
+    /// Returns an error if the event list cannot be fetched or parsed.
     fn list_events(&self) -> Result<Vec<(String, String)>>;
+    /// Fetch the name of a single event, using the cache if available.
+    ///
+    /// # Errors
+    /// Returns an error if the event payload cannot be fetched or parsed.
     fn fetch_event_name(&self, event_id: i64, cache_dir: &Path) -> Result<String>;
     fn fetch_event_names_parallel(
         &self,
@@ -29,6 +37,10 @@ pub trait EspnClient: Send + Sync {
         cache_dir: &Path,
         progress: Option<&ProgressBar>,
     ) -> Vec<(i64, String)>;
+    /// Fetch a single event payload, using the cache if available.
+    ///
+    /// # Errors
+    /// Returns an error if the cached payload cannot be read or fetched.
     fn fetch_event_json_cached(&self, event_id: i64, cache_dir: &Path) -> Result<Value>;
 }
 

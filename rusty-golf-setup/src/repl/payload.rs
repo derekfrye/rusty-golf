@@ -4,34 +4,34 @@ use chrono::Datelike;
 use serde_json::Value;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::Path;
 
 pub fn write_event_payload(
     state: &ReplState,
-    output_path: PathBuf,
+    output_path: &Path,
     event_id: i64,
-    event_name: String,
-    golfers: Vec<(String, i64)>,
-    bettors: Vec<String>,
-    selections: Vec<GolferSelection>,
+    event_name: &str,
+    golfers: &[(String, i64)],
+    bettors: &[String],
+    selections: &[GolferSelection],
 ) -> Result<()> {
     let existing = load_eup_json(state)?;
     let year = chrono::Utc::now().year();
-    let event_user_player = build_event_user_player(&selections);
-    let golfers_payload = build_golfers_payload(&golfers, &selections)?;
+    let event_user_player = build_event_user_player(selections);
+    let golfers_payload = build_golfers_payload(golfers, selections)?;
     let new_event = build_new_event_json(
         event_id,
         year,
         event_name,
         bettors,
-        golfers_payload,
-        event_user_player,
+        &golfers_payload,
+        &event_user_player,
     );
 
     let mut payload = existing;
     payload.push(new_event);
     let serialized = serde_json::to_string_pretty(&payload)?;
-    std::fs::write(&output_path, serialized)
+    std::fs::write(output_path, serialized)
         .with_context(|| format!("write {}", output_path.display()))?;
     println!("Wrote {}", output_path.display());
     Ok(())
@@ -82,10 +82,10 @@ fn build_golfers_payload(
 fn build_new_event_json(
     event_id: i64,
     year: i32,
-    event_name: String,
-    bettors: Vec<String>,
-    golfers: Vec<Value>,
-    event_user_player: Vec<Value>,
+    event_name: &str,
+    bettors: &[String],
+    golfers: &[Value],
+    event_user_player: &[Value],
 ) -> Value {
     json!({
         "event": event_id,

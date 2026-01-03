@@ -84,7 +84,7 @@ fn matches_token(item: &str, token: &str) -> bool {
 
 fn format_completion(item: &str, quote_items: bool) -> String {
     if quote_items {
-        format!("\"{}\"", item)
+        format!("\"{item}\"")
     } else {
         item.to_string()
     }

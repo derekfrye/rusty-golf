@@ -131,7 +131,7 @@ async fn count_event_user_player_with_step_factor(
     Ok(count)
 }
 
-async fn save_debug_html(
+fn save_debug_html(
     event_id: i32,
     html_output: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -270,7 +270,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
         )
         .await?;
 
-        save_debug_html(event_id, &html_output).await?;
+        save_debug_html(event_id, &html_output)?;
 
         // STEP 4: Read the reference HTML file containing expected output
         let reference_path_str = format!("tests/test7/reference_html_{event_id}.html");

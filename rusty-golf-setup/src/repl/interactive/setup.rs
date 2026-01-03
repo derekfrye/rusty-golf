@@ -45,12 +45,11 @@ pub(super) fn run_setup_event(
     let Some(event_id_raw) = selected_event else {
         return Ok(());
     };
-    let event_id: i64 = match event_id_raw.parse() {
-        Ok(id) => id,
-        Err(_) => {
-            println!("Invalid event id: {event_id_raw}");
-            return Ok(());
-        }
+    let event_id: i64 = if let Ok(id) = event_id_raw.parse() {
+        id
+    } else {
+        println!("Invalid event id: {event_id_raw}");
+        return Ok(());
     };
     if eup_event_exists(state, event_id)? {
         println!("Warning: event {event_id} already exists in eup json.");
@@ -74,18 +73,17 @@ pub(super) fn run_setup_event(
     let event_name = events
         .iter()
         .find(|(id, _)| *id == event_id_raw)
-        .map(|(_, name)| name.clone())
-        .unwrap_or_else(|| event_id_raw.clone());
+        .map_or_else(|| event_id_raw.clone(), |(_, name)| name.clone());
     let golfers = load_event_golfers(state, &event_id_raw)?;
     let bettors = load_bettors_selection(state)?;
     write_event_payload(
         state,
-        output_path,
+        &output_path,
         event_id,
-        event_name,
-        golfers,
-        bettors,
-        selections,
+        &event_name,
+        &golfers,
+        &bettors,
+        &selections,
     )
 }
 
@@ -123,7 +121,7 @@ fn ensure_output_path(
             .and_then(|dir| std::fs::read_dir(dir).ok())
             .map(|read_dir| {
                 read_dir
-                    .filter_map(|entry| entry.ok())
+                    .filter_map(Result::ok)
                     .filter_map(|entry| {
                         let file_type = entry.file_type().ok()?;
                         if file_type.is_dir() {

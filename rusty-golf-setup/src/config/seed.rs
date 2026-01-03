@@ -24,9 +24,8 @@ pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<App
     let event_id = cli.event_id.or(file_config.event_id);
     let auth_tokens = match cli
         .auth_tokens
-        .as_ref()
-        .map(|value| value.as_str())
-        .or_else(|| file_config.auth_tokens.as_deref())
+        .as_deref()
+        .or(file_config.auth_tokens.as_deref())
     {
         Some(value) => Some(parse_auth_tokens(value)?),
         None => None,
@@ -73,7 +72,7 @@ pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<App
 fn resolve_wrangler_flags(
     cli: &Cli,
     file_config: &FileConfig,
-    wrangler_config: &PathBuf,
+    wrangler_config: &std::path::Path,
 ) -> Vec<String> {
     if !cli.wrangler_flag.is_empty() {
         return cli.wrangler_flag.clone();

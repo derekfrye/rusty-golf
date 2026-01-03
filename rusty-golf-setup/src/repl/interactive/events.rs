@@ -13,25 +13,24 @@ pub(super) fn handle_list_events_command(
     state: &mut ReplState,
     command: &ReplCommand,
     token: Option<&str>,
-) -> Result<()> {
+) {
     let subcommand = token.and_then(|token| find_subcommand(command.subcommands, token));
     if let Some(token) = token
         && subcommand.is_none()
     {
         println!("Unknown subcommand: {token}");
         print_subcommand_help(command);
-        return Ok(());
+        return;
     }
     if matches!(subcommand.map(|sub| sub.id), Some(SubcommandId::Help)) {
         print_subcommand_help(command);
-        return Ok(());
+        return;
     }
     let refresh = matches!(subcommand.map(|sub| sub.id), Some(SubcommandId::Refresh));
     match ensure_list_events(state, refresh, true) {
         Ok(events) => print_events(&events),
         Err(err) => print_list_event_error(&err),
     }
-    Ok(())
 }
 
 pub(super) fn handle_get_available_golfers(

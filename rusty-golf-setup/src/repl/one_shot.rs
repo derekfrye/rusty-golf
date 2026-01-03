@@ -6,12 +6,16 @@ use crate::repl::state::{
 };
 use anyhow::{Context, Result};
 use std::collections::BTreeSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+/// Run the one-shot event setup flow.
+///
+/// # Errors
+/// Returns an error if the event data cannot be loaded or written.
 pub fn run_new_event_one_shot(
     eup_json: Option<PathBuf>,
-    output_json: PathBuf,
+    output_json: &Path,
     event_id: i64,
     golfers_by_bettor: Vec<GolferByBettorInput>,
 ) -> Result<()> {
@@ -24,18 +28,22 @@ pub fn run_new_event_one_shot(
     )
 }
 
+/// Run the one-shot event setup flow with an injected ESPN client.
+///
+/// # Errors
+/// Returns an error if the event data cannot be loaded or written.
 pub fn run_new_event_one_shot_with_client(
     eup_json: Option<PathBuf>,
-    output_json: PathBuf,
+    output_json: &Path,
     event_id: i64,
     golfers_by_bettor: Vec<GolferByBettorInput>,
     espn: Option<Arc<dyn EspnClient>>,
 ) -> Result<()> {
+    let output_json_path = output_json.to_path_buf();
     let mut state = match espn {
-        Some(client) => ReplState::new_with_client(eup_json, Some(output_json.clone()), client)
+        Some(client) => ReplState::new_with_client(eup_json, Some(output_json_path), client)
             .context("init repl state")?,
-        None => ReplState::new(eup_json, Some(output_json.clone()))
-            .context("init repl state")?,
+        None => ReplState::new(eup_json, Some(output_json_path)).context("init repl state")?,
     };
     let events = ensure_list_events(&mut state, false, true)?;
     if events.is_empty() {
@@ -46,10 +54,9 @@ pub fn run_new_event_one_shot_with_client(
     let event_name = events
         .iter()
         .find(|(id, _)| *id == event_id_raw)
-        .map(|(_, name)| name.clone())
-        .unwrap_or_else(|| event_id_raw.clone());
+        .map_or_else(|| event_id_raw.clone(), |(_, name)| name.clone());
 
-    if eup_event_exists(&mut state, event_id)? {
+    if eup_event_exists(&state, event_id)? {
         println!("Warning: event {event_id} already exists in eup json.");
     }
 
@@ -76,10 +83,10 @@ pub fn run_new_event_one_shot_with_client(
         &state,
         output_json,
         event_id,
-        event_name,
-        golfers,
-        bettors,
-        selections,
+        &event_name,
+        &golfers,
+        &bettors,
+        &selections,
     )
 }
 

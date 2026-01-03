@@ -82,7 +82,7 @@ fn handle_repl_line(
             println!("{help_text}");
         }
         CommandId::ListEvents => {
-            handle_list_events_command(state, command, parts.next())?;
+            handle_list_events_command(state, command, parts.next());
         }
         CommandId::GetAvailableGolfers => {
             handle_get_available_golfers(rl, helper_state, state)?;

@@ -40,15 +40,15 @@ pub struct GolferByBettorInput {
 /// # Errors
 /// Returns an error if required CLI values are missing, the config file is
 /// unreadable or invalid, or if auth tokens are malformed.
-pub fn load_config(cli: Cli) -> Result<AppMode> {
-    let file_config = read_file_config(&cli)?;
+pub fn load_config(cli: &Cli) -> Result<AppMode> {
+    let file_config = read_file_config(cli)?;
     let mode = cli
         .mode
         .or(file_config.mode)
         .ok_or_else(|| anyhow!("missing --mode"))?;
     match mode {
-        Mode::Seed => seed::build_seed_mode(&cli, &file_config),
-        Mode::NewEvent => new_event::build_new_event_mode(&cli, &file_config),
+        Mode::Seed => seed::build_seed_mode(cli, &file_config),
+        Mode::NewEvent => new_event::build_new_event_mode(cli, &file_config),
     }
 }
 

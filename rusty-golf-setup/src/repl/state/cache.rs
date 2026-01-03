@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
 
 pub(crate) fn has_cached_events(state: &ReplState) -> Result<bool> {
@@ -26,7 +26,7 @@ pub(crate) fn load_cached_golfers(state: &ReplState) -> Result<Vec<(String, i64)
         let path = entry
             .with_context(|| format!("read {}", state.event_cache_dir.display()))?
             .path();
-        if path.extension().map_or(true, |ext| ext != "json") {
+        if path.extension().is_none_or(|ext| ext != "json") {
             continue;
         }
         let contents = fs::read_to_string(&path)
@@ -40,10 +40,10 @@ pub(crate) fn load_cached_golfers(state: &ReplState) -> Result<Vec<(String, i64)
                     .and_then(Value::as_str)
                     .or_else(|| entry.get("fullName").and_then(Value::as_str));
                 let id = entry.get("id").and_then(Value::as_str);
-                if let (Some(name), Some(id)) = (name, id) {
-                    if let Ok(id) = id.parse::<i64>() {
-                        golfers.entry(name.to_string()).or_insert(id);
-                    }
+                if let (Some(name), Some(id)) = (name, id)
+                    && let Ok(id) = id.parse::<i64>()
+                {
+                    golfers.entry(name.to_string()).or_insert(id);
                 }
             }
         }
@@ -65,10 +65,10 @@ pub(crate) fn load_event_golfers(state: &ReplState, event_id: &str) -> Result<Ve
                 .and_then(Value::as_str)
                 .or_else(|| entry.get("fullName").and_then(Value::as_str));
             let id = entry.get("id").and_then(Value::as_str);
-            if let (Some(name), Some(id)) = (name, id) {
-                if let Ok(id) = id.parse::<i64>() {
-                    golfers.push((name.to_string(), id));
-                }
+            if let (Some(name), Some(id)) = (name, id)
+                && let Ok(id) = id.parse::<i64>()
+            {
+                golfers.push((name.to_string(), id));
             }
         }
     }
@@ -77,7 +77,7 @@ pub(crate) fn load_event_golfers(state: &ReplState, event_id: &str) -> Result<Ve
 
 pub(crate) fn warm_event_cache(
     events: &[(String, String)],
-    cache_dir: &PathBuf,
+    cache_dir: &Path,
     espn: &Arc<dyn EspnClient>,
 ) -> Result<()> {
     for (event_id, _) in events {

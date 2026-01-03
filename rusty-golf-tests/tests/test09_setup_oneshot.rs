@@ -26,7 +26,7 @@ fn test09_setup_oneshot() -> Result<()> {
         let output_path = output_path(event_id);
         run_new_event_one_shot_with_client(
             Some(dbprefill_path.clone()),
-            output_path.clone(),
+            &output_path,
             event_id,
             golfers_by_bettor,
             Some(Arc::clone(&client)),
@@ -134,10 +134,10 @@ fn load_fixture_golfers_by_id(
                 .and_then(Value::as_str)
                 .or_else(|| entry.get("fullName").and_then(Value::as_str));
             let id = entry.get("id").and_then(Value::as_str);
-            if let (Some(name), Some(id)) = (name, id) {
-                if let Ok(id) = id.parse::<i64>() {
-                    golfers.insert(id, name.to_string());
-                }
+            if let (Some(name), Some(id)) = (name, id)
+                && let Ok(id) = id.parse::<i64>()
+            {
+                golfers.insert(id, name.to_string());
             }
         }
     }
