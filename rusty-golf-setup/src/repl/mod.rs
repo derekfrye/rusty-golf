@@ -21,7 +21,7 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -458,7 +458,22 @@ fn write_event_payload(
             })
         })
         .collect();
-    let golfers_payload: Vec<Value> = golfers
+    let golfers_by_id: HashMap<i64, &String> = golfers
+        .iter()
+        .map(|(name, id)| (*id, name))
+        .collect();
+    let mut seen_golfers = HashSet::new();
+    let mut selected_golfers = Vec::new();
+    for entry in &selections {
+        if !seen_golfers.insert(entry.golfer_espn_id) {
+            continue;
+        }
+        let name = golfers_by_id
+            .get(&entry.golfer_espn_id)
+            .ok_or_else(|| anyhow::anyhow!("missing golfer {}", entry.golfer_espn_id))?;
+        selected_golfers.push(((*name).clone(), entry.golfer_espn_id));
+    }
+    let golfers_payload: Vec<Value> = selected_golfers
         .iter()
         .map(|(name, id)| {
             json!({

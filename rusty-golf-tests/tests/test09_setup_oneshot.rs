@@ -1,3 +1,4 @@
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -17,9 +18,11 @@ fn test09_setup_oneshot() -> Result<()> {
         });
     let event_ids = first_two_event_ids(&dbprefill_path)?;
 
-    let client = Arc::new(FixtureEspnClient::new(fixture_root.clone()));
+    let client: Arc<dyn EspnClient> = Arc::new(FixtureEspnClient::new(fixture_root.clone()));
     for event_id in event_ids {
-        let (golfers, golfers_by_bettor) = build_one_shot_inputs(&fixture_root, event_id)?;
+        let expected_entry = load_dbprefill_event(&dbprefill_path, event_id)?;
+        let golfers_by_bettor =
+            build_one_shot_inputs_from_dbprefill(&fixture_root, event_id, &expected_entry)?;
         let output_path = output_path(event_id);
         run_new_event_one_shot_with_client(
             Some(dbprefill_path.clone()),
@@ -28,7 +31,7 @@ fn test09_setup_oneshot() -> Result<()> {
             golfers_by_bettor,
             Some(Arc::clone(&client)),
         )?;
-        assert_output(&output_path, event_id, &golfers)?;
+        assert_output_matches_expected(&output_path, event_id, &expected_entry)?;
         let _ = fs::remove_file(&output_path);
     }
 
@@ -67,39 +70,63 @@ fn first_two_event_ids(path: &Path) -> Result<Vec<i64>> {
     Ok(ids)
 }
 
-fn build_one_shot_inputs(
-    fixture_root: &Path,
-    event_id: i64,
-) -> Result<(Vec<(String, i64)>, Vec<GolferByBettorInput>)> {
-    let golfers = load_fixture_golfers(fixture_root, event_id)?;
-    let selected = golfers
+fn load_dbprefill_event(path: &Path, event_id: i64) -> Result<Value> {
+    let contents = fs::read_to_string(path)
+        .with_context(|| format!("read {}", path.display()))?;
+    let payload: Value = serde_json::from_str(&contents)
+        .with_context(|| format!("parse {}", path.display()))?;
+    let array = payload
+        .as_array()
+        .ok_or_else(|| anyhow!("dbprefill JSON is not an array"))?;
+    array
         .iter()
-        .take(2)
-        .map(|(name, id)| (name.clone(), *id))
-        .collect::<Vec<_>>();
-    if selected.len() < 2 {
-        return Err(anyhow!("not enough golfers in fixture for {event_id}"));
-    }
-    let golfers_by_bettor = vec![
-        GolferByBettorInput {
-            bettor: "alice".to_string(),
-            golfer: selected[0].0.clone(),
-        },
-        GolferByBettorInput {
-            bettor: "bob".to_string(),
-            golfer: selected[1].0.clone(),
-        },
-    ];
-    Ok((selected, golfers_by_bettor))
+        .find(|entry| entry.get("event").and_then(Value::as_i64) == Some(event_id))
+        .cloned()
+        .ok_or_else(|| anyhow!("dbprefill entry missing event {event_id}"))
 }
 
-fn load_fixture_golfers(fixture_root: &Path, event_id: i64) -> Result<Vec<(String, i64)>> {
+fn build_one_shot_inputs_from_dbprefill(
+    fixture_root: &Path,
+    event_id: i64,
+    expected_entry: &Value,
+) -> Result<Vec<GolferByBettorInput>> {
+    let golfers_by_id = load_fixture_golfers_by_id(fixture_root, event_id)?;
+    let data_to_fill = load_data_to_fill(expected_entry)?;
+    let event_user_player = data_to_fill
+        .get("event_user_player")
+        .and_then(Value::as_array)
+        .ok_or_else(|| anyhow!("missing event_user_player for {event_id}"))?;
+    let mut selections = Vec::new();
+    for entry in event_user_player {
+        let bettor = entry
+            .get("bettor")
+            .and_then(Value::as_str)
+            .ok_or_else(|| anyhow!("missing bettor for {event_id}"))?;
+        let golfer_id = entry
+            .get("golfer_espn_id")
+            .and_then(Value::as_i64)
+            .ok_or_else(|| anyhow!("missing golfer_espn_id for {event_id}"))?;
+        let golfer_name = golfers_by_id
+            .get(&golfer_id)
+            .ok_or_else(|| anyhow!("missing golfer {golfer_id} in fixture for {event_id}"))?;
+        selections.push(GolferByBettorInput {
+            bettor: bettor.to_string(),
+            golfer: golfer_name.clone(),
+        });
+    }
+    Ok(selections)
+}
+
+fn load_fixture_golfers_by_id(
+    fixture_root: &Path,
+    event_id: i64,
+) -> Result<HashMap<i64, String>> {
     let path = fixture_root.join(format!("event_{event_id}.json"));
     let contents = fs::read_to_string(&path)
         .with_context(|| format!("read {}", path.display()))?;
     let payload: Value = serde_json::from_str(&contents)
         .with_context(|| format!("parse {}", path.display()))?;
-    let mut golfers = Vec::new();
+    let mut golfers = HashMap::new();
     if let Some(leaderboard) = payload.get("leaderboard").and_then(Value::as_array) {
         for entry in leaderboard {
             let name = entry
@@ -109,7 +136,7 @@ fn load_fixture_golfers(fixture_root: &Path, event_id: i64) -> Result<Vec<(Strin
             let id = entry.get("id").and_then(Value::as_str);
             if let (Some(name), Some(id)) = (name, id) {
                 if let Ok(id) = id.parse::<i64>() {
-                    golfers.push((name.to_string(), id));
+                    golfers.insert(id, name.to_string());
                 }
             }
         }
@@ -117,7 +144,20 @@ fn load_fixture_golfers(fixture_root: &Path, event_id: i64) -> Result<Vec<(Strin
     Ok(golfers)
 }
 
-fn assert_output(path: &Path, event_id: i64, golfers: &[(String, i64)]) -> Result<()> {
+fn load_data_to_fill(entry: &Value) -> Result<&serde_json::Map<String, Value>> {
+    entry
+        .get("data_to_fill_if_event_and_year_missing")
+        .and_then(Value::as_array)
+        .and_then(|arr| arr.first())
+        .and_then(Value::as_object)
+        .ok_or_else(|| anyhow!("missing data_to_fill_if_event_and_year_missing"))
+}
+
+fn assert_output_matches_expected(
+    path: &Path,
+    event_id: i64,
+    expected_entry: &Value,
+) -> Result<()> {
     let contents = fs::read_to_string(path)
         .with_context(|| format!("read {}", path.display()))?;
     let payload: Value = serde_json::from_str(&contents)
@@ -126,33 +166,126 @@ fn assert_output(path: &Path, event_id: i64, golfers: &[(String, i64)]) -> Resul
         .as_array()
         .ok_or_else(|| anyhow!("output JSON is not an array"))?;
     let entry = array
-        .last()
-        .ok_or_else(|| anyhow!("output JSON missing events"))?;
+        .iter()
+        .rev()
+        .find(|entry| entry.get("event").and_then(Value::as_i64) == Some(event_id))
+        .ok_or_else(|| anyhow!("output JSON missing event {event_id}"))?;
     let actual_event = entry.get("event").and_then(Value::as_i64);
     if actual_event != Some(event_id) {
         return Err(anyhow!("expected event {event_id}, got {actual_event:?}"));
     }
-    let golfer_names: Vec<&str> = golfers.iter().map(|(name, _)| name.as_str()).collect();
-    let golfers_payload = entry
-        .get("data_to_fill_if_event_and_year_missing")
-        .and_then(Value::as_array)
-        .and_then(|arr| arr.first())
-        .and_then(|entry| entry.get("golfers"))
-        .and_then(Value::as_array)
-        .ok_or_else(|| anyhow!("missing golfers payload"))?;
-    for golfer_name in golfer_names {
-        let found = golfers_payload.iter().any(|entry| {
-            entry
-                .get("name")
-                .and_then(Value::as_str)
-                .map(|name| name == golfer_name)
-                .unwrap_or(false)
-        });
-        if !found {
-            return Err(anyhow!("missing golfer {golfer_name} in output"));
+    assert_event_matches_expected(entry, expected_entry)
+}
+
+fn assert_event_matches_expected(actual: &Value, expected: &Value) -> Result<()> {
+    let ignore_keys = ["year", "score_view_step_factor"];
+    let expected_obj = expected
+        .as_object()
+        .ok_or_else(|| anyhow!("expected event is not an object"))?;
+    let actual_obj = actual
+        .as_object()
+        .ok_or_else(|| anyhow!("actual event is not an object"))?;
+    let expected_keys: BTreeSet<&str> = expected_obj.keys().map(String::as_str).collect();
+    let actual_keys: BTreeSet<&str> = actual_obj.keys().map(String::as_str).collect();
+    if expected_keys != actual_keys {
+        return Err(anyhow!(
+            "event keys mismatch: expected {expected_keys:?}, got {actual_keys:?}"
+        ));
+    }
+    for key in expected_obj.keys() {
+        if ignore_keys.contains(&key.as_str()) {
+            continue;
         }
+        let expected_value = expected_obj
+            .get(key)
+            .ok_or_else(|| anyhow!("missing expected key {key}"))?;
+        let actual_value = actual_obj
+            .get(key)
+            .ok_or_else(|| anyhow!("missing actual key {key}"))?;
+        assert_values_match(expected_value, actual_value, &format!(".{key}"))?;
     }
     Ok(())
+}
+
+fn assert_values_match(expected: &Value, actual: &Value, path: &str) -> Result<()> {
+    match (expected, actual) {
+        (Value::Object(expected_map), Value::Object(actual_map)) => {
+            let expected_keys: BTreeSet<&str> =
+                expected_map.keys().map(String::as_str).collect();
+            let actual_keys: BTreeSet<&str> = actual_map.keys().map(String::as_str).collect();
+            if expected_keys != actual_keys {
+                return Err(anyhow!(
+                    "object keys mismatch at {path}: expected {expected_keys:?}, got {actual_keys:?}"
+                ));
+            }
+            for key in expected_map.keys() {
+                let expected_value = expected_map
+                    .get(key)
+                    .ok_or_else(|| anyhow!("missing expected key {key} at {path}"))?;
+                let actual_value = actual_map
+                    .get(key)
+                    .ok_or_else(|| anyhow!("missing actual key {key} at {path}"))?;
+                assert_values_match(expected_value, actual_value, &format!("{path}.{key}"))?;
+            }
+            Ok(())
+        }
+        (Value::Array(expected_arr), Value::Array(actual_arr)) => {
+            if expected_arr.len() != actual_arr.len() {
+                return Err(anyhow!(
+                    "array length mismatch at {path}: expected {}, got {}",
+                    expected_arr.len(),
+                    actual_arr.len()
+                ));
+            }
+            let mut expected_items: Vec<String> =
+                expected_arr.iter().map(canonicalize_value).collect();
+            let mut actual_items: Vec<String> =
+                actual_arr.iter().map(canonicalize_value).collect();
+            expected_items.sort();
+            actual_items.sort();
+            if expected_items != actual_items {
+                return Err(anyhow!("array values mismatch at {path}"));
+            }
+            Ok(())
+        }
+        _ => {
+            if expected != actual {
+                return Err(anyhow!(
+                    "value mismatch at {path}: expected {expected}, got {actual}"
+                ));
+            }
+            Ok(())
+        }
+    }
+}
+
+fn canonicalize_value(value: &Value) -> String {
+    match value {
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => {
+            serde_json::to_string(value).unwrap_or_default()
+        }
+        Value::Array(items) => {
+            let mut normalized: Vec<String> = items.iter().map(canonicalize_value).collect();
+            normalized.sort();
+            format!("[{}]", normalized.join(","))
+        }
+        Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let parts: Vec<String> = keys
+                .into_iter()
+                .map(|key| {
+                    let value = map.get(key).unwrap_or(&Value::Null);
+                    format!(
+                        "{}:{}",
+                        serde_json::to_string(key).unwrap_or_default(),
+                        canonicalize_value(value)
+                    )
+                })
+                .collect();
+            format!("{{{}}}", parts.join(","))
+        }
+    }
 }
 
 struct FixtureEspnClient {

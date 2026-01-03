@@ -8,6 +8,7 @@ actix-web = "4"
 anyhow = "1"
 chrono = "0"
 dotenvy = "0"
+indicatif = "0"
 reqwest = { version = "0", default-features = false, features = ["json", "rustls-tls"] }
 rusty-golf-core = { path = "../rusty-golf-core" }
 scraper = "0"
