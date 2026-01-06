@@ -389,7 +389,7 @@ h3 {
   color: #f7f7ef;
 }
 
-.linescore-round-button {
+.linescore-round-button.selected {
   border: 1px solid var(--ink-soft);
   background: transparent;
   color: var(--ink-soft);
@@ -398,10 +398,13 @@ h3 {
   font-size: 11px;
 }
 
-.linescore-round-button.selected {
+.linescore-round-button {
   background: var(--accent);
   color: #fff6e6;
   border-color: var(--accent);
+  border-radius: 999px;
+  border: none;
+  font-size: 11px;
 }
 
 .score-shape-birdie {

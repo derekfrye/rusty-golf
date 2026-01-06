@@ -169,8 +169,8 @@ function filterRound(round) {
 //     });
 // };
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initThemeToggle);
-} else {
-    initThemeToggle();
-}
+// if (document.readyState === 'loading') {
+//     document.addEventListener('DOMContentLoaded', initThemeToggle);
+// } else {
+//     initThemeToggle();
+// }

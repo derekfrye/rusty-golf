@@ -17,7 +17,7 @@ use {
         cache_max_age_for_event, group_by_bettor_golfer_round, group_by_bettor_name_and_round,
         load_score_context, parse_score_request,
     },
-    rusty_golf_core::view::index::render_index_template,
+    rusty_golf_core::view::index::{render_index_template, resolve_index_title_or_default},
     rusty_golf_core::view::score::{
         RefreshData, render_drop_down_bar_pure, render_line_score_tables,
         render_scores_template_pure, render_summary_scores,
@@ -129,8 +129,12 @@ async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Response>
 }
 
 #[cfg(target_arch = "wasm32")]
-async fn index_handler() -> Result<Response> {
-    let markup = render_index_template("Scoreboard");
+async fn index_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let query = parse_query_params(&req)?;
+    let event_str = query.get("event").map(String::as_str).unwrap_or("");
+    let storage = storage_from_env(&ctx.env)?;
+    let title = resolve_index_title_or_default(&storage, event_str).await;
+    let markup = render_index_template(&title);
     respond_html(markup.into_string())
 }
 
@@ -309,7 +313,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     let router = Router::new();
 
     let result = router
-        .get_async("/", |_, _| async move { index_handler().await })
+        .get_async("/", |req, ctx| async move { index_handler(req, ctx).await })
         .get_async("/static/*path", |req, ctx| async move {
             static_handler(req, ctx).await
         })

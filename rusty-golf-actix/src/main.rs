@@ -1,7 +1,7 @@
 use rusty_golf::args;
 use rusty_golf::controller::{db_prefill, score::scores};
+use rusty_golf::view::index::{DEFAULT_INDEX_TITLE, try_resolve_index_title};
 use rusty_golf::storage::SqlStorage;
-use rusty_golf_core::storage::Storage;
 use sql_middleware::middleware::{
     ConfigAndPool, DatabaseType, PgConfig, PostgresOptions, SqliteOptions,
 };
@@ -54,17 +54,11 @@ async fn index(
 ) -> impl Responder {
     let event_str = query.get("event").cloned().unwrap_or_default();
 
-    let title = match event_str.parse() {
-        Ok(id) => match storage.get_event_details(id).await {
-            Ok(event_config) => event_config.event_name,
-            Err(e) => {
-                eprintln!("Error: {e}");
-                "Scoreboard".to_string()
-            }
-        },
+    let title = match try_resolve_index_title(storage.get_ref(), &event_str).await {
+        Ok(title) => title,
         Err(e) => {
             eprintln!("Error: {e}");
-            "Scoreboard".to_string()
+            DEFAULT_INDEX_TITLE.to_string()
         }
     };
 

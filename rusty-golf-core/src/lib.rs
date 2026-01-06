@@ -5,4 +5,4 @@ pub mod score;
 pub mod storage;
 pub mod view;
 
-pub const HTMX_PATH: &str = "https://unpkg.com/htmx.org@1.9.12";
+pub const HTMX_PATH: &str = "https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js";
