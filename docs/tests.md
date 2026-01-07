@@ -62,7 +62,7 @@ The project uses integration tests located in the `tests/` directory. Each test 
 - **Database**: `file::memory:?cache=shared".to_string();`
 - **What it tests**: Html rendering of a complex "bar graph" we custom wrote
 
-### Test 7: Step Factor Rendering (`test7_new_step_factor.rs`)
+### Test 7: Step Factor Rendering (`test07_new_step_factor.rs`)
 - **Purpose**: Tests score display step factor calculations
 - **Files**:
   - `test07/test07_dbprefill.json` - Tournament configuration
@@ -93,7 +93,7 @@ Tests automatically create required database tables using SQL files from:
 cargo test --test test01
 
 # Run with debug output
-cargo test --test test4_cache -- --nocapture
+cargo test --test test04_cache -- --nocapture
 ```
 
 ## Debug Output

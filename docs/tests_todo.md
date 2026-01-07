@@ -57,7 +57,7 @@ Production code that lacks adequate test coverage.
 
 - **`render_drop_down_bar(...) -> Result<Markup, Box<dyn std::error::Error>>`** (60+ lines)
   - **Complexity**: High - complex HTML generation with dynamic styling
-  - **Coverage**: ✅ Tested indirectly via test6/test7 integration tests
+  - **Coverage**: ✅ Tested indirectly via test06/test07 integration tests
   - **Gap**: No direct testing of HTML structure generation
   - **Recommendation**: Unit test HTML structure and CSS class generation
 
