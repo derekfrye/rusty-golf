@@ -28,7 +28,7 @@ async fn setup_db() -> Result<ConfigAndPool, Box<dyn std::error::Error>> {
     let mut conn = config_and_pool.get_connection().await?;
     conn.execute_batch(&query_and_params.query).await?;
 
-    let json = serde_json::from_str(include_str!("test7/test7_dbprefill.json"))?;
+    let json = serde_json::from_str(include_str!("test07/test07_dbprefill.json"))?;
     db_prefill(&json, &config_and_pool, DatabaseType::Sqlite).await?;
 
     Ok(config_and_pool)
@@ -38,8 +38,8 @@ fn load_detailed_scores(
     event_id: i32,
 ) -> Result<SummaryDetailedScores, Box<dyn std::error::Error>> {
     let detailed_scores_vec: Vec<DetailedScore> = serde_json::from_str(match event_id {
-        401_580_355 => include_str!("test7/detailed_scores_401580355.json"),
-        401_703_504 => include_str!("test7/detailed_scores_401703504.json"),
+        401_580_355 => include_str!("test07/detailed_scores_401580355.json"),
+        401_703_504 => include_str!("test07/detailed_scores_401703504.json"),
         _ => return Err("Unexpected event ID".into()),
     })?;
 
@@ -52,8 +52,8 @@ fn load_summary_scores(
     event_id: i32,
 ) -> Result<AllBettorScoresByRound, Box<dyn std::error::Error>> {
     let summary_scores_obj: serde_json::Value = serde_json::from_str(match event_id {
-        401_580_355 => include_str!("test7/summary_scores_x_401580355.json"),
-        401_703_504 => include_str!("test7/summary_scores_x_401703504.json"),
+        401_580_355 => include_str!("test07/summary_scores_x_401580355.json"),
+        401_703_504 => include_str!("test07/summary_scores_x_401703504.json"),
         _ => return Err("Unexpected event ID".into()),
     })?;
 
@@ -134,7 +134,7 @@ async fn count_event_user_player_with_step_factor(
 }
 
 fn save_debug_html(event_id: i32, html_output: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let debug_dir_path = format!("tests/test7/debug_{event_id}");
+    let debug_dir_path = format!("tests/test07/debug_{event_id}");
     let debug_dir = Path::new(&debug_dir_path);
     std::fs::create_dir_all(debug_dir)?;
     let debug_file = debug_dir.join("actual_output.html");
@@ -272,7 +272,7 @@ async fn test_new_step_factor() -> Result<(), Box<dyn std::error::Error>> {
         save_debug_html(event_id, &html_output)?;
 
         // STEP 4: Read the reference HTML file containing expected output
-        let reference_path_str = format!("tests/test7/reference_html_{event_id}.html");
+        let reference_path_str = format!("tests/test07/reference_html_{event_id}.html");
         let reference_path = Path::new(&reference_path_str);
         assert!(
             reference_path.exists(),

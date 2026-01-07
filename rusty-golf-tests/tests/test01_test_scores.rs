@@ -9,7 +9,7 @@ mod common;
 
 #[actix_web::test]
 async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
-    let test_ctx = common::setup_test_context(include_str!("test1.sql"))
+    let test_ctx = common::setup_test_context(include_str!("test01.sql"))
         .await
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
@@ -58,7 +58,7 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         "Unexpected number of bettors returned"
     );
 
-    let reference_result: Value = serde_json::from_str(include_str!("test1_expected_output.json"))?;
+    let reference_result: Value = serde_json::from_str(include_str!("test01_expected_output.json"))?;
     let reference_array = reference_result
         .get("bettor_struct")
         .and_then(|v| v.as_array())

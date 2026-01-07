@@ -11,5 +11,5 @@
 ## Reproduction notes
 - Compared commit `9a21400` (“split up another large file”) against parent `9e92839`.
 - Rendered HTML for `event=401580351&yr=2024` by mimicking the old async path: inspected `src/view/score.rs.bak` and new `chart.rs`/`linescore.rs`.
-- Used the `tests/test3_espn_json_responses.json` fixture to seed both pipelines and diff the generated markup (ad-hoc Python helper; now removed from tree).
+- Used the `tests/test03_espn_json_responses.json` fixture to seed both pipelines and diff the generated markup (ad-hoc Python helper; now removed from tree).
 - Verified findings by tracing helper functions (`short_golfer_name`, `scores_and_last_refresh_to_line_score_tables`, etc.) and matching DOM snippets to CSS expectations.***

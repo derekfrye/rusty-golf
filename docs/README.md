@@ -36,7 +36,7 @@ Future versions may automate this process.
 
 1. Go [here](https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=golf&league=pga&region=us&lang=en&contentorigin=espn), get the event ID.
 2. Go here https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/players?region=us&lang=en&event=&lt;eventId&gt;, find all the golfers you want to include.
-3. Populate [db_prefill.json](tests/test5_dbprefill.json) with the data you need for your tournament.
+3. Populate [db_prefill.json](tests/test05_dbprefill.json) with the data you need for your tournament.
 4. Restart with podman-compose; if using the [example docker-compose.yml](examples/docker-compose.yml), it'll read the db_prefill.json and load the data into the sqlite database.
 
 ## Postgresql Debugging

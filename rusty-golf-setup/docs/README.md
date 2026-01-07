@@ -31,7 +31,7 @@ Example:
 
 ```bash
 cargo run -p rusty-golf-setup -- \
-  --eup-json tests/test5_dbprefill.json \
+  --eup-json tests/test05_dbprefill.json \
   --kv-env dev
 ```
 
@@ -49,7 +49,7 @@ All keys are optional. CLI values override config values.
 
 ```toml
 mode = "seed"
-eup_json = "tests/test5_dbprefill.json"
+eup_json = "tests/test05_dbprefill.json"
 kv_env = "dev"
 kv_binding = "djf_rusty_golf_kv"
 auth_tokens = "changeme-token-1,changeme-token-2"

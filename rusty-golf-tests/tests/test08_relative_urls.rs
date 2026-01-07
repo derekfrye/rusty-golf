@@ -10,7 +10,7 @@ mod common;
 
 #[actix_web::test]
 async fn test_scores_hx_routes_are_relative() -> Result<(), Box<dyn std::error::Error>> {
-    let test_ctx = common::setup_test_context(include_str!("test1.sql"))
+    let test_ctx = common::setup_test_context(include_str!("test01.sql"))
         .await
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 

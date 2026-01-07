@@ -78,7 +78,7 @@ async fn setup_sqlite_storage() -> Result<SqlStorage, Box<dyn std::error::Error>
     };
     conn.execute_batch(&query_and_params.query).await?;
 
-    let setup_queries = include_str!("test1.sql");
+    let setup_queries = include_str!("test01.sql");
     let query_and_params = QueryAndParams {
         query: setup_queries.to_string(),
         params: vec![],
@@ -89,7 +89,7 @@ async fn setup_sqlite_storage() -> Result<SqlStorage, Box<dyn std::error::Error>
 }
 
 fn reference_json() -> Result<Value, Box<dyn std::error::Error>> {
-    let reference_result_str = include_str!("test3_espn_json_responses.json");
+    let reference_result_str = include_str!("test03_espn_json_responses.json");
     Ok(serde_json::from_str(reference_result_str)?)
 }
 
@@ -149,7 +149,7 @@ fn assert_bryson_scores(score_data: &ScoreData, reference_result: &Value) -> Bry
         .expect("Score data missing line score")
         .score;
     assert_eq!(reference_line_score, line_score);
-    assert_eq!(reference_line_score, 3); // line 6824 in test3_espn_json_responses.json
+    assert_eq!(reference_line_score, 3); // line 6824 in test03_espn_json_responses.json
 
     BrysonExpectations {
         total_score: bryson_espn_entry.detailed_statistics.total_score,

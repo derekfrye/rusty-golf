@@ -13,9 +13,9 @@ use serde_json::Value;
 fn test09_setup_oneshot() -> Result<()> {
     let fixture_root = fixture_root();
     let dbprefill_path = fixture_root
-        .join("../test5_dbprefill.json")
+        .join("../test05_dbprefill.json")
         .canonicalize()
-        .unwrap_or_else(|_| fixture_root.join("../test5_dbprefill.json"));
+        .unwrap_or_else(|_| fixture_root.join("../test05_dbprefill.json"));
     let event_ids = first_two_event_ids(&dbprefill_path)?;
 
     let client: Arc<dyn EspnClient> = Arc::new(FixtureEspnClient::new(fixture_root.clone()));

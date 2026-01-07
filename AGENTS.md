@@ -13,7 +13,7 @@
 - Lint: `cargo clippy -D warnings`
 - Format: `cargo fmt`
 - Run (SQLite example):
-  - `cargo run -- --db-type=sqlite --db-name=/tmp/rusty_golf.db --db-startup-script=examples/init_db.sql --db-populate-json=tests/test5_dbprefill.json`
+  - `cargo run -- --db-type=sqlite --db-name=/tmp/rusty_golf.db --db-startup-script=examples/init_db.sql --db-populate-json=tests/test05_dbprefill.json`
 - Tests (preferred): `cargo nextest run --no-fail-fast` (see `docs/tests.md`)
 - Container image: `make build` / `make clean` / `make rebuild` (uses Podman)
 
@@ -25,9 +25,9 @@
 - Run `cargo clippy -D warnings` before pushing.
 
 ## Testing Guidelines
-- Integration tests live in `tests/` (e.g., `test1_test_scores.rs`, `test4_cache.rs`).
+- Integration tests live in `tests/` (e.g., `test01_test_scores.rs`, `test04_cache.rs`).
 - Use Nextest: `cargo nextest run --no-fail-fast`; fallback: `cargo test`.
-- Offline fallback: if ESPN HTTP fails, tests auto-load `tests/test3_espn_json_responses.json` and persist via normal DB path for deterministic runs.
+- Offline fallback: if ESPN HTTP fails, tests auto-load `tests/test03_espn_json_responses.json` and persist via normal DB path for deterministic runs.
 - Tests use in‑memory SQLite and load schemas from `src/sql/schema/*`.
 - When adding features, include a focused integration test and any fixtures under `tests/`.
 

@@ -55,18 +55,18 @@ async fn test_dbprefill() -> Result<(), Box<dyn std::error::Error>> {
     let res = conn.execute_select(query, &[]).await?;
     assert_eq!(res.results.len(), 0);
 
-    let json = serde_json::from_str(include_str!("test5_dbprefill.json"))?;
+    let json = serde_json::from_str(include_str!("test05_dbprefill.json"))?;
     db_prefill(&json, &config_and_pool, DatabaseType::Sqlite).await?;
 
     // now verify that the tables have been populated
     let query = "select * from event ;";
     let res = conn.execute_select(query, &[]).await?;
-    // test5_dbprefill.json currently contains 5 events
+    // test05_dbprefill.json currently contains 5 events
     assert_eq!(res.results.len(), 5);
 
     let query = "select * from golfer;";
     let res = conn.execute_select(query, &[]).await?;
-    // The test5_dbprefill.json file across all events currently lists 33 unique golfers.
+    // The test05_dbprefill.json file across all events currently lists 33 unique golfers.
     // Duplicates are handled by the INSERT statement that uses "WHERE NOT EXISTS".
     assert_eq!(res.results.len(), 33);
     let x = res

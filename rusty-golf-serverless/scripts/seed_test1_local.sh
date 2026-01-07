@@ -20,7 +20,7 @@ WRANGLER_ENV="${WRANGLER_ENV:-dev}"
 WRANGLER_FLAGS="${WRANGLER_FLAGS:---local}"
 WRANGLER_KV_FLAGS="${WRANGLER_KV_FLAGS:-${WRANGLER_FLAGS} --env ${WRANGLER_ENV}}"
 WRANGLER_R2_FLAGS="${WRANGLER_R2_FLAGS:-${WRANGLER_FLAGS} --env ${WRANGLER_ENV}}"
-FIXTURE_JSON="${FIXTURE_JSON:-rusty-golf-tests/tests/test3_espn_json_responses.json}"
+FIXTURE_JSON="${FIXTURE_JSON:-rusty-golf-tests/tests/test03_espn_json_responses.json}"
 log_dir="${WRANGLER_LOG_DIR:-rusty-golf-serverless/.wrangler-logs}"
 config_dir="${XDG_CONFIG_HOME:-rusty-golf-serverless/.wrangler-config}"
 

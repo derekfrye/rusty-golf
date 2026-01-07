@@ -23,7 +23,7 @@ See: `src/mvu/score.rs` and `src/controller/score/http_handlers.rs`.
 ## Effects and IO
 - Data fetch: `get_data_for_scores_page` (scores + ESPN/cache) → `ScoresLoaded`.
 - View deps: `get_scores_from_db`, `get_event_details`, `get_player_step_factors` → `ViewDepsLoaded`.
-- Offline fallback: on ESPN HTTP failure, `fetch_scores_from_espn` loads `tests/test3_espn_json_responses.json` and persists via normal DB path. No flags needed.
+- Offline fallback: on ESPN HTTP failure, `fetch_scores_from_espn` loads `tests/test03_espn_json_responses.json` and persists via normal DB path. No flags needed.
 
 ## Runtime (implemented)
 - A small runtime exists at `src/mvu/runtime.rs`.

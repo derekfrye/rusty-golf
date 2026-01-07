@@ -77,7 +77,7 @@ impl EspnApiClient for ActixEspnClient {
     }
 
     async fn fallback_scores(&self, event_id: i32) -> Result<Option<Vec<Scores>>, CoreError> {
-        let text = std::fs::read_to_string("tests/test3_espn_json_responses.json")?;
+        let text = std::fs::read_to_string("tests/test03_espn_json_responses.json")?;
         let val = serde_json::from_str::<serde_json::Value>(&text)?;
         let score_struct = val
             .get("score_struct")

@@ -100,7 +100,7 @@ async fn setup_db() -> Result<ConfigAndPool, Box<dyn std::error::Error>> {
     let mut conn = config_and_pool.get_connection().await?;
     conn.execute_batch(&query_and_params.query).await?;
 
-    let json = serde_json::from_str(include_str!("test5_dbprefill.json"))?;
+    let json = serde_json::from_str(include_str!("test05_dbprefill.json"))?;
     db_prefill(&json, &config_and_pool, DatabaseType::Sqlite).await?;
 
     Ok(config_and_pool)
@@ -297,7 +297,7 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     // Test the Masters 2025 event
     let event_id = 401_703_504;
 
-    // STEP 1: Verify the step factor is 4.5 as specified in the test5_dbprefill.json file
+    // STEP 1: Verify the step factor is 4.5 as specified in the test05_dbprefill.json file
     let score_view_factor = fetch_score_view_factor(&config_and_pool, event_id).await?;
     assert!(
         (score_view_factor - 4.5_f32).abs() < f32::EPSILON,
@@ -313,10 +313,10 @@ async fn test_bar_width() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    save_debug_html(Path::new("tests/test6/debug"), &html_output)?;
+    save_debug_html(Path::new("tests/test06/debug"), &html_output)?;
 
     // STEP 3: Read the reference HTML file containing expected output
-    let reference_path = Path::new("tests/test6/test6_ref_html.html");
+    let reference_path = Path::new("tests/test06/test06_ref_html.html");
     assert!(
         reference_path.exists(),
         "Reference file not found at: {}",

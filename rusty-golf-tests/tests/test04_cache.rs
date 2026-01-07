@@ -66,7 +66,7 @@ async fn test4_get_scores_from_cache() -> Result<(), Box<dyn std::error::Error>>
     conn.execute_batch(&query_and_params.query).await?;
 
     if !database_exists {
-        let setup_queries = include_str!("test1.sql");
+        let setup_queries = include_str!("test01.sql");
         let query_and_params = QueryAndParams {
             query: setup_queries.to_string(),
             params: vec![],
