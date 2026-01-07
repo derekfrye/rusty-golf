@@ -21,18 +21,6 @@
   text-transform: uppercase;
 }
 
-.theme-toggle-text-new {
-  display: none;
-}
-
-[data-theme="new"] .theme-toggle-classic {
-  display: none;
-}
-
-[data-theme="new"] .theme-toggle-text-new {
-  display: inline;
-}
-
 .theme-label {
   font-size: 0.75rem;
   text-transform: uppercase;

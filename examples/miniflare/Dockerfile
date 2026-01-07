@@ -1,15 +1,17 @@
-FROM node:20-bullseye
-
-ENV DEBIAN_FRONTEND=noninteractive
+FROM fedora:43
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
+RUN dnf -y update \
+  && dnf -y install \
     curl \
-    build-essential \
-    pkg-config \
+    gcc \
+    gcc-c++ \
+    make \
+    nodejs \
+    npm \
+    pkgconf \
     python3 \
-  && rm -rf /var/lib/apt/lists/*
+  && dnf clean all
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
   | sh -s -- -y --profile minimal

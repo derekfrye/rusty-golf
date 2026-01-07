@@ -1,0 +1,277 @@
+:root {
+  --ink: #e7edf4;
+  --ink-soft: #c3cedd;
+  --bg: #0c1116;
+  --bg-deep: #0a0e13;
+  --surface-1: #141b22;
+  --surface-2: #1b2430;
+  --surface-3: #232f3d;
+  --accent: #7fd1c8;
+  --accent-strong: #44b5a8;
+  --danger: #ef6f6c;
+  --line: rgba(231, 237, 244, 0.12);
+  --shadow: rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body.alt-zen {
+  margin: 0;
+  color: var(--ink);
+  background: radial-gradient(1200px 700px at 15% -10%, #1e2a35 0%, #0b1117 60%, #06090d 100%);
+  font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.paper-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(127, 209, 200, 0.08), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(86, 128, 255, 0.1), transparent 50%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 2px, rgba(255, 255, 255, 0) 2px 8px);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.mast {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 26px 30px;
+  border: 1px solid var(--line);
+  background: linear-gradient(140deg, rgba(28, 38, 50, 0.95) 0%, rgba(15, 22, 30, 0.95) 100%);
+  box-shadow: 0 28px 60px var(--shadow);
+  border-radius: 20px;
+  animation: rise 0.7s ease-out both;
+}
+
+.title-block h1 {
+  margin: 8px 0 6px;
+  font-family: "Bai Jamjuree", "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: clamp(32px, 4vw, 48px);
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+}
+
+.deck {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 36ch;
+}
+
+.content {
+  margin-top: 28px;
+  display: grid;
+  gap: 28px;
+}
+
+.panel {
+  position: relative;
+  padding: 26px 26px 30px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(20, 28, 36, 0.95) 0%, rgba(14, 20, 27, 0.95) 100%);
+  border: 1px solid rgba(127, 209, 200, 0.18);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4);
+}
+
+.golf-ball-overlay {
+  position: absolute;
+  inset: 18px 20px auto auto;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent 55%);
+  border-radius: 50%;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 18px;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+
+.styled-table thead th {
+  text-align: left;
+  color: var(--ink-soft);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.styled-table tbody td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.styled-table tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.styled-table tbody tr:hover {
+  background: rgba(127, 209, 200, 0.08);
+}
+
+.playerbars {
+  margin-top: 28px;
+  font-family: "Bai Jamjuree", "Space Grotesk", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.drop-down-bar-chart {
+  margin-top: 16px;
+}
+
+.player-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.player-button {
+  border: 1px solid rgba(127, 209, 200, 0.3);
+  background: rgba(20, 28, 36, 0.9);
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.player-button.selected {
+  background: var(--accent);
+  color: #0b1117;
+  border-color: transparent;
+}
+
+.chart.hidden {
+  display: none;
+}
+
+.chart.visible {
+  display: block;
+}
+
+.golfer-bar-container {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.golfer-name {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.progress-bar {
+  position: relative;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.centerline.horizontal-line {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 2px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.vertical-line {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 40%, transparent 60%, rgba(255, 255, 255, 0.08));
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #0b1117;
+}
+
+.bar.negative {
+  background: linear-gradient(90deg, #5ce1d5, #2fb2a5);
+}
+
+.bar.positive {
+  background: linear-gradient(90deg, #ffb774, #f28a4b);
+}
+
+.bar.zero {
+  background: #5d6a78;
+  color: var(--ink);
+  justify-content: center;
+  padding-right: 0;
+}
+
+.bar-text {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .mast {
+    padding: 20px 20px;
+  }
+
+  .panel {
+    padding: 22px 18px 24px;
+  }
+
+  .golfer-bar-container {
+    grid-template-columns: 1fr;
+  }
+}

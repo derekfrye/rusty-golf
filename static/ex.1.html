@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Rusty Golf - Alt Design 1</title>
   <link rel="stylesheet" href="/static/alt/zen218.v7.css" id="theme-stylesheet"
-    data-theme-new="/static/alt/zen218.v7.css" data-theme-classic="/static/styles.v2.css">
+    data-theme-classic="/static/styles.v2.css" data-theme-new="/static/alt/zen218.v7.css"
+    data-theme-dark="/static/alt/dark.v1.css" data-theme-modern="/static/alt/modern.v1.css">
   <link rel="stylesheet" href="/static/ex.css">
 </head>
 
@@ -14,11 +15,10 @@
   <div class="paper-bg" aria-hidden="true"></div>
   <div class="page">
     <div class="switches">
-      <button class="theme-toggle" id="theme-toggle" title="Toggles classic & new" aria-label="auto"
+      <button class="theme-toggle" id="theme-toggle" title="Cycles themes" aria-label="auto"
         aria-live="polite">
         <span class="theme-label">Theme:</span>
-        <span class="theme-toggle-text theme-toggle-classic">classic</span>
-        <span class="theme-toggle-text theme-toggle-text-new">new</span>
+        <span class="theme-toggle-text" id="theme-toggle-text">new</span>
       </button>
     </div>
     <header class="mast">

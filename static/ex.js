@@ -1,21 +1,23 @@
 const storageKey = 'theme-preference'
+const themes = ['classic', 'new', 'dark', 'modern']
 
 const onClick = () => {
   // flip current value
-  theme.value = theme.value === 'classic'
-    ? 'new'
-    : 'classic'
+  const currentIndex = themes.indexOf(theme.value)
+  const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % themes.length
+  theme.value = themes[nextIndex]
 
   setPreference()
 }
 
 const getColorPreference = () => {
-  if (localStorage.getItem(storageKey))
-    return localStorage.getItem(storageKey)
+  const stored = localStorage.getItem(storageKey)
+  if (stored && themes.includes(stored))
+    return stored
   else
     return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'new'
-      : 'classic'
+      ? 'dark'
+      : 'new'
 }
 
 const setPreference = () => {
@@ -31,11 +33,15 @@ const reflectPreference = () => {
     .querySelector('#theme-toggle')
     ?.setAttribute('aria-label', theme.value)
 
+  const themeToggleText = document.querySelector('#theme-toggle-text')
+  if (themeToggleText) {
+    themeToggleText.textContent = theme.value
+  }
+
   const themeStylesheet = document.querySelector('#theme-stylesheet')
-  if (themeStylesheet?.dataset?.themeNew && themeStylesheet?.dataset?.themeClassic) {
-    const nextHref = theme.value === 'new'
-      ? themeStylesheet.dataset.themeNew
-      : themeStylesheet.dataset.themeClassic
+  if (themeStylesheet?.dataset) {
+    const dataKey = `theme${theme.value.charAt(0).toUpperCase()}${theme.value.slice(1)}`
+    const nextHref = themeStylesheet.dataset[dataKey]
     if (nextHref && themeStylesheet.getAttribute('href') !== nextHref) {
       themeStylesheet.setAttribute('href', nextHref)
     }
@@ -63,7 +69,7 @@ window.onload = () => {
 window
   .matchMedia('(prefers-color-scheme: dark)')
   .addEventListener('change', ({matches:isDark}) => {
-    theme.value = isDark ? 'new' : 'classic'
+    theme.value = isDark ? 'dark' : 'new'
     setPreference()
   })
         

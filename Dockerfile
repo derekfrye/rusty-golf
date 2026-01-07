@@ -1,5 +1,5 @@
 # --- Builder stage ---
-FROM fedora:42 AS builder
+FROM fedora:43 AS builder
 
 # Install Rust, Cargo, and build dependencies
 RUN dnf -y update && \
@@ -17,7 +17,7 @@ RUN cargo clean
 RUN cargo build --release
 
 # --- Runtime stage ---
-FROM fedora:42
+FROM fedora:43
 
 # Install tini and runtime dependencies only
 RUN dnf -y install tini openssl curl && \
