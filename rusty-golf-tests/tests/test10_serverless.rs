@@ -9,7 +9,7 @@ use std::process::Command;
 use std::time::Duration;
 
 #[tokio::test(flavor = "multi_thread")]
-async fn test01_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
+async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     if !run_serverless_enabled() {
         eprintln!("Skipping serverless test: RUN_SERVERLESS=1 not set in .env");
         return Ok(());
@@ -97,8 +97,8 @@ fn run_script(script_path: &Path, envs: &[(&str, &str)], cwd: &Path) -> Result<(
 fn wrangler_paths(workspace_root: &Path) -> WranglerPaths {
     WranglerPaths {
         config: workspace_root.join("rusty-golf-serverless/wrangler.toml"),
-        log_dir: workspace_root.join(".wrangler-logs"),
-        config_dir: workspace_root.join(".wrangler-config"),
+        log_dir: workspace_root.join(".wrangler-logs-test10"),
+        config_dir: workspace_root.join(".wrangler-config-test10"),
     }
 }
 

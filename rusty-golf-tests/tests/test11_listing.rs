@@ -9,7 +9,7 @@ use std::time::Duration;
 use rusty_golf_setup::{SeedOptions, seed_kv_from_eup};
 
 #[tokio::test(flavor = "multi_thread")]
-async fn test08_listing_endpoint() -> Result<(), Box<dyn Error>> {
+async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
     if !run_serverless_enabled() {
         eprintln!("Skipping serverless test: RUN_SERVERLESS=1 not set in .env");
         return Ok(());
@@ -51,7 +51,12 @@ async fn test08_listing_endpoint() -> Result<(), Box<dyn Error>> {
         &auth_tokens,
     )?;
 
-    seed_listing_r2(&workspace_root, &wrangler_paths, &wrangler_flags)?;
+    seed_listing_r2(
+        &workspace_root,
+        &wrangler_paths,
+        &wrangler_flags,
+        &event_ids,
+    )?;
     wait_for_health(&format!("{}/health", miniflare_url)).await?;
 
     assert_listing_response(auth_token, &miniflare_url).await?;
@@ -104,8 +109,8 @@ fn run_script(script_path: &Path, envs: &[(&str, &str)], cwd: &Path) -> Result<(
 fn wrangler_paths(workspace_root: &Path) -> WranglerPaths {
     WranglerPaths {
         config: workspace_root.join("rusty-golf-serverless/wrangler.toml"),
-        log_dir: workspace_root.join(".wrangler-logs-listing"),
-        config_dir: workspace_root.join(".wrangler-config-listing"),
+        log_dir: workspace_root.join(".wrangler-logs-test11"),
+        config_dir: workspace_root.join(".wrangler-config-test11"),
     }
 }
 
@@ -174,21 +179,26 @@ fn seed_listing_r2(
     workspace_root: &Path,
     wrangler_paths: &WranglerPaths,
     wrangler_flags: &WranglerFlags,
+    event_ids: &[i64],
 ) -> Result<(), Box<dyn Error>> {
     let wrangler_log_dir_str = wrangler_paths.log_dir.to_str().unwrap_or_default();
     let wrangler_config_dir_str = wrangler_paths.config_dir.to_str().unwrap_or_default();
-    run_script(
-        &workspace_root.join("rusty-golf-serverless/scripts/seed_test1_local.sh"),
-        &[
-            ("WRANGLER_KV_FLAGS", wrangler_flags.kv_flags.as_str()),
-            ("WRANGLER_R2_FLAGS", wrangler_flags.r2_flags.as_str()),
-            // wrangler dev --local reads from the preview R2 bucket by default.
-            ("R2_BUCKET", "djf-rusty-golf-dev-preview"),
-            ("WRANGLER_LOG_DIR", wrangler_log_dir_str),
-            ("XDG_CONFIG_HOME", wrangler_config_dir_str),
-        ],
-        workspace_root,
-    )
+    for event_id in event_ids {
+        run_script(
+            &workspace_root.join("rusty-golf-serverless/scripts/seed_test1_local.sh"),
+            &[
+                ("EVENT_ID", &event_id.to_string()),
+                ("WRANGLER_KV_FLAGS", wrangler_flags.kv_flags.as_str()),
+                ("WRANGLER_R2_FLAGS", wrangler_flags.r2_flags.as_str()),
+                // wrangler dev --local reads from the preview R2 bucket by default.
+                ("R2_BUCKET", "djf-rusty-golf-dev-preview"),
+                ("WRANGLER_LOG_DIR", wrangler_log_dir_str),
+                ("XDG_CONFIG_HOME", wrangler_config_dir_str),
+            ],
+            workspace_root,
+        )?;
+    }
+    Ok(())
 }
 
 async fn wait_for_health(url: &str) -> Result<(), Box<dyn Error>> {
