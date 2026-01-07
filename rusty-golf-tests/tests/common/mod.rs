@@ -12,6 +12,8 @@ pub struct TestContext {
     pub args: CleanArgs,
 }
 
+pub mod serverless;
+
 pub async fn setup_test_context(fixture_sql: &str) -> Result<TestContext, SqlMiddlewareDbError> {
     let db_name = format!(
         "file:test_db_{}?mode=memory&cache=shared",

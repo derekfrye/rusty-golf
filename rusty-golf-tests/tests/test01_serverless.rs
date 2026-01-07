@@ -1,3 +1,6 @@
+mod common;
+
+use common::serverless::{CleanupGuard, WranglerFlags, WranglerPaths, cleanup_events};
 use rusty_golf_setup::{SeedOptions, seed_kv_from_eup};
 use serde_json::Value;
 use std::error::Error;
@@ -21,6 +24,21 @@ async fn test01_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     let wrangler_paths = wrangler_paths(&workspace_root);
     let wrangler_flags = wrangler_flags(&wrangler_paths.config);
     let event_id = 401_580_351_i64;
+
+    cleanup_events(
+        &workspace_root,
+        &wrangler_paths,
+        &wrangler_flags,
+        &[event_id],
+        false,
+    )?;
+    let _cleanup_guard = CleanupGuard::new(
+        workspace_root.clone(),
+        wrangler_paths.clone(),
+        wrangler_flags.clone(),
+        vec![event_id],
+        false,
+    );
 
     build_local(&workspace_root, &wrangler_paths)?;
     seed_kv(&workspace_root, &wrangler_paths, &wrangler_flags, event_id)?;
@@ -74,18 +92,6 @@ fn run_script(script_path: &Path, envs: &[(&str, &str)], cwd: &Path) -> Result<(
         stderr
     )
     .into())
-}
-
-struct WranglerPaths {
-    config: PathBuf,
-    log_dir: PathBuf,
-    config_dir: PathBuf,
-}
-
-struct WranglerFlags {
-    kv_flags: String,
-    r2_flags: String,
-    kv_flag_list: Vec<String>,
 }
 
 fn wrangler_paths(workspace_root: &Path) -> WranglerPaths {
@@ -194,6 +200,7 @@ fn seed_r2(
     println!("seed_test1_local completed at {}", now.format("%H:%M:%S"));
     Ok(())
 }
+
 
 async fn wait_for_health(url: &str) -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::builder()

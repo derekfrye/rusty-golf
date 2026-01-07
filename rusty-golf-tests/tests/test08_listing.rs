@@ -1,3 +1,6 @@
+mod common;
+
+use common::serverless::{CleanupGuard, WranglerFlags, WranglerPaths, cleanup_events};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -20,6 +23,23 @@ async fn test08_listing_endpoint() -> Result<(), Box<dyn Error>> {
     let miniflare_url = miniflare_base_url()?;
     let wrangler_paths = wrangler_paths(&workspace_root);
     let wrangler_flags = wrangler_flags(&wrangler_paths.config);
+
+    let event_ids = vec![401_703_504_i64, 401_703_521_i64];
+    cleanup_events(
+        &workspace_root,
+        &wrangler_paths,
+        &wrangler_flags,
+        &event_ids,
+        true,
+    )?;
+    let _cleanup_guard = CleanupGuard::new(
+        workspace_root.clone(),
+        wrangler_paths.clone(),
+        wrangler_flags.clone(),
+        event_ids.clone(),
+        true,
+    );
+
     build_local(&workspace_root, &wrangler_paths)?;
 
     let auth_token = "listing-token-123";
@@ -79,18 +99,6 @@ fn run_script(script_path: &Path, envs: &[(&str, &str)], cwd: &Path) -> Result<(
         stderr
     )
     .into())
-}
-
-struct WranglerPaths {
-    config: PathBuf,
-    log_dir: PathBuf,
-    config_dir: PathBuf,
-}
-
-struct WranglerFlags {
-    kv_flags: String,
-    r2_flags: String,
-    kv_flag_list: Vec<String>,
 }
 
 fn wrangler_paths(workspace_root: &Path) -> WranglerPaths {
