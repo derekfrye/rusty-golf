@@ -1,7 +1,6 @@
 mod common;
 
 use common::serverless::{
-    AdminCleanupGuard,
     AdminSeedRequest,
     WranglerPaths,
     admin_cleanup_events,
@@ -32,7 +31,8 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
     let admin_token = miniflare_admin_token()?;
     let wrangler_paths = wrangler_paths(&workspace_root);
 
-    let event_ids = vec![401_703_504_i64, 401_703_521_i64];
+    // Use event IDs that do not overlap with test10 so nextest can run in parallel.
+    let event_ids = vec![401_703_504_i64, 401_580_360_i64];
     build_local(&workspace_root, &wrangler_paths)?;
 
     let auth_token = "listing-token-123";
@@ -40,25 +40,28 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
     wait_for_health(&format!("{}/health", miniflare_url)).await?;
 
     admin_cleanup_events(&miniflare_url, &admin_token, &event_ids, true).await?;
-    let _cleanup_guard = AdminCleanupGuard::new(
-        miniflare_url.clone(),
-        admin_token.clone(),
-        event_ids.clone(),
-        true,
-    );
 
-    for event_id in &event_ids {
-        let payload = build_admin_seed_request(
-            &workspace_root,
-            *event_id,
-            Some(auth_tokens.clone()),
-        )?;
-        admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+    let test_result = async {
+        for event_id in &event_ids {
+            let payload = build_admin_seed_request(
+                &workspace_root,
+                *event_id,
+                Some(auth_tokens.clone()),
+            )?;
+            admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+        }
+
+        assert_listing_response(auth_token, &miniflare_url).await?;
+
+        Ok(())
+    }
+    .await;
+
+    if let Err(err) = admin_cleanup_events(&miniflare_url, &admin_token, &event_ids, true).await {
+        eprintln!("admin cleanup failed after test11: {err}");
     }
 
-    assert_listing_response(auth_token, &miniflare_url).await?;
-
-    Ok(())
+    test_result
 }
 
 fn workspace_root() -> PathBuf {
@@ -172,12 +175,12 @@ async fn assert_listing_response(
         "Listing missing Masters Tournament 2025"
     );
     assert!(
-        body.contains("401703521"),
-        "Listing missing event 401703521"
+        body.contains("401580360"),
+        "Listing missing event 401580360"
     );
     assert!(
-        body.contains("The Open 2025"),
-        "Listing missing The Open 2025"
+        body.contains("The Open"),
+        "Listing missing The Open"
     );
     Ok(())
 }
@@ -220,6 +223,6 @@ fn build_admin_seed_request(
         score_struct,
         espn_cache,
         auth_tokens,
-        last_refresh: Some("2024-05-19T00:00:00Z".to_string()),
+        last_refresh: None,
     })
 }

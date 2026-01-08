@@ -1,7 +1,6 @@
 mod common;
 
 use common::serverless::{
-    AdminCleanupGuard,
     AdminSeedRequest,
     WranglerPaths,
     admin_cleanup_events,
@@ -38,15 +37,22 @@ async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     println!("miniflare health check passed");
 
     admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
-    let _cleanup_guard =
-        AdminCleanupGuard::new(miniflare_url.clone(), admin_token.clone(), vec![event_id], false);
 
-    let payload = build_admin_seed_request(&workspace_root, event_id, None)?;
-    admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+    let test_result = async {
+        let payload = build_admin_seed_request(&workspace_root, event_id, None)?;
+        admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
 
-    assert_scores_response(event_id, &miniflare_url).await?;
+        assert_scores_response(event_id, &miniflare_url).await?;
 
-    Ok(())
+        Ok(())
+    }
+    .await;
+
+    if let Err(err) = admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await {
+        eprintln!("admin cleanup failed after test10: {err}");
+    }
+
+    test_result
 }
 
 fn workspace_root() -> PathBuf {
@@ -279,6 +285,6 @@ fn build_admin_seed_request(
         score_struct,
         espn_cache,
         auth_tokens,
-        last_refresh: Some("2024-05-19T00:00:00Z".to_string()),
+        last_refresh: None,
     })
 }
