@@ -183,6 +183,162 @@ impl ServerlessStorage {
         }
         Ok(false)
     }
+
+    pub async fn admin_seed_event(&self, request: AdminSeedRequest) -> Result<(), StorageError> {
+        if request.event_id != request.event.event as i32 {
+            return Err(StorageError::new(format!(
+                "event_id mismatch: request {}, event {}",
+                request.event_id, request.event.event
+            )));
+        }
+
+        let data_to_fill = request
+            .event
+            .data_to_fill_if_event_and_year_missing
+            .first()
+            .ok_or_else(|| StorageError::new("missing data_to_fill_if_event_and_year_missing"))?;
+
+        let details = EventDetailsDoc {
+            event_name: request.event.name.clone(),
+            score_view_step_factor: request.event.score_view_step_factor.as_f64().unwrap_or(0.0)
+                as f32,
+            refresh_from_espn: request.refresh_from_espn,
+        };
+        let details_key = Self::kv_event_details_key(request.event_id);
+        self.kv_put_json(&details_key, &details).await?;
+
+        let mut golfers_by_id = HashMap::new();
+        for golfer in &data_to_fill.golfers {
+            golfers_by_id.insert(golfer.espn_id, golfer.name.as_str());
+        }
+
+        let mut bettor_counts: HashMap<&str, usize> = HashMap::new();
+        let mut golfers_out = Vec::new();
+        let mut eup_id = 1_i64;
+        for entry in &data_to_fill.event_user_player {
+            let count = bettor_counts.entry(entry.bettor.as_str()).or_insert(0);
+            *count += 1;
+
+            let golfer_name = golfers_by_id
+                .get(&entry.golfer_espn_id)
+                .ok_or_else(|| {
+                    StorageError::new(format!(
+                        "missing golfer_espn_id {} for event {}",
+                        entry.golfer_espn_id, request.event.event
+                    ))
+                })?;
+
+            golfers_out.push(GolferAssignment {
+                eup_id,
+                espn_id: entry.golfer_espn_id,
+                golfer_name: (*golfer_name).to_string(),
+                bettor_name: entry.bettor.clone(),
+                group: *count as i64,
+                score_view_step_factor: entry
+                    .score_view_step_factor
+                    .as_ref()
+                    .and_then(|value| value.as_f64().map(|num| num as f32)),
+            });
+            eup_id += 1;
+        }
+
+        let golfers_key = Self::kv_golfers_key(request.event_id);
+        self.kv_put_json(&golfers_key, &golfers_out).await?;
+
+        let player_factors: Vec<PlayerFactorEntry> = data_to_fill
+            .event_user_player
+            .iter()
+            .filter_map(|entry| {
+                entry.score_view_step_factor.as_ref().and_then(|factor| {
+                    factor.as_f64().map(|num| PlayerFactorEntry {
+                        golfer_espn_id: entry.golfer_espn_id,
+                        bettor_name: entry.bettor.clone(),
+                        step_factor: num as f32,
+                    })
+                })
+            })
+            .collect();
+        let factors_key = Self::kv_player_factors_key(request.event_id);
+        self.kv_put_json(&factors_key, &player_factors).await?;
+
+        if let Some(tokens) = request.auth_tokens.as_ref() {
+            let auth_doc = AuthTokensDoc {
+                tokens: tokens.clone(),
+            };
+            let auth_key = format!("event:{}:auth_tokens", request.event_id);
+            self.kv_put_json(&auth_key, &auth_doc).await?;
+        }
+
+        let last_refresh_ts = if let Some(ts) = request.last_refresh.as_ref() {
+            parse_rfc3339(ts).map_err(|e| StorageError::new(e.to_string()))?
+        } else {
+            Utc::now().naive_utc()
+        };
+
+        let scores_payload = ScoresAndLastRefresh {
+            score_struct: request.score_struct,
+            last_refresh: last_refresh_ts,
+            last_refresh_source: RefreshSource::Espn,
+        };
+        let scores_key = Self::scores_key(request.event_id);
+        self.r2_put_json(&scores_key, &scores_payload).await?;
+
+        let cache_key = Self::espn_cache_key(request.event_id);
+        self.r2_put_json(&cache_key, &request.espn_cache).await?;
+
+        let last_refresh_doc = LastRefreshDoc {
+            ts: format_rfc3339(last_refresh_ts),
+            source: RefreshSource::Espn,
+        };
+        let last_refresh_key = Self::kv_last_refresh_key(request.event_id);
+        self.kv_put_json(&last_refresh_key, &last_refresh_doc).await?;
+
+        let seeded_at = SeededAtDoc {
+            seeded_at: format_rfc3339(Utc::now().naive_utc()),
+        };
+        let seeded_keys = [
+            Self::kv_seeded_at_key(request.event_id, "details"),
+            Self::kv_seeded_at_key(request.event_id, "golfers"),
+            Self::kv_seeded_at_key(request.event_id, "player_factors"),
+            Self::kv_seeded_at_key(request.event_id, "last_refresh"),
+        ];
+        for key in seeded_keys {
+            self.kv_put_json(&key, &seeded_at).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn admin_cleanup_event(
+        &self,
+        event_id: i32,
+        include_auth_tokens: bool,
+    ) -> Result<(), StorageError> {
+        let kv_keys = [
+            Self::kv_event_details_key(event_id),
+            Self::kv_golfers_key(event_id),
+            Self::kv_player_factors_key(event_id),
+            Self::kv_last_refresh_key(event_id),
+            Self::kv_seeded_at_key(event_id, "details"),
+            Self::kv_seeded_at_key(event_id, "golfers"),
+            Self::kv_seeded_at_key(event_id, "player_factors"),
+            Self::kv_seeded_at_key(event_id, "last_refresh"),
+        ];
+        for key in kv_keys {
+            let _ = self.kv.delete(&key).await;
+        }
+
+        if include_auth_tokens {
+            let auth_key = format!("event:{event_id}:auth_tokens");
+            let _ = self.kv.delete(&auth_key).await;
+        }
+
+        let scores_key = Self::scores_key(event_id);
+        let cache_key = Self::espn_cache_key(event_id);
+        let _ = self.bucket.delete(scores_key).await;
+        let _ = self.bucket.delete(cache_key).await;
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -223,6 +379,44 @@ struct LastRefreshDoc {
 #[derive(Serialize, Deserialize)]
 struct SeededAtDoc {
     seeded_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AdminSeedRequest {
+    pub event_id: i32,
+    pub refresh_from_espn: i64,
+    pub event: AdminEupEvent,
+    pub score_struct: Vec<Scores>,
+    pub espn_cache: serde_json::Value,
+    pub auth_tokens: Option<Vec<String>>,
+    pub last_refresh: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AdminEupEvent {
+    pub event: i64,
+    pub name: String,
+    pub score_view_step_factor: serde_json::Value,
+    pub data_to_fill_if_event_and_year_missing: Vec<AdminEupDataFill>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AdminEupDataFill {
+    pub golfers: Vec<AdminEupGolfer>,
+    pub event_user_player: Vec<AdminEupEventUserPlayer>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AdminEupGolfer {
+    pub espn_id: i64,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AdminEupEventUserPlayer {
+    pub bettor: String,
+    pub golfer_espn_id: i64,
+    pub score_view_step_factor: Option<serde_json::Value>,
 }
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]

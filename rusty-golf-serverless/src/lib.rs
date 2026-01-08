@@ -8,7 +8,7 @@ pub use rusty_golf_core as core;
 #[cfg(target_arch = "wasm32")]
 use espn_client::ServerlessEspnClient;
 #[cfg(target_arch = "wasm32")]
-use storage::{EventListing, ServerlessStorage};
+use storage::{AdminSeedRequest, EventListing, ServerlessStorage};
 #[cfg(target_arch = "wasm32")]
 use worker::{Env, Request, Response, Result, RouteContext, Router, event};
 #[cfg(target_arch = "wasm32")]
@@ -23,6 +23,7 @@ use {
         render_scores_template_pure, render_summary_scores,
         scores_and_last_refresh_to_line_score_tables,
     },
+    serde::Deserialize,
     std::collections::HashMap,
 };
 
@@ -82,6 +83,97 @@ fn storage_from_env(env: &Env) -> Result<ServerlessStorage> {
             "Storage binding error (KV_BINDING={kv_binding}, R2_BINDING={r2_binding}): {e}"
         ))
     })
+}
+
+#[cfg(target_arch = "wasm32")]
+fn admin_enabled(env: &Env) -> bool {
+    env.var("ADMIN_ENABLED")
+        .ok()
+        .map(|value| value.to_string() == "1")
+        .unwrap_or(false)
+}
+
+#[cfg(target_arch = "wasm32")]
+fn admin_token(env: &Env) -> Result<String> {
+    let value = env
+        .var("ADMIN_TOKEN")
+        .map_err(|e| worker::Error::RustError(format!("Missing ADMIN_TOKEN env var: {e}")))?;
+    let value = value.to_string();
+    if value.trim().is_empty() {
+        Err(worker::Error::RustError(
+            "ADMIN_TOKEN is empty".to_string(),
+        ))
+    } else {
+        Ok(value)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn admin_request_token(req: &Request) -> Result<Option<String>> {
+    if let Ok(Some(token)) = req.headers().get("x-admin-token") {
+        if !token.trim().is_empty() {
+            return Ok(Some(token));
+        }
+    }
+    let query = parse_query_params(req)?;
+    Ok(query.get("admin_token").cloned())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn admin_auth_response(req: &Request, env: &Env) -> Result<Option<Response>> {
+    if !admin_enabled(env) {
+        return Ok(Some(Response::error("not found", 404)?));
+    }
+    let expected = admin_token(env)?;
+    let Some(provided) = admin_request_token(req)? else {
+        return Ok(Some(Response::error("unauthorized", 401)?));
+    };
+    if provided != expected {
+        return Ok(Some(Response::error("unauthorized", 401)?));
+    }
+    Ok(None)
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Deserialize)]
+struct AdminCleanupRequest {
+    event_id: i32,
+    #[serde(default)]
+    include_auth_tokens: bool,
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn admin_seed_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
+        return Ok(resp);
+    }
+    let payload: AdminSeedRequest = req
+        .json()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
+    storage
+        .admin_seed_event(payload)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    Response::ok("seeded")
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn admin_cleanup_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
+        return Ok(resp);
+    }
+    let payload: AdminCleanupRequest = req
+        .json()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
+    storage
+        .admin_cleanup_event(payload.event_id, payload.include_auth_tokens)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    Response::ok("cleaned")
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -335,6 +427,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .get_async("/scores/linescore", |req, ctx| async move {
             scores_linescore_handler(req, ctx).await
+        })
+        .post_async("/admin/seed", |req, ctx| async move {
+            admin_seed_handler(req, ctx).await
+        })
+        .post_async("/admin/cleanup", |req, ctx| async move {
+            admin_cleanup_handler(req, ctx).await
         })
         .run(req, env)
         .await;

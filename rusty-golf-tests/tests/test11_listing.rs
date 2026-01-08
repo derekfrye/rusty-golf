@@ -1,12 +1,21 @@
 mod common;
 
-use common::serverless::{CleanupGuard, WranglerFlags, WranglerPaths, cleanup_events};
+use common::serverless::{
+    AdminCleanupGuard,
+    AdminSeedRequest,
+    WranglerPaths,
+    admin_cleanup_events,
+    admin_seed_event,
+    load_espn_cache,
+    load_eup_event,
+    load_score_struct,
+    shared_wrangler_dirs,
+};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
 
-use rusty_golf_setup::{SeedOptions, seed_kv_from_eup};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
@@ -17,47 +26,35 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
 
     ensure_command("worker-build")?;
     ensure_command("wrangler")?;
-    ensure_command("jq")?;
 
     let workspace_root = workspace_root();
     let miniflare_url = miniflare_base_url()?;
+    let admin_token = miniflare_admin_token()?;
     let wrangler_paths = wrangler_paths(&workspace_root);
-    let wrangler_flags = wrangler_flags(&wrangler_paths.config);
 
     let event_ids = vec![401_703_504_i64, 401_703_521_i64];
-    cleanup_events(
-        &workspace_root,
-        &wrangler_paths,
-        &wrangler_flags,
-        &event_ids,
-        true,
-    )?;
-    let _cleanup_guard = CleanupGuard::new(
-        workspace_root.clone(),
-        wrangler_paths.clone(),
-        wrangler_flags.clone(),
-        event_ids.clone(),
-        true,
-    );
-
     build_local(&workspace_root, &wrangler_paths)?;
 
     let auth_token = "listing-token-123";
     let auth_tokens = vec![auth_token.to_string()];
-    seed_listing_kv(
-        &workspace_root,
-        &wrangler_paths,
-        &wrangler_flags,
-        &auth_tokens,
-    )?;
-
-    seed_listing_r2(
-        &workspace_root,
-        &wrangler_paths,
-        &wrangler_flags,
-        &event_ids,
-    )?;
     wait_for_health(&format!("{}/health", miniflare_url)).await?;
+
+    admin_cleanup_events(&miniflare_url, &admin_token, &event_ids, true).await?;
+    let _cleanup_guard = AdminCleanupGuard::new(
+        miniflare_url.clone(),
+        admin_token.clone(),
+        event_ids.clone(),
+        true,
+    );
+
+    for event_id in &event_ids {
+        let payload = build_admin_seed_request(
+            &workspace_root,
+            *event_id,
+            Some(auth_tokens.clone()),
+        )?;
+        admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+    }
 
     assert_listing_response(auth_token, &miniflare_url).await?;
 
@@ -107,27 +104,16 @@ fn run_script(script_path: &Path, envs: &[(&str, &str)], cwd: &Path) -> Result<(
 }
 
 fn wrangler_paths(workspace_root: &Path) -> WranglerPaths {
+    let (log_dir, config_dir) = shared_wrangler_dirs().unwrap_or_else(|| {
+        (
+            workspace_root.join(".wrangler-logs-test11"),
+            workspace_root.join(".wrangler-config-test11"),
+        )
+    });
     WranglerPaths {
         config: workspace_root.join("rusty-golf-serverless/wrangler.toml"),
-        log_dir: workspace_root.join(".wrangler-logs-test11"),
-        config_dir: workspace_root.join(".wrangler-config-test11"),
-    }
-}
-
-fn wrangler_flags(config: &Path) -> WranglerFlags {
-    let kv_flags = format!(
-        "--local --preview false --config {} --env dev",
-        config.display()
-    );
-    let r2_flags = format!("--local --config {} --env dev", config.display());
-    let kv_flag_list = kv_flags
-        .split_whitespace()
-        .map(ToString::to_string)
-        .collect();
-    WranglerFlags {
-        kv_flags,
-        r2_flags,
-        kv_flag_list,
+        log_dir,
+        config_dir,
     }
 }
 
@@ -149,56 +135,6 @@ fn build_local(
         ],
         workspace_root,
     )
-}
-
-fn seed_listing_kv(
-    workspace_root: &Path,
-    wrangler_paths: &WranglerPaths,
-    wrangler_flags: &WranglerFlags,
-    auth_tokens: &[String],
-) -> Result<(), Box<dyn Error>> {
-    for event_id in [401_703_504_i64, 401_703_521_i64] {
-        seed_kv_from_eup(&SeedOptions {
-            eup_json: workspace_root.join("rusty-golf-tests/tests/test05_dbprefill.json"),
-            kv_env: "dev".to_string(),
-            kv_binding: Some("djf_rusty_golf_kv".to_string()),
-            auth_tokens: Some(auth_tokens.to_vec()),
-            event_id: Some(event_id),
-            refresh_from_espn: 1,
-            wrangler_config: wrangler_paths.config.clone(),
-            wrangler_env: "dev".to_string(),
-            wrangler_kv_flags: wrangler_flags.kv_flag_list.clone(),
-            wrangler_log_dir: Some(wrangler_paths.log_dir.clone()),
-            wrangler_config_dir: Some(wrangler_paths.config_dir.clone()),
-        })?;
-    }
-    Ok(())
-}
-
-fn seed_listing_r2(
-    workspace_root: &Path,
-    wrangler_paths: &WranglerPaths,
-    wrangler_flags: &WranglerFlags,
-    event_ids: &[i64],
-) -> Result<(), Box<dyn Error>> {
-    let wrangler_log_dir_str = wrangler_paths.log_dir.to_str().unwrap_or_default();
-    let wrangler_config_dir_str = wrangler_paths.config_dir.to_str().unwrap_or_default();
-    for event_id in event_ids {
-        run_script(
-            &workspace_root.join("rusty-golf-serverless/scripts/seed_test1_local.sh"),
-            &[
-                ("EVENT_ID", &event_id.to_string()),
-                ("WRANGLER_KV_FLAGS", wrangler_flags.kv_flags.as_str()),
-                ("WRANGLER_R2_FLAGS", wrangler_flags.r2_flags.as_str()),
-                // wrangler dev --local reads from the preview R2 bucket by default.
-                ("R2_BUCKET", "djf-rusty-golf-dev-preview"),
-                ("WRANGLER_LOG_DIR", wrangler_log_dir_str),
-                ("XDG_CONFIG_HOME", wrangler_config_dir_str),
-            ],
-            workspace_root,
-        )?;
-    }
-    Ok(())
 }
 
 async fn wait_for_health(url: &str) -> Result<(), Box<dyn Error>> {
@@ -248,7 +184,9 @@ async fn assert_listing_response(
 
 fn init_env() {
     let _ = dotenvy::dotenv();
-    if std::env::var("MINIFLARE_URL").is_err() {
+    if std::env::var("MINIFLARE_URL").is_err()
+        || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err()
+    {
         let _ = dotenvy::from_filename("../.env");
     }
 }
@@ -258,4 +196,30 @@ fn miniflare_base_url() -> Result<String, Box<dyn Error>> {
     let url = std::env::var("MINIFLARE_URL")
         .map_err(|_| "MINIFLARE_URL not set in ../.env or environment")?;
     Ok(url.trim_end_matches('/').to_string())
+}
+
+fn miniflare_admin_token() -> Result<String, Box<dyn Error>> {
+    init_env();
+    let token = std::env::var("MINIFLARE_ADMIN_TOKEN")
+        .map_err(|_| "MINIFLARE_ADMIN_TOKEN not set in ../.env or environment")?;
+    Ok(token)
+}
+
+fn build_admin_seed_request(
+    workspace_root: &Path,
+    event_id: i64,
+    auth_tokens: Option<Vec<String>>,
+) -> Result<AdminSeedRequest, Box<dyn Error>> {
+    let event = load_eup_event(workspace_root, event_id)?;
+    let score_struct = load_score_struct(workspace_root)?;
+    let espn_cache = load_espn_cache(workspace_root)?;
+    Ok(AdminSeedRequest {
+        event_id: event_id as i32,
+        refresh_from_espn: 1,
+        event,
+        score_struct,
+        espn_cache,
+        auth_tokens,
+        last_refresh: Some("2024-05-19T00:00:00Z".to_string()),
+    })
 }

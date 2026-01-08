@@ -1,9 +1,10 @@
+use reqwest::Client;
+use rusty_golf_core::model::Scores;
+use serde::{Deserialize, Serialize};
+use std::env;
 use std::error::Error;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-
-const KV_BINDING: &str = "djf_rusty_golf_kv";
-const R2_BUCKET: &str = "djf-rusty-golf-dev-preview";
 
 #[derive(Clone)]
 pub struct WranglerPaths {
@@ -12,150 +13,179 @@ pub struct WranglerPaths {
     pub config_dir: PathBuf,
 }
 
-#[derive(Clone)]
-pub struct WranglerFlags {
-    pub kv_flags: String,
-    pub r2_flags: String,
-    pub kv_flag_list: Vec<String>,
-}
-
-pub struct CleanupGuard {
-    workspace_root: PathBuf,
-    wrangler_paths: WranglerPaths,
-    wrangler_flags: WranglerFlags,
+pub struct AdminCleanupGuard {
+    miniflare_url: String,
+    admin_token: String,
     event_ids: Vec<i64>,
     include_auth_tokens: bool,
 }
 
-impl CleanupGuard {
+pub fn shared_wrangler_dirs() -> Option<(PathBuf, PathBuf)> {
+    let miniflare_root = PathBuf::from("/miniflare_work/.wrangler");
+    let miniflare_logs = miniflare_root.join("logs");
+    let miniflare_config = miniflare_root.join("config");
+    if miniflare_logs.is_dir() && miniflare_config.is_dir() {
+        return Some((miniflare_logs, miniflare_config));
+    }
+    let home = env::var("HOME").ok()?;
+    let base = PathBuf::from(home).join(".local/share/rusty-golf-miniflare");
+    Some((base.join("logs"), base.join("config")))
+}
+
+impl AdminCleanupGuard {
     pub fn new(
-        workspace_root: PathBuf,
-        wrangler_paths: WranglerPaths,
-        wrangler_flags: WranglerFlags,
+        miniflare_url: String,
+        admin_token: String,
         event_ids: Vec<i64>,
         include_auth_tokens: bool,
     ) -> Self {
         Self {
-            workspace_root,
-            wrangler_paths,
-            wrangler_flags,
+            miniflare_url,
+            admin_token,
             event_ids,
             include_auth_tokens,
         }
     }
 }
 
-impl Drop for CleanupGuard {
+impl Drop for AdminCleanupGuard {
     fn drop(&mut self) {
-        if let Err(err) = cleanup_events(
-            &self.workspace_root,
-            &self.wrangler_paths,
-            &self.wrangler_flags,
-            &self.event_ids,
-            self.include_auth_tokens,
-        ) {
-            eprintln!("Cleanup failed: {err}");
-        }
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        let miniflare_url = self.miniflare_url.clone();
+        let admin_token = self.admin_token.clone();
+        let event_ids = self.event_ids.clone();
+        let include_auth_tokens = self.include_auth_tokens;
+        handle.spawn(async move {
+            let _ = admin_cleanup_events(
+                &miniflare_url,
+                &admin_token,
+                &event_ids,
+                include_auth_tokens,
+            )
+            .await;
+        });
     }
 }
 
-pub fn cleanup_events(
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct EupEventInput {
+    pub event: i64,
+    pub name: String,
+    pub score_view_step_factor: serde_json::Value,
+    pub data_to_fill_if_event_and_year_missing: Vec<EupDataFillInput>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct EupDataFillInput {
+    pub golfers: Vec<EupGolferInput>,
+    pub event_user_player: Vec<EupEventUserPlayerInput>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct EupGolferInput {
+    pub espn_id: i64,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct EupEventUserPlayerInput {
+    pub bettor: String,
+    pub golfer_espn_id: i64,
+    pub score_view_step_factor: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AdminSeedRequest {
+    pub event_id: i32,
+    pub refresh_from_espn: i64,
+    pub event: EupEventInput,
+    pub score_struct: Vec<Scores>,
+    pub espn_cache: serde_json::Value,
+    pub auth_tokens: Option<Vec<String>>,
+    pub last_refresh: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct AdminCleanupRequest {
+    event_id: i32,
+    include_auth_tokens: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct EspnFixture {
+    score_struct: Vec<Scores>,
+}
+
+pub fn load_eup_event(
     workspace_root: &Path,
-    wrangler_paths: &WranglerPaths,
-    wrangler_flags: &WranglerFlags,
+    event_id: i64,
+) -> Result<EupEventInput, Box<dyn Error>> {
+    let path = workspace_root.join("rusty-golf-tests/tests/test05_dbprefill.json");
+    let contents = fs::read_to_string(path)?;
+    let events: Vec<EupEventInput> = serde_json::from_str(&contents)?;
+    events
+        .into_iter()
+        .find(|event| event.event == event_id)
+        .ok_or_else(|| format!("Missing event {event_id} in test05_dbprefill.json").into())
+}
+
+pub fn load_score_struct(workspace_root: &Path) -> Result<Vec<Scores>, Box<dyn Error>> {
+    let path = workspace_root.join("rusty-golf-tests/tests/test03_espn_json_responses.json");
+    let contents = fs::read_to_string(path)?;
+    let fixture: EspnFixture = serde_json::from_str(&contents)?;
+    Ok(fixture.score_struct)
+}
+
+pub fn load_espn_cache(workspace_root: &Path) -> Result<serde_json::Value, Box<dyn Error>> {
+    let path = workspace_root.join("rusty-golf-tests/tests/test03_espn_json_responses.json");
+    let contents = fs::read_to_string(path)?;
+    Ok(serde_json::from_str(&contents)?)
+}
+
+pub async fn admin_seed_event(
+    miniflare_url: &str,
+    admin_token: &str,
+    payload: &AdminSeedRequest,
+) -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
+    let resp = client
+        .post(format!("{miniflare_url}/admin/seed"))
+        .header("x-admin-token", admin_token)
+        .json(payload)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("admin seed failed: {}\n{}", status, body).into());
+    }
+    Ok(())
+}
+
+pub async fn admin_cleanup_events(
+    miniflare_url: &str,
+    admin_token: &str,
     event_ids: &[i64],
     include_auth_tokens: bool,
 ) -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
     for event_id in event_ids {
-        cleanup_kv_for_event(
-            wrangler_paths,
-            wrangler_flags,
-            *event_id,
+        let payload = AdminCleanupRequest {
+            event_id: *event_id as i32,
             include_auth_tokens,
-        )?;
-        cleanup_r2_for_event(
-            workspace_root,
-            wrangler_paths,
-            wrangler_flags,
-            *event_id,
-        )?;
-    }
-    Ok(())
-}
-
-fn cleanup_kv_for_event(
-    wrangler_paths: &WranglerPaths,
-    wrangler_flags: &WranglerFlags,
-    event_id: i64,
-    include_auth_tokens: bool,
-) -> Result<(), Box<dyn Error>> {
-    let mut keys = vec![
-        format!("event:{event_id}:details"),
-        format!("event:{event_id}:golfers"),
-        format!("event:{event_id}:player_factors"),
-        format!("event:{event_id}:details:seeded_at"),
-        format!("event:{event_id}:golfers:seeded_at"),
-        format!("event:{event_id}:player_factors:seeded_at"),
-    ];
-    if include_auth_tokens {
-        keys.push(format!("event:{event_id}:auth_tokens"));
-    }
-
-    for key in keys {
-        let mut command = Command::new("wrangler");
-        command
-            .arg("kv")
-            .arg("key")
-            .arg("delete")
-            .args(&wrangler_flags.kv_flag_list)
-            .arg("--binding")
-            .arg(KV_BINDING)
-            .arg("--force")
-            .arg(&key);
-
-        let wrangler_log_dir_str = wrangler_paths.log_dir.to_str().unwrap_or_default();
-        let wrangler_config_dir_str = wrangler_paths.config_dir.to_str().unwrap_or_default();
-        command
-            .env("WRANGLER_LOG_DIR", wrangler_log_dir_str)
-            .env("XDG_CONFIG_HOME", wrangler_config_dir_str);
-
-        let status = command.status()?;
-        if !status.success() {
-            return Err(format!("wrangler kv key delete failed for {key}").into());
-        }
-    }
-
-    Ok(())
-}
-
-fn cleanup_r2_for_event(
-    workspace_root: &Path,
-    wrangler_paths: &WranglerPaths,
-    wrangler_flags: &WranglerFlags,
-    event_id: i64,
-) -> Result<(), Box<dyn Error>> {
-    let r2_keys = [
-        format!("{R2_BUCKET}/events/{event_id}/scores.json"),
-        format!("{R2_BUCKET}/cache/espn/{event_id}.json"),
-    ];
-    let wrangler_log_dir_str = wrangler_paths.log_dir.to_str().unwrap_or_default();
-    let wrangler_config_dir_str = wrangler_paths.config_dir.to_str().unwrap_or_default();
-
-    for key in r2_keys {
-        let mut command = Command::new("wrangler");
-        command
-            .arg("r2")
-            .arg("object")
-            .arg("delete")
-            .args(wrangler_flags.r2_flags.split_whitespace())
-            .arg(&key)
-            .current_dir(workspace_root)
-            .env("WRANGLER_LOG_DIR", wrangler_log_dir_str)
-            .env("XDG_CONFIG_HOME", wrangler_config_dir_str);
-
-        let status = command.status()?;
-        if !status.success() {
-            return Err(format!("wrangler r2 object delete failed for {key}").into());
+        };
+        let resp = client
+            .post(format!("{miniflare_url}/admin/cleanup"))
+            .header("x-admin-token", admin_token)
+            .json(&payload)
+            .send()
+            .await?;
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(format!("admin cleanup failed: {}\n{}", status, body).into());
         }
     }
     Ok(())
