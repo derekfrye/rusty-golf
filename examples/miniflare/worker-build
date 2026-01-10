@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # work around issue from https://github.com/drager/wasm-pack/issues/1420
+# stuff like invalid type: sequence, expected a string at line 2 column 11
 
 real_bin="/root/.cargo/bin/worker-build"
 if [[ -z "${real_bin}" ]]; then
