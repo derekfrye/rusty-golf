@@ -5,11 +5,11 @@ use rusty_golf_core::model::{RefreshSource, ScoresAndLastRefresh};
 use rusty_golf_core::storage::StorageError;
 
 use crate::storage::ServerlessStorage;
-use crate::storage_admin_seed_helpers::{
+use super::storage_admin_seed_helpers::{
     build_golfers_out, build_player_factors, resolve_last_refresh_ts, validate_seed_request,
 };
-use crate::storage_helpers::format_rfc3339;
-use crate::storage_types::{AdminSeedRequest, AuthTokensDoc, LastRefreshDoc, SeededAtDoc};
+use super::storage_helpers::format_rfc3339;
+use super::storage_types::{AdminSeedRequest, AuthTokensDoc, LastRefreshDoc, SeededAtDoc};
 
 impl ServerlessStorage {
     pub async fn admin_seed_event(&self, request: AdminSeedRequest) -> Result<(), StorageError> {
@@ -74,7 +74,7 @@ impl ServerlessStorage {
         end_date: Option<String>,
     ) -> Result<(), StorageError> {
         let details_key = Self::kv_event_details_key(event_id);
-        let mut details: crate::storage_types::EventDetailsDoc =
+        let mut details: super::storage_types::EventDetailsDoc =
             self.kv_get_json(details_key.as_str()).await?;
         details.end_date = end_date;
         self.kv_put_json(&details_key, &details).await?;
@@ -88,7 +88,7 @@ impl ServerlessStorage {
     }
 
     async fn store_event_details(&self, request: &AdminSeedRequest) -> Result<(), StorageError> {
-        let details = crate::storage_types::EventDetailsDoc {
+        let details = super::storage_types::EventDetailsDoc {
             event_name: request.event.name.clone(),
             score_view_step_factor: request.event.score_view_step_factor.as_f64().unwrap_or(0.0)
                 as f32,

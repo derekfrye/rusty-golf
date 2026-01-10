@@ -2,9 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::storage_helpers::parse_event_id;
+use super::storage_types::{AuthTokensDoc, EventDetailsDoc, EventListing};
 use crate::storage::ServerlessStorage;
-use crate::storage_helpers::parse_event_id;
-use crate::storage_types::{AuthTokensDoc, EventDetailsDoc, EventListing};
 use rusty_golf_core::storage::StorageError;
 
 impl ServerlessStorage {

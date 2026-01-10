@@ -8,8 +8,8 @@ use rusty_golf_core::storage::{EventDetails, Storage, StorageError};
 use std::collections::HashMap;
 
 use crate::storage::ServerlessStorage;
-use crate::storage_helpers::{format_rfc3339, parse_rfc3339};
-use crate::storage_types::{
+use super::storage_helpers::{format_rfc3339, parse_rfc3339};
+use super::storage_types::{
     EventDetailsDoc, GolferAssignment, LastRefreshDoc, PlayerFactorEntry, SeededAtDoc,
 };
 

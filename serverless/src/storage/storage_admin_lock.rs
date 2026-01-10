@@ -5,8 +5,8 @@ use rusty_golf_core::storage::StorageError;
 use std::collections::HashMap;
 
 use crate::storage::ServerlessStorage;
-use crate::storage_helpers::{format_rfc3339, parse_rfc3339};
-use crate::storage_types::{TestLockDoc, TestLockMode};
+use super::storage_helpers::{format_rfc3339, parse_rfc3339};
+use super::storage_types::{TestLockDoc, TestLockMode};
 
 impl ServerlessStorage {
     pub async fn admin_test_lock(
