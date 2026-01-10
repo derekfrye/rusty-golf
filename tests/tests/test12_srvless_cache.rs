@@ -3,8 +3,8 @@ mod common;
 use chrono::{DateTime, Duration, Utc};
 use common::serverless::{
     AdminSeedRequest, WranglerPaths, admin_cleanup_events, admin_seed_event, admin_test_lock_retry,
-    admin_test_unlock, admin_update_end_date, event_id_i32, load_espn_cache, load_eup_event,
-    load_score_struct, shared_wrangler_dirs, test_lock_token,
+    admin_test_unlock, admin_update_end_date, event_id_i32, is_local_miniflare, load_espn_cache,
+    load_eup_event, load_score_struct, shared_wrangler_dirs, test_lock_token,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -31,7 +31,11 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
     let event_id = 401_580_351_i64;
     let lock_token = test_lock_token("test12");
 
-    build_local(&workspace_root, &wrangler_paths)?;
+    if is_local_miniflare(&miniflare_url) {
+        build_local(&workspace_root, &wrangler_paths)?;
+    } else {
+        println!("Skipping build_local; MINIFLARE_URL is non-localhost.");
+    }
     wait_for_health(&format!("{miniflare_url}/health")).await?;
     println!("miniflare health check passed");
 

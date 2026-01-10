@@ -2,8 +2,8 @@ mod common;
 
 use common::serverless::{
     AdminSeedRequest, WranglerPaths, admin_cleanup_events, admin_seed_event, admin_test_lock_retry,
-    admin_test_unlock, event_id_i32, load_espn_cache, load_eup_event, load_score_struct,
-    shared_wrangler_dirs, test_lock_token,
+    admin_test_unlock, event_id_i32, is_local_miniflare, load_espn_cache, load_eup_event,
+    load_score_struct, shared_wrangler_dirs, test_lock_token,
 };
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -28,7 +28,11 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
 
     // Use event IDs that do not overlap with test10 so nextest can run in parallel.
     let event_ids = vec![401_703_504_i64, 401_580_360_i64];
-    build_local(&workspace_root, &wrangler_paths)?;
+    if is_local_miniflare(&miniflare_url) {
+        build_local(&workspace_root, &wrangler_paths)?;
+    } else {
+        println!("Skipping build_local; MINIFLARE_URL is non-localhost.");
+    }
 
     let auth_token = "listing-token-123";
     let auth_tokens = vec![auth_token.to_string()];

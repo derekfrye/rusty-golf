@@ -236,6 +236,20 @@ pub fn test_lock_token(test_name: &str) -> String {
     )
 }
 
+pub fn is_local_miniflare(url: &str) -> bool {
+    let host = url
+        .split("://")
+        .nth(1)
+        .unwrap_or(url)
+        .split('/')
+        .next()
+        .unwrap_or("")
+        .split(':')
+        .next()
+        .unwrap_or("");
+    matches!(host, "localhost" | "127.0.0.1" | "::1")
+}
+
 pub struct TestLockStatus {
     pub acquired: bool,
     pub is_first: bool,
