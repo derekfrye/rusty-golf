@@ -9,6 +9,9 @@ use crate::model::{
 };
 
 pub mod r2;
+pub mod r2_config;
+pub mod r2_signing;
+mod r2_types;
 
 pub use r2::{MissingSigner, R2Storage, R2StorageConfig, S3Signer, SigV4Signer};
 

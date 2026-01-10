@@ -1,25 +1,15 @@
-use chrono::{NaiveDateTime, Utc};
-use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
+use chrono::NaiveDateTime;
+use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 use rusty_golf_core::storage::{EventDetails, Storage, StorageError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use aws_sign_v4::AwsSign;
-use reqwest::Url;
-use sha256::digest as sha256_digest;
-
 use crate::model::{RefreshSource, Scores, ScoresAndLastRefresh, Statistic};
+use super::r2_types::R2EventDetails;
 
-#[derive(Clone, Debug)]
-pub struct R2StorageConfig {
-    pub endpoint: String,
-    pub bucket: String,
-    pub region: String,
-    pub access_key_id: String,
-    pub secret_access_key: String,
-    pub service: String,
-}
+pub use super::r2_config::R2StorageConfig;
+pub use super::r2_signing::{MissingSigner, S3Signer, SigV4Signer};
 
 #[derive(Clone)]
 pub struct R2Storage {
@@ -36,53 +26,6 @@ impl R2Storage {
             config,
             signer,
         }
-    }
-
-    /// Build config from `.env` and process environment variables.
-    ///
-    /// Required:
-    /// - `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
-    ///
-    /// Optional:
-    /// - `R2_REGION` (defaults to `auto`)
-    /// - `R2_SERVICE` (defaults to `s3`)
-    ///
-    /// # Errors
-    /// Returns an error if required environment variables are missing.
-    pub fn config_from_env() -> Result<R2StorageConfig, StorageError> {
-        dotenvy::dotenv().ok();
-
-        let endpoint =
-            std::env::var("R2_ENDPOINT").map_err(|_| StorageError::new("missing R2_ENDPOINT"))?;
-        let bucket =
-            std::env::var("R2_BUCKET").map_err(|_| StorageError::new("missing R2_BUCKET"))?;
-        let access_key_id = std::env::var("R2_ACCESS_KEY_ID")
-            .or_else(|_| std::env::var("AWS_ACCESS_KEY_ID"))
-            .map_err(|_| StorageError::new("missing R2_ACCESS_KEY_ID"))?;
-        let secret_access_key = std::env::var("R2_SECRET_ACCESS_KEY")
-            .or_else(|_| std::env::var("AWS_SECRET_ACCESS_KEY"))
-            .map_err(|_| StorageError::new("missing R2_SECRET_ACCESS_KEY"))?;
-        let region = std::env::var("R2_REGION").unwrap_or_else(|_| "auto".to_string());
-        let service = std::env::var("R2_SERVICE").unwrap_or_else(|_| "s3".to_string());
-
-        Ok(R2StorageConfig {
-            endpoint,
-            bucket,
-            region,
-            access_key_id,
-            secret_access_key,
-            service,
-        })
-    }
-
-    #[must_use]
-    pub fn signer_from_config(config: &R2StorageConfig) -> SigV4Signer {
-        SigV4Signer::new(
-            config.access_key_id.clone(),
-            config.secret_access_key.clone(),
-            config.region.clone(),
-            config.service.clone(),
-        )
     }
 
     fn object_url(&self, key: &str) -> String {
@@ -162,136 +105,8 @@ impl R2Storage {
         self.put_object(key, body).await
     }
 
-    fn scores_key(event_id: i32) -> String {
-        format!("events/{event_id}/scores.json")
-    }
-
-    fn golfers_key(event_id: i32) -> String {
-        format!("events/{event_id}/golfers.json")
-    }
-
-    fn event_key(event_id: i32) -> String {
-        format!("events/{event_id}/event.json")
-    }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct R2EventDetails {
-    event_name: String,
-    score_view_step_factor: f32,
-    refresh_from_espn: i64,
-    end_date: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct MissingSigner;
-
-impl S3Signer for MissingSigner {
-    fn sign(
-        &self,
-        _method: &str,
-        _url: &str,
-        _headers: HeaderMap,
-        _body: Option<&[u8]>,
-    ) -> Result<HeaderMap, StorageError> {
-        Err(StorageError::new("S3 signer not configured for R2Storage"))
-    }
-}
-
-#[derive(Clone)]
-pub struct SigV4Signer {
-    access_key_id: String,
-    secret_access_key: String,
-    region: String,
-    service: String,
-}
-
-impl SigV4Signer {
-    #[must_use]
-    pub fn new(
-        access_key_id: String,
-        secret_access_key: String,
-        region: String,
-        service: String,
-    ) -> Self {
-        Self {
-            access_key_id,
-            secret_access_key,
-            region,
-            service,
-        }
-    }
-}
-
-pub trait S3Signer: Send + Sync {
-    /// Sign a request and return the headers to attach.
-    ///
-    /// # Errors
-    /// Returns an error if the request cannot be signed.
-    fn sign(
-        &self,
-        method: &str,
-        url: &str,
-        headers: HeaderMap,
-        body: Option<&[u8]>,
-    ) -> Result<HeaderMap, StorageError>;
-}
-
-impl S3Signer for SigV4Signer {
-    fn sign(
-        &self,
-        method: &str,
-        url: &str,
-        mut headers: HeaderMap,
-        body: Option<&[u8]>,
-    ) -> Result<HeaderMap, StorageError> {
-        let body = body.unwrap_or(&[]);
-        let url = Url::parse(url).map_err(|e| StorageError::new(format!("invalid url: {e}")))?;
-
-        let host = url
-            .host_str()
-            .ok_or_else(|| StorageError::new("missing host in url"))?;
-        let now = Utc::now();
-        let amz_date = now.format("%Y%m%dT%H%M%SZ").to_string();
-        let payload_hash = sha256_digest(body);
-
-        headers.insert(
-            HeaderName::from_static("host"),
-            HeaderValue::from_str(host)
-                .map_err(|e| StorageError::new(format!("invalid host header: {e}")))?,
-        );
-        headers.insert(
-            HeaderName::from_static("x-amz-date"),
-            HeaderValue::from_str(&amz_date)
-                .map_err(|e| StorageError::new(format!("invalid x-amz-date: {e}")))?,
-        );
-        headers.insert(
-            HeaderName::from_static("x-amz-content-sha256"),
-            HeaderValue::from_str(&payload_hash)
-                .map_err(|e| StorageError::new(format!("invalid x-amz-content-sha256: {e}")))?,
-        );
-
-        let signer = AwsSign::new(
-            method,
-            url.as_str(),
-            &now,
-            &headers,
-            &self.region,
-            &self.access_key_id,
-            &self.secret_access_key,
-            &self.service,
-            body,
-        );
-        let auth_header = signer.sign();
-        headers.insert(
-            HeaderName::from_static("authorization"),
-            HeaderValue::from_str(&auth_header)
-                .map_err(|e| StorageError::new(format!("invalid authorization: {e}")))?,
-        );
-
-        Ok(headers)
-    }
-}
 
 #[async_trait::async_trait]
 impl Storage for R2Storage {
