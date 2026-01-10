@@ -7,6 +7,7 @@ pub struct EventTitleAndScoreViewConf {
     pub event_name: String,
     pub score_view_step_factor: f32,
     pub refresh_from_espn: i64,
+    pub end_date: Option<String>,
 }
 
 /// # Errors
@@ -20,7 +21,8 @@ pub async fn get_event_details(
 
     let query = match &conn {
         MiddlewarePoolConnection::Postgres { .. } => {
-            "SELECT EXISTS(SELECT 1 FROM event WHERE event_id = $1)"
+            "SELECT name AS eventname, ins_ts, score_view_step_factor, refresh_from_espn, end_date \
+             FROM event WHERE espn_id = $1"
         }
         MiddlewarePoolConnection::Sqlite { .. } => {
             include_str!("../sql/functions/sqlite/01_sp_get_event_details.sql")
@@ -51,6 +53,10 @@ pub async fn get_event_details(
                     .ok_or(SqlMiddlewareDbError::Other(
                         "Refresh from ESPN flag not found".to_string(),
                     ))?,
+                end_date: row
+                    .get("end_date")
+                    .and_then(|v| v.as_text())
+                    .map(ToString::to_string),
             })
         })
         .next_back()

@@ -1,5 +1,6 @@
 use crate::error::CoreError;
 use crate::storage::Storage;
+use chrono::Utc;
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 
@@ -55,14 +56,24 @@ pub async fn cache_max_age_for_event(
     storage: &dyn Storage,
     event_id: i32,
 ) -> Result<i64, CoreError> {
-    let cache_max_age = match storage.get_event_details(event_id).await {
-        Ok(event_details) => match event_details.refresh_from_espn {
-            1 => 300,
-            _ => 0,
-        },
-        Err(_) => 0,
+    let event_details = match storage.get_event_details(event_id).await {
+        Ok(details) => details,
+        Err(_) => return Ok(0),
     };
-    Ok(cache_max_age)
+
+    if let Some(end_date) = event_details.end_date.as_deref() {
+        if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(end_date) {
+            let end_utc = parsed.with_timezone(&Utc);
+            if Utc::now() > end_utc {
+                return Ok(-1);
+            }
+        }
+    }
+
+    Ok(match event_details.refresh_from_espn {
+        1 => 300,
+        _ => 0,
+    })
 }
 
 /// Parse a score request and build a derived value.

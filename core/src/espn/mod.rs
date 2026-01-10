@@ -65,6 +65,12 @@ pub async fn fetch_scores_from_espn(
     use_cache: bool,
     cache_max_age: i64,
 ) -> Result<ScoresAndLastRefresh, CoreError> {
+    if use_cache && cache_max_age < 0 {
+        if let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await {
+            return Ok(cached);
+        }
+    }
+
     if use_cache
         && let Some(cached) =
             crate::score::context::load_cached_scores(storage, event_id, cache_max_age).await?

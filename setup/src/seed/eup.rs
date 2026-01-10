@@ -8,6 +8,7 @@ pub(crate) struct EupEvent {
     pub(crate) event: i64,
     pub(crate) name: String,
     pub(crate) score_view_step_factor: serde_json::Value,
+    pub(crate) end_date: Option<String>,
     pub(crate) data_to_fill_if_event_and_year_missing: Vec<EupDataFill>,
 }
 

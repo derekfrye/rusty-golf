@@ -180,6 +180,7 @@ struct R2EventDetails {
     event_name: String,
     score_view_step_factor: f32,
     refresh_from_espn: i64,
+    end_date: Option<String>,
 }
 
 #[derive(Debug)]
@@ -305,6 +306,7 @@ impl Storage for R2Storage {
             event_name: details.event_name,
             score_view_step_factor: details.score_view_step_factor,
             refresh_from_espn: details.refresh_from_espn,
+            end_date: details.end_date,
         })
     }
 

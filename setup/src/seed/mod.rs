@@ -1,11 +1,14 @@
 use crate::seed::eup::load_events;
+use crate::seed::espn_header::fetch_end_dates;
 use crate::seed::files::{write_auth_tokens, write_event_files};
 use crate::seed::wrangler::{load_kv_namespace_id, seed_event_kv};
 use anyhow::{Context, Result, bail};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
 mod eup;
+mod espn_header;
 mod files;
 mod wrangler;
 
@@ -48,9 +51,21 @@ pub fn seed_kv_from_eup(options: &SeedOptions) -> Result<()> {
         bail!("no events found to seed");
     }
 
+    let end_dates = match fetch_end_dates() {
+        Ok(map) => map,
+        Err(err) => {
+            eprintln!("Warning: failed to fetch ESPN end dates: {err}");
+            HashMap::new()
+        }
+    };
+
     let temp_dir = TempDir::new().context("create temp dir")?;
     for event in &events {
-        write_event_files(event, options.refresh_from_espn, temp_dir.path())?;
+        let end_date = event
+            .end_date
+            .as_deref()
+            .or_else(|| end_dates.get(&event.event).map(String::as_str));
+        write_event_files(event, options.refresh_from_espn, end_date, temp_dir.path())?;
         if let Some(tokens) = options.auth_tokens.as_ref() {
             let event_dir = temp_dir.path().join(event.event.to_string());
             write_auth_tokens(tokens, &event_dir)?;

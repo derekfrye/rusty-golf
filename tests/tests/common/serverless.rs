@@ -74,6 +74,7 @@ pub struct EupEventInput {
     pub event: i64,
     pub name: String,
     pub score_view_step_factor: serde_json::Value,
+    pub end_date: Option<String>,
     pub data_to_fill_if_event_and_year_missing: Vec<EupDataFillInput>,
 }
 

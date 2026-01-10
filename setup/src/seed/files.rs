@@ -11,6 +11,8 @@ struct EventDetails<'a> {
     event_name: &'a str,
     score_view_step_factor: &'a serde_json::Value,
     refresh_from_espn: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    end_date: Option<&'a str>,
 }
 
 #[derive(Debug, Serialize)]
@@ -44,6 +46,7 @@ struct SeededAtDoc {
 pub(crate) fn write_event_files(
     event: &EupEvent,
     refresh_from_espn: i64,
+    end_date: Option<&str>,
     root: &Path,
 ) -> Result<()> {
     let data_to_fill = event
@@ -63,6 +66,7 @@ pub(crate) fn write_event_files(
         event_name: &event.name,
         score_view_step_factor: &event.score_view_step_factor,
         refresh_from_espn,
+        end_date,
     };
     write_json(&event_dir.join("event_details.json"), &details)?;
 

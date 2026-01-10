@@ -20,6 +20,7 @@ Optional args:
 - `--auth-tokens` CSV list of tokens to allow `/listing?auth_token=...` access (min 8 chars each).
 - `--event-id` Filter to a single event id.
 - `--refresh-from-espn` Value written into `event_details.json` (default: `1`).
+- The setup CLI also fetches `endDate` from the ESPN scoreboard header when available and stores it in `event_details.json` to disable refreshes after the event ends.
 - `--wrangler-config` Path to `wrangler.toml` (default: `serverless/wrangler.toml`).
 - `--wrangler-env` Wrangler env (default: `dev`).
 - `--wrangler-flag` Extra flags for all wrangler commands (repeatable).

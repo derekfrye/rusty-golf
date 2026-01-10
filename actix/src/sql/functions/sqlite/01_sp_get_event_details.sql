@@ -1,3 +1,3 @@
-SELECT e.name AS eventname, ins_ts, score_view_step_factor, refresh_from_espn
+SELECT e.name AS eventname, ins_ts, score_view_step_factor, refresh_from_espn, end_date
 FROM event AS e
 WHERE e.espn_id = ?1;

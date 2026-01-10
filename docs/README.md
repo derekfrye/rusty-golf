@@ -1,8 +1,18 @@
 # Rusty golf
 
-Rusty golf is a multi-crate Rust workspace for a single-page golf tournament scoreboard, pulling stats from ESPN's live PGA API. It can run in the free tier of Cloudflare's excellent Workers platform, or you can host it the traditional way via actix and store all state in a database (sqlite or postgres).
+Rusty golf is a multi-crate Rust workspace for a single-page golf tournament scoreboard, pulling stats from ESPN's PGA API. It can run in the free tier of Cloudflare's excellent Workers platform, or you can host it the traditional way via actix and store all state in a database (sqlite or postgres).
 
 Shared logic lives in `core/`, with runtime-specific servers in `actix/` (Actix Web) and `serverless/` (Cloudflare Workers). If you use the `actix/` flavor, data lives in Postgres or SQLite (examples below assume SQLite). If you use the `serverless/` flavor, data lives in KV/R2. For `serverless/`, there's also a `setup/` CLI helps to seed events and KV. 
+
+## Important notes on your use of ESPN's APIs
+
+This code fetches golf data from ESPN endpoints. These endpoints are not an official public API, may change or disappear at any time, and may have rate limits.
+
+This project is intended for personal/low-traffic use (e.g., a family league scoreboard). Do not deploy it as a high-traffic public service or run aggressive polling.
+
+You are responsible for ensuring your usage complies with ESPN/Disney terms and applicable law; in particular Disney’s Terms restrict automated access/monitoring/copying and actions that overburden services.
+
+Rusty Golf is not affiliated with or endorsed by ESPN or The Walt Disney Company.
 
 ## Getting started (Serverless flavor)
 
@@ -73,7 +83,7 @@ Future versions may automate this process.
 4. Restart with podman-compose; if using the [example docker-compose.yml](examples/docker-compose.yml), it'll read the db_prefill.json and load the data into the sqlite database.
 
 ## Postgresql Debugging (Actix flavor)
-If you want to use Postgres with the `actix/` server and debug locally, create a `.env` file in the *root* of this project[^1]. VScode debugging has been tested. Your `.env` will be excluded by `.dockerignore`. Specify your Postgres `<values>` below based on your needs. If you're using the example podman compose file, make sure your DB_PORT and DB_HOST match entries in `examples/docker-compose.yml`.
+If you want to use Postgres with the `actix/` server and debug locally, create a `.env` file in the *root* of this project[^2]. VScode debugging has been tested. Your `.env` will be excluded by `.dockerignore`. Specify your Postgres `<values>` below based on your needs. If you're using the example podman compose file, make sure your DB_PORT and DB_HOST match entries in `examples/docker-compose.yml`.
 ```text
 DB_USER=<string>
 DB_PASSWORD=<string>
@@ -86,14 +96,15 @@ DB_PORT=<integers>
 - Recommended: `cargo nextest run --no-fail-fast`
 - Fallback: `cargo test`
 - Most tests use in-memory SQLite; no Postgres required.
-- Serverless tests (`test10_serverless.rs`, `test11_listing.rs`) require a running Miniflare instance and admin token in `.env` file of repo root[^1].
+- Serverless tests (`test10_serverless.rs`, `test11_listing.rs`) require a running Miniflare instance and admin token in `.env` file of repo root[^2].
 - Offline mode: when ESPN HTTP requests fail (e.g., no network), tests automatically fall back to local fixtures so the suite remains deterministic. See [testing documentation](tests.md).
 
 ## How we use `htmx`
 
 See [htmx documentation](htmx.md) for how we use `htmx`.
 
-[^1]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode and for tests.
+
+[^2]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode and for tests.
     <pre>
     .
     ├── Cargo.toml

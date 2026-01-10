@@ -203,6 +203,7 @@ impl ServerlessStorage {
             score_view_step_factor: request.event.score_view_step_factor.as_f64().unwrap_or(0.0)
                 as f32,
             refresh_from_espn: request.refresh_from_espn,
+            end_date: request.event.end_date.clone(),
         };
         let details_key = Self::kv_event_details_key(request.event_id);
         self.kv_put_json(&details_key, &details).await?;
@@ -346,6 +347,7 @@ struct EventDetailsDoc {
     event_name: String,
     score_view_step_factor: f32,
     refresh_from_espn: i64,
+    end_date: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -397,6 +399,7 @@ pub struct AdminEupEvent {
     pub event: i64,
     pub name: String,
     pub score_view_step_factor: serde_json::Value,
+    pub end_date: Option<String>,
     pub data_to_fill_if_event_and_year_missing: Vec<AdminEupDataFill>,
 }
 
@@ -428,6 +431,7 @@ impl Storage for ServerlessStorage {
             event_name: doc.event_name,
             score_view_step_factor: doc.score_view_step_factor,
             refresh_from_espn: doc.refresh_from_espn,
+            end_date: doc.end_date,
         })
     }
 
