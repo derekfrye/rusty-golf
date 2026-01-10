@@ -5,10 +5,13 @@ use common::serverless::{
     WranglerPaths,
     admin_cleanup_events,
     admin_seed_event,
+    admin_test_lock_retry,
+    admin_test_unlock,
     load_espn_cache,
     load_eup_event,
     load_score_struct,
     shared_wrangler_dirs,
+    test_lock_token,
 };
 use serde_json::Value;
 use std::error::Error;
@@ -31,16 +34,24 @@ async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     let admin_token = miniflare_admin_token()?;
     let wrangler_paths = wrangler_paths(&workspace_root);
     let event_id = 401_580_351_i64;
+    let lock_token = test_lock_token("test10");
 
     build_local(&workspace_root, &wrangler_paths)?;
     wait_for_health(&format!("{}/health", miniflare_url)).await?;
     println!("miniflare health check passed");
 
-    admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
+    let lock =
+        admin_test_lock_retry(&miniflare_url, &admin_token, event_id, &lock_token, "shared")
+            .await?;
+    if lock.is_first {
+        admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
+    }
 
     let test_result = async {
-        let payload = build_admin_seed_request(&workspace_root, event_id, None)?;
-        admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+        if lock.is_first {
+            let payload = build_admin_seed_request(&workspace_root, event_id, None)?;
+            admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+        }
 
         assert_scores_response(event_id, &miniflare_url).await?;
 
@@ -48,8 +59,13 @@ async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     }
     .await;
 
-    if let Err(err) = admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await {
-        eprintln!("admin cleanup failed after test10: {err}");
+    let is_last = admin_test_unlock(&miniflare_url, &admin_token, event_id, &lock_token).await?;
+    if is_last {
+        if let Err(err) =
+            admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await
+        {
+            eprintln!("admin cleanup failed after test10: {err}");
+        }
     }
 
     test_result

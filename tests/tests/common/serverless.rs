@@ -1,4 +1,5 @@
 use reqwest::Client;
+use chrono::Utc;
 use rusty_golf_core::model::Scores;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -115,6 +116,33 @@ struct AdminCleanupRequest {
 }
 
 #[derive(Debug, Serialize)]
+struct AdminTestLockRequest {
+    event_id: i32,
+    token: String,
+    ttl_secs: i64,
+    mode: String,
+    #[serde(skip_serializing_if = "is_false")]
+    force: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct AdminTestUnlockRequest {
+    event_id: i32,
+    token: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AdminTestLockResponse {
+    acquired: bool,
+    is_first: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct AdminTestUnlockResponse {
+    is_last: bool,
+}
+
+#[derive(Debug, Serialize)]
 struct AdminEndDateRequest {
     event_id: i32,
     end_date: Option<String>,
@@ -196,6 +224,110 @@ pub async fn admin_cleanup_events(
         }
     }
     Ok(())
+}
+
+pub fn test_lock_token(test_name: &str) -> String {
+    format!(
+        "{}-{}-{}",
+        test_name,
+        std::process::id(),
+        Utc::now().timestamp_nanos_opt().unwrap_or(0)
+    )
+}
+
+pub struct TestLockStatus {
+    pub acquired: bool,
+    pub is_first: bool,
+}
+
+pub async fn admin_test_lock(
+    miniflare_url: &str,
+    admin_token: &str,
+    event_id: i64,
+    token: &str,
+    mode: &str,
+    force: bool,
+) -> Result<TestLockStatus, Box<dyn Error>> {
+    let client = Client::new();
+    let payload = AdminTestLockRequest {
+        event_id: event_id as i32,
+        token: token.to_string(),
+        ttl_secs: 30,
+        mode: mode.to_string(),
+        force,
+    };
+    let resp = client
+        .post(format!("{miniflare_url}/admin/test_lock"))
+        .header("x-admin-token", admin_token)
+        .json(&payload)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("admin test_lock failed: {}\n{}", status, body).into());
+    }
+    let body: AdminTestLockResponse = resp.json().await?;
+    Ok(TestLockStatus {
+        acquired: body.acquired,
+        is_first: body.is_first,
+    })
+}
+
+pub async fn admin_test_unlock(
+    miniflare_url: &str,
+    admin_token: &str,
+    event_id: i64,
+    token: &str,
+) -> Result<bool, Box<dyn Error>> {
+    let client = Client::new();
+    let payload = AdminTestUnlockRequest {
+        event_id: event_id as i32,
+        token: token.to_string(),
+    };
+    let resp = client
+        .post(format!("{miniflare_url}/admin/test_unlock"))
+        .header("x-admin-token", admin_token)
+        .json(&payload)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("admin test_unlock failed: {}\n{}", status, body).into());
+    }
+    let body: AdminTestUnlockResponse = resp.json().await?;
+    Ok(body.is_last)
+}
+
+pub async fn admin_test_lock_retry(
+    miniflare_url: &str,
+    admin_token: &str,
+    event_id: i64,
+    token: &str,
+    mode: &str,
+) -> Result<TestLockStatus, Box<dyn Error>> {
+    let mut attempts = 0;
+    let max_attempts = 40;
+    loop {
+        let status =
+            admin_test_lock(miniflare_url, admin_token, event_id, token, mode, false).await?;
+        if status.acquired {
+            return Ok(status);
+        }
+        attempts += 1;
+        if attempts >= max_attempts {
+            return Err(format!(
+                "Timed out waiting for {mode} lock on event {event_id}"
+            )
+            .into());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 pub async fn admin_update_end_date(

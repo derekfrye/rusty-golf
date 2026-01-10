@@ -23,7 +23,7 @@ use {
         render_scores_template_pure, render_summary_scores,
         scores_and_last_refresh_to_line_score_tables,
     },
-    serde::Deserialize,
+    serde::{Deserialize, Serialize},
     std::collections::HashMap,
 };
 
@@ -150,6 +150,45 @@ struct AdminEndDateRequest {
 }
 
 #[cfg(target_arch = "wasm32")]
+#[derive(Deserialize)]
+struct AdminTestLockRequest {
+    event_id: i32,
+    token: String,
+    ttl_secs: Option<i64>,
+    mode: Option<String>,
+    #[serde(default)]
+    force: bool,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Serialize)]
+struct AdminTestLockResponse {
+    acquired: bool,
+    is_first: bool,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Deserialize)]
+struct AdminTestUnlockRequest {
+    event_id: AdminEventSelector,
+    token: String,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Serialize)]
+struct AdminTestUnlockResponse {
+    is_last: bool,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum AdminEventSelector {
+    All(String),
+    Id(i32),
+}
+
+#[cfg(target_arch = "wasm32")]
 async fn admin_seed_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
         return Ok(resp);
@@ -198,6 +237,57 @@ async fn admin_end_date_handler(mut req: Request, ctx: RouteContext<()>) -> Resu
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
     Response::ok("updated")
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn admin_test_lock_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
+        return Ok(resp);
+    }
+    let payload: AdminTestLockRequest = req
+        .json()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
+    let ttl_secs = payload.ttl_secs.unwrap_or(30);
+    let mode = match payload.mode.as_deref() {
+        Some("exclusive") => storage::TestLockMode::Exclusive,
+        _ => storage::TestLockMode::Shared,
+    };
+    let (acquired, is_first) = storage
+        .admin_test_lock(payload.event_id, &payload.token, ttl_secs, mode, payload.force)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    Response::from_json(&AdminTestLockResponse { acquired, is_first })
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn admin_test_unlock_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
+        return Ok(resp);
+    }
+    let payload: AdminTestUnlockRequest = req
+        .json()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
+    let is_last = match payload.event_id {
+        AdminEventSelector::Id(event_id) => storage
+            .admin_test_unlock(event_id, &payload.token)
+            .await
+            .map_err(|e| worker::Error::RustError(e.to_string()))?,
+        AdminEventSelector::All(value) => {
+            if value != "all" {
+                return Response::error("event_id must be an integer or \"all\"", 400);
+            }
+            storage
+                .admin_test_unlock_all()
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?;
+            true
+        }
+    };
+    Response::from_json(&AdminTestUnlockResponse { is_last })
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -460,6 +550,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .post_async("/admin/event_end_date", |req, ctx| async move {
             admin_end_date_handler(req, ctx).await
+        })
+        .post_async("/admin/test_lock", |req, ctx| async move {
+            admin_test_lock_handler(req, ctx).await
+        })
+        .post_async("/admin/test_unlock", |req, ctx| async move {
+            admin_test_unlock_handler(req, ctx).await
         })
         .run(req, env)
         .await;

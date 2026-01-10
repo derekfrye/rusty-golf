@@ -6,11 +6,14 @@ use common::serverless::{
     WranglerPaths,
     admin_cleanup_events,
     admin_seed_event,
+    admin_test_lock_retry,
+    admin_test_unlock,
     admin_update_end_date,
     load_espn_cache,
     load_eup_event,
     load_score_struct,
     shared_wrangler_dirs,
+    test_lock_token,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -35,12 +38,18 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
     let admin_token = miniflare_admin_token()?;
     let wrangler_paths = wrangler_paths(&workspace_root);
     let event_id = 401_580_351_i64;
+    let lock_token = test_lock_token("test12");
 
     build_local(&workspace_root, &wrangler_paths)?;
     wait_for_health(&format!("{}/health", miniflare_url)).await?;
     println!("miniflare health check passed");
 
-    admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
+    let lock =
+        admin_test_lock_retry(&miniflare_url, &admin_token, event_id, &lock_token, "exclusive")
+            .await?;
+    if lock.is_first {
+        admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
+    }
 
     let test_result = async {
         // Force last_refresh into the past so cache age checks are meaningful.
@@ -48,7 +57,9 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
         // Seed event, golfers, scores, and ESPN cache into KV/R2.
         let payload = build_admin_seed_request(&workspace_root, event_id, Some(last_refresh))?;
         // Initialize serverless storage for the event under test.
-        admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+        if lock.is_first {
+            admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
+        }
 
         // Pull end_date from the cached ESPN header fixture.
         let end_date = load_end_date_from_fixture(&workspace_root, event_id)?;
@@ -76,8 +87,13 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
     }
     .await;
 
-    if let Err(err) = admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await {
-        eprintln!("admin cleanup failed after test12: {err}");
+    let is_last = admin_test_unlock(&miniflare_url, &admin_token, event_id, &lock_token).await?;
+    if is_last {
+        if let Err(err) =
+            admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await
+        {
+            eprintln!("admin cleanup failed after test12: {err}");
+        }
     }
 
     test_result

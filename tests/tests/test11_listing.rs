@@ -5,10 +5,13 @@ use common::serverless::{
     WranglerPaths,
     admin_cleanup_events,
     admin_seed_event,
+    admin_test_lock_retry,
+    admin_test_unlock,
     load_espn_cache,
     load_eup_event,
     load_score_struct,
     shared_wrangler_dirs,
+    test_lock_token,
 };
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -30,6 +33,7 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
     let miniflare_url = miniflare_base_url()?;
     let admin_token = miniflare_admin_token()?;
     let wrangler_paths = wrangler_paths(&workspace_root);
+    let lock_token = test_lock_token("test11");
 
     // Use event IDs that do not overlap with test10 so nextest can run in parallel.
     let event_ids = vec![401_703_504_i64, 401_580_360_i64];
@@ -39,10 +43,26 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
     let auth_tokens = vec![auth_token.to_string()];
     wait_for_health(&format!("{}/health", miniflare_url)).await?;
 
-    admin_cleanup_events(&miniflare_url, &admin_token, &event_ids, true).await?;
+    let mut first_events = Vec::new();
+    for event_id in &event_ids {
+        let lock = admin_test_lock_retry(
+            &miniflare_url,
+            &admin_token,
+            *event_id,
+            &lock_token,
+            "shared",
+        )
+        .await?;
+        if lock.is_first {
+            first_events.push(*event_id);
+        }
+    }
+    if !first_events.is_empty() {
+        admin_cleanup_events(&miniflare_url, &admin_token, &first_events, true).await?;
+    }
 
     let test_result = async {
-        for event_id in &event_ids {
+        for event_id in &first_events {
             let payload = build_admin_seed_request(
                 &workspace_root,
                 *event_id,
@@ -57,8 +77,20 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
     }
     .await;
 
-    if let Err(err) = admin_cleanup_events(&miniflare_url, &admin_token, &event_ids, true).await {
-        eprintln!("admin cleanup failed after test11: {err}");
+    let mut last_events = Vec::new();
+    for event_id in &event_ids {
+        let is_last =
+            admin_test_unlock(&miniflare_url, &admin_token, *event_id, &lock_token).await?;
+        if is_last {
+            last_events.push(*event_id);
+        }
+    }
+    if !last_events.is_empty() {
+        if let Err(err) = admin_cleanup_events(&miniflare_url, &admin_token, &last_events, true)
+            .await
+        {
+            eprintln!("admin cleanup failed after test11: {err}");
+        }
     }
 
     test_result
