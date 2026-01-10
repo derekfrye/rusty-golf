@@ -7,6 +7,7 @@ use common::serverless::{
     admin_seed_event,
     admin_test_lock_retry,
     admin_test_unlock,
+    event_id_i32,
     load_espn_cache,
     load_eup_event,
     load_score_struct,
@@ -41,7 +42,7 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
 
     let auth_token = "listing-token-123";
     let auth_tokens = vec![auth_token.to_string()];
-    wait_for_health(&format!("{}/health", miniflare_url)).await?;
+    wait_for_health(&format!("{miniflare_url}/health")).await?;
 
     let mut first_events = Vec::new();
     for event_id in &event_ids {
@@ -85,12 +86,11 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
             last_events.push(*event_id);
         }
     }
-    if !last_events.is_empty() {
-        if let Err(err) = admin_cleanup_events(&miniflare_url, &admin_token, &last_events, true)
-            .await
-        {
-            eprintln!("admin cleanup failed after test11: {err}");
-        }
+    if !last_events.is_empty()
+        && let Err(err) =
+            admin_cleanup_events(&miniflare_url, &admin_token, &last_events, true).await
+    {
+        eprintln!("admin cleanup failed after test11: {err}");
     }
 
     test_result
@@ -248,8 +248,9 @@ fn build_admin_seed_request(
     let event = load_eup_event(workspace_root, event_id)?;
     let score_struct = load_score_struct(workspace_root)?;
     let espn_cache = load_espn_cache(workspace_root)?;
+    let event_id = event_id_i32(event_id)?;
     Ok(AdminSeedRequest {
-        event_id: event_id as i32,
+        event_id,
         refresh_from_espn: 1,
         event,
         score_struct,

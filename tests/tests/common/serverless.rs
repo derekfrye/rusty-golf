@@ -121,8 +121,8 @@ struct AdminTestLockRequest {
     token: String,
     ttl_secs: i64,
     mode: String,
-    #[serde(skip_serializing_if = "is_false")]
-    force: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    force: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -194,7 +194,7 @@ pub async fn admin_seed_event(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("admin seed failed: {}\n{}", status, body).into());
+        return Err(format!("admin seed failed: {status}\n{body}").into());
     }
     Ok(())
 }
@@ -207,8 +207,9 @@ pub async fn admin_cleanup_events(
 ) -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     for event_id in event_ids {
+        let event_id_i32 = event_id_i32(*event_id)?;
         let payload = AdminCleanupRequest {
-            event_id: *event_id as i32,
+            event_id: event_id_i32,
             include_auth_tokens,
         };
         let resp = client
@@ -220,7 +221,7 @@ pub async fn admin_cleanup_events(
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(format!("admin cleanup failed: {}\n{}", status, body).into());
+            return Err(format!("admin cleanup failed: {status}\n{body}").into());
         }
     }
     Ok(())
@@ -249,12 +250,13 @@ pub async fn admin_test_lock(
     force: bool,
 ) -> Result<TestLockStatus, Box<dyn Error>> {
     let client = Client::new();
+    let event_id_i32 = event_id_i32(event_id)?;
     let payload = AdminTestLockRequest {
-        event_id: event_id as i32,
+        event_id: event_id_i32,
         token: token.to_string(),
         ttl_secs: 30,
         mode: mode.to_string(),
-        force,
+        force: force.then_some(true),
     };
     let resp = client
         .post(format!("{miniflare_url}/admin/test_lock"))
@@ -265,7 +267,7 @@ pub async fn admin_test_lock(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("admin test_lock failed: {}\n{}", status, body).into());
+        return Err(format!("admin test_lock failed: {status}\n{body}").into());
     }
     let body: AdminTestLockResponse = resp.json().await?;
     Ok(TestLockStatus {
@@ -281,8 +283,9 @@ pub async fn admin_test_unlock(
     token: &str,
 ) -> Result<bool, Box<dyn Error>> {
     let client = Client::new();
+    let event_id_i32 = event_id_i32(event_id)?;
     let payload = AdminTestUnlockRequest {
-        event_id: event_id as i32,
+        event_id: event_id_i32,
         token: token.to_string(),
     };
     let resp = client
@@ -294,7 +297,7 @@ pub async fn admin_test_unlock(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("admin test_unlock failed: {}\n{}", status, body).into());
+        return Err(format!("admin test_unlock failed: {status}\n{body}").into());
     }
     let body: AdminTestUnlockResponse = resp.json().await?;
     Ok(body.is_last)
@@ -326,10 +329,6 @@ pub async fn admin_test_lock_retry(
     }
 }
 
-fn is_false(value: &bool) -> bool {
-    !*value
-}
-
 pub async fn admin_update_end_date(
     miniflare_url: &str,
     admin_token: &str,
@@ -337,8 +336,9 @@ pub async fn admin_update_end_date(
     end_date: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
     let client = Client::new();
+    let event_id_i32 = event_id_i32(event_id)?;
     let payload = AdminEndDateRequest {
-        event_id: event_id as i32,
+        event_id: event_id_i32,
         end_date,
     };
     let resp = client
@@ -350,7 +350,12 @@ pub async fn admin_update_end_date(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("admin end_date update failed: {}\n{}", status, body).into());
+        return Err(format!("admin end_date update failed: {status}\n{body}").into());
     }
     Ok(())
+}
+
+pub fn event_id_i32(event_id: i64) -> Result<i32, Box<dyn Error>> {
+    i32::try_from(event_id)
+        .map_err(|_| format!("event_id out of range: {event_id}").into())
 }

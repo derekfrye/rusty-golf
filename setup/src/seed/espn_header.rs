@@ -37,10 +37,10 @@ pub(crate) fn fetch_end_dates() -> Result<HashMap<i64, String>> {
     for sport in header.sports {
         for league in sport.leagues {
             for event in league.events {
-                if let Some(end_date) = event.end_date {
-                    if let Ok(event_id) = event.id.parse::<i64>() {
-                        end_dates.insert(event_id, end_date);
-                    }
+                if let Some(end_date) = event.end_date
+                    && let Ok(event_id) = event.id.parse::<i64>()
+                {
+                    end_dates.insert(event_id, end_date);
                 }
             }
         }

@@ -9,6 +9,7 @@ use common::serverless::{
     admin_test_lock_retry,
     admin_test_unlock,
     admin_update_end_date,
+    event_id_i32,
     load_espn_cache,
     load_eup_event,
     load_score_struct,
@@ -41,7 +42,7 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
     let lock_token = test_lock_token("test12");
 
     build_local(&workspace_root, &wrangler_paths)?;
-    wait_for_health(&format!("{}/health", miniflare_url)).await?;
+    wait_for_health(&format!("{miniflare_url}/health")).await?;
     println!("miniflare health check passed");
 
     let lock =
@@ -64,7 +65,7 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
         // Pull end_date from the cached ESPN header fixture.
         let end_date = load_end_date_from_fixture(&workspace_root, event_id)?;
         // Ensure end_date is in the past to enable permanent cache behavior.
-        let end_date = normalize_end_date(end_date)?;
+        let end_date = normalize_end_date(&end_date)?;
         // Store the past end_date in KV so cache is treated as permanent.
         admin_update_end_date(&miniflare_url, &admin_token, event_id, Some(end_date)).await?;
 
@@ -88,19 +89,18 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
     .await;
 
     let is_last = admin_test_unlock(&miniflare_url, &admin_token, event_id, &lock_token).await?;
-    if is_last {
-        if let Err(err) =
+    if is_last
+        && let Err(err) =
             admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await
-        {
-            eprintln!("admin cleanup failed after test12: {err}");
-        }
+    {
+        eprintln!("admin cleanup failed after test12: {err}");
     }
 
     test_result
 }
 
-fn normalize_end_date(end_date: String) -> Result<String, Box<dyn Error>> {
-    let parsed = DateTime::parse_from_rfc3339(&end_date)?;
+fn normalize_end_date(end_date: &str) -> Result<String, Box<dyn Error>> {
+    let parsed = DateTime::parse_from_rfc3339(end_date)?;
     let parsed = parsed.with_timezone(&Utc);
     if parsed > Utc::now() {
         Ok((Utc::now() - Duration::days(1)).to_rfc3339())
@@ -144,10 +144,10 @@ fn load_end_date_from_fixture(
     for sport in header.sports {
         for league in sport.leagues {
             for event in league.events {
-                if event.id == event_id_str {
-                    if let Some(end_date) = event.end_date {
-                        return Ok(end_date);
-                    }
+                if event.id == event_id_str
+                    && let Some(end_date) = event.end_date
+                {
+                    return Ok(end_date);
                 }
             }
         }
@@ -307,8 +307,9 @@ fn build_admin_seed_request(
     let event = load_eup_event(workspace_root, event_id)?;
     let score_struct = load_score_struct(workspace_root)?;
     let espn_cache = load_espn_cache(workspace_root)?;
+    let event_id = event_id_i32(event_id)?;
     Ok(AdminSeedRequest {
-        event_id: event_id as i32,
+        event_id,
         refresh_from_espn: 1,
         event,
         score_struct,

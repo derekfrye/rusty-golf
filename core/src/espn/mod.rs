@@ -65,10 +65,11 @@ pub async fn fetch_scores_from_espn(
     use_cache: bool,
     cache_max_age: i64,
 ) -> Result<(ScoresAndLastRefresh, bool), CoreError> {
-    if use_cache && cache_max_age < 0 {
-        if let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await {
-            return Ok((cached, true));
-        }
+    if use_cache
+        && cache_max_age < 0
+        && let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await
+    {
+        return Ok((cached, true));
     }
 
     if use_cache

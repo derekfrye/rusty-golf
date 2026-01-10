@@ -7,6 +7,7 @@ use common::serverless::{
     admin_seed_event,
     admin_test_lock_retry,
     admin_test_unlock,
+    event_id_i32,
     load_espn_cache,
     load_eup_event,
     load_score_struct,
@@ -37,7 +38,7 @@ async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     let lock_token = test_lock_token("test10");
 
     build_local(&workspace_root, &wrangler_paths)?;
-    wait_for_health(&format!("{}/health", miniflare_url)).await?;
+    wait_for_health(&format!("{miniflare_url}/health")).await?;
     println!("miniflare health check passed");
 
     let lock =
@@ -60,12 +61,11 @@ async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     .await;
 
     let is_last = admin_test_unlock(&miniflare_url, &admin_token, event_id, &lock_token).await?;
-    if is_last {
-        if let Err(err) =
+    if is_last
+        && let Err(err) =
             admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await
-        {
-            eprintln!("admin cleanup failed after test10: {err}");
-        }
+    {
+        eprintln!("admin cleanup failed after test10: {err}");
     }
 
     test_result
@@ -294,8 +294,9 @@ fn build_admin_seed_request(
     let event = load_eup_event(workspace_root, event_id)?;
     let score_struct = load_score_struct(workspace_root)?;
     let espn_cache = load_espn_cache(workspace_root)?;
+    let event_id = event_id_i32(event_id)?;
     Ok(AdminSeedRequest {
-        event_id: event_id as i32,
+        event_id,
         refresh_from_espn: 1,
         event,
         score_struct,

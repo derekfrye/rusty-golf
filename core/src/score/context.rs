@@ -19,6 +19,7 @@ pub fn score_data_from_scores(scores: &ScoresAndLastRefresh) -> ScoreData {
     score_data_from_scores_with_cache(scores, cache_hit)
 }
 
+#[must_use]
 pub fn score_data_from_scores_with_cache(
     scores: &ScoresAndLastRefresh,
     cache_hit: bool,

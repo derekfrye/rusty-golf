@@ -56,17 +56,16 @@ pub async fn cache_max_age_for_event(
     storage: &dyn Storage,
     event_id: i32,
 ) -> Result<i64, CoreError> {
-    let event_details = match storage.get_event_details(event_id).await {
-        Ok(details) => details,
-        Err(_) => return Ok(0),
+    let Ok(event_details) = storage.get_event_details(event_id).await else {
+        return Ok(0);
     };
 
-    if let Some(end_date) = event_details.end_date.as_deref() {
-        if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(end_date) {
-            let end_utc = parsed.with_timezone(&Utc);
-            if Utc::now() > end_utc {
-                return Ok(-1);
-            }
+    if let Some(end_date) = event_details.end_date.as_deref()
+        && let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(end_date)
+    {
+        let end_utc = parsed.with_timezone(&Utc);
+        if Utc::now() > end_utc {
+            return Ok(-1);
         }
     }
 
