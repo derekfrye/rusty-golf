@@ -105,6 +105,35 @@ impl ServerlessStorage {
         Ok(())
     }
 
+    pub async fn r2_list_keys_with_prefix(
+        &self,
+        prefix: Option<&str>,
+    ) -> Result<Vec<String>, StorageError> {
+        let mut keys = Vec::new();
+        let mut cursor: Option<String> = None;
+        loop {
+            let mut builder = self.bucket.list();
+            if let Some(prefix_value) = prefix {
+                if !prefix_value.is_empty() {
+                    builder = builder.prefix(prefix_value.to_string());
+                }
+            }
+            if let Some(cursor_value) = cursor {
+                builder = builder.cursor(cursor_value);
+            }
+            let response = builder
+                .execute()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))?;
+            keys.extend(response.objects().into_iter().map(|obj| obj.key()));
+            if !response.truncated() {
+                break;
+            }
+            cursor = response.cursor();
+        }
+        Ok(keys)
+    }
+
     pub async fn kv_list_keys_with_prefix(
         &self,
         prefix: &str,

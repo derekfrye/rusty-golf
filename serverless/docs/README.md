@@ -54,3 +54,11 @@ Example:
 ```
 /listing?auth_token=changeme-token-1
 ```
+
+If `ADMIN_ENABLED=1` and the `x-admin-token` header matches `ADMIN_TOKEN` (from `.dev.vars` in
+Miniflare), `/listing` returns a JSON payload with KV and R2 keys for debugging:
+
+```bash
+curl -H "x-admin-token: $MINIFLARE_ADMIN_TOKEN" \
+  "http://127.0.0.1:8787/listing"
+```

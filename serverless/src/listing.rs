@@ -1,18 +1,68 @@
 #![cfg(target_arch = "wasm32")]
 
 use maud::{Markup, html};
-use worker::{Request, Response, Result, RouteContext};
+use serde::Serialize;
+use worker::{Env, Request, Response, Result, RouteContext};
 
 use crate::storage::EventListing;
 use crate::utils::{parse_query_params, respond_html, storage_from_env};
 
+#[derive(Serialize)]
+struct AdminListingResponse {
+    events: Vec<EventListing>,
+    kv_keys: Vec<String>,
+    r2_keys: Vec<String>,
+}
+
+fn admin_header_valid(req: &Request, env: &Env) -> Result<bool> {
+    let enabled = env
+        .var("ADMIN_ENABLED")
+        .ok()
+        .map(|value| value.to_string() == "1")
+        .unwrap_or(false);
+    if !enabled {
+        return Ok(false);
+    }
+    let expected = match env.var("ADMIN_TOKEN") {
+        Ok(value) => value.to_string(),
+        Err(_) => return Ok(false),
+    };
+    let Some(provided) = req.headers().get("x-admin-token")? else {
+        return Ok(false);
+    };
+    if provided.trim().is_empty() {
+        return Ok(false);
+    }
+    Ok(provided == expected)
+}
+
 pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let storage = storage_from_env(&ctx.env)?;
+    if admin_header_valid(&req, &ctx.env)? {
+        let events = storage
+            .list_event_listings()
+            .await
+            .map_err(|e| worker::Error::RustError(e.to_string()))?;
+        let kv_keys = storage
+            .kv_list_keys_with_prefix("")
+            .await
+            .map_err(|e| worker::Error::RustError(e.to_string()))?;
+        let r2_keys = storage
+            .r2_list_keys_with_prefix(None)
+            .await
+            .map_err(|e| worker::Error::RustError(e.to_string()))?;
+        return Response::from_json(&AdminListingResponse {
+            events,
+            kv_keys,
+            r2_keys,
+        });
+    }
+
     let query = parse_query_params(&req)?;
     let auth_token = match query.get("auth_token") {
         Some(value) if !value.trim().is_empty() => value.trim(),
         _ => return Response::error("auth_token is required", 401),
     };
-    let storage = storage_from_env(&ctx.env)?;
     if !storage
         .auth_token_valid(auth_token)
         .await
