@@ -43,21 +43,33 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
     admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
 
     let test_result = async {
+        // Force last_refresh into the past so cache age checks are meaningful.
         let last_refresh = (Utc::now() - Duration::days(2)).to_rfc3339();
+        // Seed event, golfers, scores, and ESPN cache into KV/R2.
         let payload = build_admin_seed_request(&workspace_root, event_id, Some(last_refresh))?;
+        // Initialize serverless storage for the event under test.
         admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
 
+        // Pull end_date from the cached ESPN header fixture.
         let end_date = load_end_date_from_fixture(&workspace_root, event_id)?;
+        // Ensure end_date is in the past to enable permanent cache behavior.
         let end_date = normalize_end_date(end_date)?;
+        // Store the past end_date in KV so cache is treated as permanent.
         admin_update_end_date(&miniflare_url, &admin_token, event_id, Some(end_date)).await?;
 
+        // First fetch should hit cache because end_date is in the past.
         let cached = fetch_scores_json(event_id, &miniflare_url).await?;
+        // Assert JSON reports a cache hit.
         assert_cache_hit(&cached, true)?;
 
+        // Move end_date into the future to disable permanent caching.
         let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
+        // Persist the future end_date so cache is no longer authoritative.
         admin_update_end_date(&miniflare_url, &admin_token, event_id, Some(tomorrow)).await?;
 
+        // Fetch again and verify it does not come from cache.
         let refreshed = fetch_scores_json(event_id, &miniflare_url).await?;
+        // Assert JSON reports a cache miss.
         assert_cache_hit(&refreshed, false)?;
 
         Ok(())
