@@ -114,6 +114,12 @@ struct AdminCleanupRequest {
     include_auth_tokens: bool,
 }
 
+#[derive(Debug, Serialize)]
+struct AdminEndDateRequest {
+    event_id: i32,
+    end_date: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 struct EspnFixture {
     score_struct: Vec<Scores>,
@@ -188,6 +194,31 @@ pub async fn admin_cleanup_events(
             let body = resp.text().await.unwrap_or_default();
             return Err(format!("admin cleanup failed: {}\n{}", status, body).into());
         }
+    }
+    Ok(())
+}
+
+pub async fn admin_update_end_date(
+    miniflare_url: &str,
+    admin_token: &str,
+    event_id: i64,
+    end_date: Option<String>,
+) -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
+    let payload = AdminEndDateRequest {
+        event_id: event_id as i32,
+        end_date,
+    };
+    let resp = client
+        .post(format!("{miniflare_url}/admin/event_end_date"))
+        .header("x-admin-token", admin_token)
+        .json(&payload)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("admin end_date update failed: {}\n{}", status, body).into());
     }
     Ok(())
 }

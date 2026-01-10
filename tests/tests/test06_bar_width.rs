@@ -266,6 +266,7 @@ async fn test_render_template(
             score_struct: vec![],
             last_refresh: "1 minute".to_string(),
             last_refresh_source: rusty_golf_actix::model::RefreshSource::Db,
+            cache_hit: true,
         },
         true,
         config_and_pool,

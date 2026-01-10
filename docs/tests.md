@@ -3,6 +3,7 @@
 This document describes tests in the project.
 
 For information about test coverage gaps and missing tests, see [Test Coverage TODO](tests_todo.md).
+For the serverless integration test walkthrough, see [tests/docs/test10.md](../tests/docs/test10.md).
 
 ## Test Commands
 

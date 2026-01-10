@@ -143,6 +143,13 @@ struct AdminCleanupRequest {
 }
 
 #[cfg(target_arch = "wasm32")]
+#[derive(Deserialize)]
+struct AdminEndDateRequest {
+    event_id: i32,
+    end_date: Option<String>,
+}
+
+#[cfg(target_arch = "wasm32")]
 async fn admin_seed_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
         return Ok(resp);
@@ -174,6 +181,23 @@ async fn admin_cleanup_handler(mut req: Request, ctx: RouteContext<()>) -> Resul
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
     Response::ok("cleaned")
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn admin_end_date_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
+        return Ok(resp);
+    }
+    let payload: AdminEndDateRequest = req
+        .json()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
+    storage
+        .admin_update_event_end_date(payload.event_id, payload.end_date)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    Response::ok("updated")
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -433,6 +457,9 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .post_async("/admin/cleanup", |req, ctx| async move {
             admin_cleanup_handler(req, ctx).await
+        })
+        .post_async("/admin/event_end_date", |req, ctx| async move {
+            admin_end_date_handler(req, ctx).await
         })
         .run(req, env)
         .await;

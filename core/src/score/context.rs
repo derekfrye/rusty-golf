@@ -15,6 +15,14 @@ pub struct ScoreContext {
 
 #[must_use]
 pub fn score_data_from_scores(scores: &ScoresAndLastRefresh) -> ScoreData {
+    let cache_hit = matches!(scores.last_refresh_source, RefreshSource::Db);
+    score_data_from_scores_with_cache(scores, cache_hit)
+}
+
+pub fn score_data_from_scores_with_cache(
+    scores: &ScoresAndLastRefresh,
+    cache_hit: bool,
+) -> ScoreData {
     let mut totals: HashMap<String, i32> = HashMap::new();
     for golfer in &scores.score_struct {
         *totals.entry(golfer.bettor_name.clone()).or_insert(0) +=
@@ -55,6 +63,7 @@ pub fn score_data_from_scores(scores: &ScoresAndLastRefresh) -> ScoreData {
         score_struct: scores.score_struct.clone(),
         last_refresh: format_time_ago_for_score_view(elapsed),
         last_refresh_source: scores.last_refresh_source.clone(),
+        cache_hit,
     }
 }
 
@@ -71,7 +80,7 @@ pub async fn load_scores_data(
     cache_max_age: i64,
 ) -> Result<ScoreData, CoreError> {
     let active_golfers = storage.get_golfers_for_event(event_id).await?;
-    let scores_and_refresh = fetch_scores_from_espn(
+    let (scores_and_refresh, cache_hit) = fetch_scores_from_espn(
         espn_api,
         storage,
         active_golfers,
@@ -81,7 +90,10 @@ pub async fn load_scores_data(
         cache_max_age,
     )
     .await?;
-    Ok(score_data_from_scores(&scores_and_refresh))
+    Ok(score_data_from_scores_with_cache(
+        &scores_and_refresh,
+        cache_hit,
+    ))
 }
 
 /// Load full score context, including step factors.
@@ -97,7 +109,7 @@ pub async fn load_score_context(
     cache_max_age: i64,
 ) -> Result<ScoreContext, CoreError> {
     let active_golfers = storage.get_golfers_for_event(event_id).await?;
-    let scores_and_refresh = fetch_scores_from_espn(
+    let (scores_and_refresh, cache_hit) = fetch_scores_from_espn(
         espn_api,
         storage,
         active_golfers,
@@ -107,7 +119,7 @@ pub async fn load_score_context(
         cache_max_age,
     )
     .await?;
-    let data = score_data_from_scores(&scores_and_refresh);
+    let data = score_data_from_scores_with_cache(&scores_and_refresh, cache_hit);
     let event_details = storage.get_event_details(event_id).await?;
     let player_step_factors = storage.get_player_step_factors(event_id).await?;
     Ok(ScoreContext {

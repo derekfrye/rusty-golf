@@ -3,7 +3,7 @@ use serde_json::Value;
 // use rusty_golf_actix::controller::score;
 use rusty_golf_actix::controller::score::get_data_for_scores_page;
 use rusty_golf_actix::model::format_time_ago_for_score_view;
-use rusty_golf_actix::model::{Bettors, ScoreData, ScoresAndLastRefresh};
+use rusty_golf_actix::model::{Bettors, RefreshSource, ScoreData, ScoresAndLastRefresh};
 use rusty_golf_actix::storage::{R2Storage, SqlStorage};
 use rusty_golf_actix::view::score::{
     render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
@@ -276,5 +276,6 @@ fn build_score_data_from_scores(scores: &ScoresAndLastRefresh) -> ScoreData {
         score_struct: scores.score_struct.clone(),
         last_refresh: format_time_ago_for_score_view(x),
         last_refresh_source: scores.last_refresh_source.clone(),
+        cache_hit: matches!(scores.last_refresh_source, RefreshSource::Db),
     }
 }

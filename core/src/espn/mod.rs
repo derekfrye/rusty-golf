@@ -64,10 +64,10 @@ pub async fn fetch_scores_from_espn(
     event_id: i32,
     use_cache: bool,
     cache_max_age: i64,
-) -> Result<ScoresAndLastRefresh, CoreError> {
+) -> Result<(ScoresAndLastRefresh, bool), CoreError> {
     if use_cache && cache_max_age < 0 {
         if let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await {
-            return Ok(cached);
+            return Ok((cached, true));
         }
     }
 
@@ -75,14 +75,14 @@ pub async fn fetch_scores_from_espn(
         && let Some(cached) =
             crate::score::context::load_cached_scores(storage, event_id, cache_max_age).await?
     {
-        return Ok(cached);
+        return Ok((cached, true));
     }
 
     let fetched_scores = match go_get_espn_data(api, &scores, year, event_id).await {
         Ok(fetched) => fetched,
         Err(err) => {
             if let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await {
-                return Ok(cached);
+                return Ok((cached, false));
             }
             if let Some(fallback) = api.fallback_scores(event_id).await? {
                 fallback
@@ -97,7 +97,9 @@ pub async fn fetch_scores_from_espn(
         Err(_) => None,
     };
     let merged_scores = merge_scores_for_event(&scores, fetched_scores, existing_scores);
-    crate::score::context::store_scores_and_reload(storage, event_id, &merged_scores).await
+    let stored =
+        crate::score::context::store_scores_and_reload(storage, event_id, &merged_scores).await?;
+    Ok((stored, false))
 }
 
 fn merge_scores_for_event(

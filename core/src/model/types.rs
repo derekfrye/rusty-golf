@@ -54,6 +54,7 @@ pub struct ScoreData {
     pub score_struct: Vec<Scores>,
     pub last_refresh: String,
     pub last_refresh_source: RefreshSource,
+    pub cache_hit: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

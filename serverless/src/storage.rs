@@ -340,6 +340,24 @@ impl ServerlessStorage {
         let _ = self.bucket.delete(cache_key).await;
         Ok(())
     }
+
+    pub async fn admin_update_event_end_date(
+        &self,
+        event_id: i32,
+        end_date: Option<String>,
+    ) -> Result<(), StorageError> {
+        let details_key = Self::kv_event_details_key(event_id);
+        let mut details: EventDetailsDoc = self.kv_get_json(&details_key).await?;
+        details.end_date = end_date;
+        self.kv_put_json(&details_key, &details).await?;
+
+        let seeded_at = SeededAtDoc {
+            seeded_at: format_rfc3339(Utc::now().naive_utc()),
+        };
+        let seeded_key = Self::kv_seeded_at_key(event_id, "details");
+        let _ = self.kv_put_json(&seeded_key, &seeded_at).await;
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize)]
