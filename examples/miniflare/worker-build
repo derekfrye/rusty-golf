@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# work around issue from https://github.com/drager/wasm-pack/issues/1420
+
+real_bin="/root/.cargo/bin/worker-build"
+if [[ -z "${real_bin}" ]]; then
+  echo "WORKER_BUILD_BIN is not set; cannot locate worker-build." >&2
+  exit 1
+fi
+
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+lock_dir="${WRANGLER_BUILD_LOCK_DIR:-${runtime_dir}}"
+lock_file="${lock_dir}/worker-build.lock"
+
+mkdir -p "${lock_dir}"
+exec flock "${lock_file}" "${real_bin}" "$@"

@@ -1,27 +1,36 @@
 [Unit]
 Description=Rusty Golf local Miniflare (wrangler dev --local)
+Wants=network-online.target
+After=network-online.target
 
 [Container]
-Image=localhost/rusty-golf-miniflare:latest
-ContainerName=rusty-golf-miniflare
+Image=localhost/djf/m-golf-srvless:latest
+ContainerName=miniflare
 WorkingDir=/work
 
 PublishPort=8787:8787
 
 # Adjust these paths if your repo is elsewhere.
-Volume=%h/src/rusty-golf:/work:Z
-Volume=%h/.local/share/rusty-golf-miniflare:/wrangler:Z
+Volume=miniflare_working:/work
+Volume=miniflare_wrangler:/wrangler
 
 Environment=WRANGLER_LOG_DIR=/wrangler/logs
 Environment=XDG_CONFIG_HOME=/wrangler/config
 Environment=WRANGLER_BUILD_LOCK_DIR=/wrangler/locks
 Environment=WRANGLER_ENV=dev
-Environment=RUSTFLAGS=--cfg getrandom_backend="wasm_js"
-Environment=WORKER_BUILD_BIN=/root/.cargo/bin/worker-build
+Environment=RUSTFLAGS=--cfg=getrandom_backend=\"wasm_js\"
+Environment=WORKER_BUILD_BIN=/work/bin/worker-build
+Environment=PATH=/work/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# openssl rand -base64 24 | tr -dc '[:print:]' | tr -d '[:space:]' | head -c 16 > secret.txt
+# podman secret create miniflare_token secret.txt
+Secret=miniflare_token,type=mount,target=/run/secrets/miniflare_token,mode=0400
 
-Command=wrangler dev --local --port 8787 --ip 0.0.0.0 \
-  --config /work/serverless/wrangler.toml --env dev
+Exec=sh -c 'token="$(cat /run/secrets/miniflare_token)"; echo "ADMIN_ENABLED=1" > /work/serverless/.dev.vars; echo "ADMIN_TOKEN=$token" >> /work/serverless/.dev.vars; exec wrangler dev --local --port 8787 --ip 0.0.0.0 --config /work/serverless/wrangler.toml --env dev --persist-to /work/.wrangler/state'
 
-[Service]
-Restart=always
-RestartSec=2
+# [Service]
+# Restart=always
+# RestartSec=2
+
+
+# [Install]
+# WantedBy=default.target
