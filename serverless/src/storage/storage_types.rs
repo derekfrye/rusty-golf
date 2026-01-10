@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use rusty_golf_core::model::RefreshSource;
 use rusty_golf_core::model::Scores;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct EventListing {
     pub event_id: i32,
     pub event_name: String,
