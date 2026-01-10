@@ -1,0 +1,23 @@
+[package]
+name = "rusty-golf-tests"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "4"
+anyhow = "1"
+chrono = "0"
+dotenvy = "0"
+indicatif = "0"
+reqwest = { version = "0", default-features = false, features = ["json", "rustls-tls"] }
+rusty-golf-core = { path = "../core" }
+scraper = "0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sql-middleware = "0.4.0"
+tokio = { version = "1", features = ["full"] }
+rusty-golf-actix = { path = "../actix" }
+rusty-golf-setup = { path = "../setup" }
+
+[lints.rust]
+unsafe_code = "forbid"

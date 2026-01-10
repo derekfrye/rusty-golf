@@ -2,6 +2,7 @@
 Cargo.lock
 .env
 target
+**/target/
 /examples/db_password.txt
 test.db
 sqlx-middleware/
@@ -9,15 +10,11 @@ xxx
 xxx-shm
 xxx-wal
 sql-middleware
-tests/test6/debug/actual_output.html
-tests/test6/debug/output.html
-tests/test7/debug_401580355/actual_output.html
-tests/test7/debug_401703504/actual_output.html
-rusty-golf-core/target
-serverless/target
+tests/tests/**/debug*/
+tests/tests/**/debug*/**
 wrangler-*.log
 *.wasm
-rusty-golf-serverless/.wrangler/state/*
+serverless/.wrangler/state/*
 .wrangler
 .wrangler-config
 node_modules/

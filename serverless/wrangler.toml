@@ -1,0 +1,60 @@
+name = "rusty-golf"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-10-01"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1
+
+[build]
+command = "worker-build ./serverless"
+
+[assets]
+directory = "../static"
+binding = "ASSETS"
+
+[env.dev]
+name = "rusty-golf-dev"
+account_id = "0d647b6009886e56766d5113275dbd66"
+workers_dev = true
+routes = ["golfdev.dfrye.io/*"]
+
+kv_namespaces = [
+  { binding = "djf_rusty_golf_kv", id = "8a332be8552b460b96f4ae772e2dcbe6", preview_id = "8a332be8552b460b96f4ae772e2dcbe6" }
+]
+
+r2_buckets = [
+  { binding = "SCORES_R2", bucket_name = "djf-rusty-golf-dev", preview_bucket_name = "djf-rusty-golf-dev-preview" }
+]
+
+[env.dev.vars]
+KV_BINDING = "djf_rusty_golf_kv"
+R2_BINDING = "SCORES_R2"
+
+[env.prod]
+account_id = "0d647b6009886e56766d5113275dbd66"
+routes = ["golf.dfrye.io/*"]
+workers_dev = false
+
+kv_namespaces = [
+  { binding = "djf_rusty_golf_kv", id = "a58260e26eca4000906a8fc491bc1d5d", preview_id = "00000000000000000000000000000002" }
+]
+
+r2_buckets = [
+  { binding = "SCORES_R2", bucket_name = "djf-rusty-golf", preview_bucket_name = "djf-rusty-golf-preview" }
+]
+
+[env.prod.vars]
+KV_BINDING = "djf_rusty_golf_kv"
+R2_BINDING = "SCORES_R2"

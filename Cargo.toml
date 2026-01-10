@@ -1,9 +1,9 @@
 [workspace]
 members = [
-    "rusty-golf-actix",
-    "rusty-golf-core",
-    "rusty-golf-serverless", "rusty-golf-setup",
-    "rusty-golf-tests",
+    "actix",
+    "core",
+    "serverless", "setup",
+    "tests",
 ]
 resolver = "3"
 

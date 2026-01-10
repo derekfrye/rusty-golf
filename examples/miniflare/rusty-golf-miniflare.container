@@ -20,7 +20,7 @@ Environment=RUSTFLAGS=--cfg getrandom_backend="wasm_js"
 Environment=WORKER_BUILD_BIN=/root/.cargo/bin/worker-build
 
 Command=wrangler dev --local --port 8787 --ip 0.0.0.0 \
-  --config /work/rusty-golf-serverless/wrangler.toml --env dev
+  --config /work/serverless/wrangler.toml --env dev
 
 [Service]
 Restart=always
