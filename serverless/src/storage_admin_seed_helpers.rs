@@ -5,7 +5,9 @@ use rusty_golf_core::storage::StorageError;
 use std::collections::HashMap;
 
 use crate::storage_helpers::parse_rfc3339;
-use crate::storage_types::{AdminEupDataFill, AdminSeedRequest, GolferAssignment, PlayerFactorEntry};
+use crate::storage_types::{
+    AdminEupDataFill, AdminSeedRequest, GolferAssignment, PlayerFactorEntry,
+};
 
 pub fn validate_seed_request(
     request: &AdminSeedRequest,
@@ -40,14 +42,12 @@ pub fn build_golfers_out(
         let count = bettor_counts.entry(entry.bettor.as_str()).or_insert(0);
         *count += 1;
 
-        let golfer_name = golfers_by_id
-            .get(&entry.golfer_espn_id)
-            .ok_or_else(|| {
-                StorageError::new(format!(
-                    "missing golfer_espn_id {} for event {}",
-                    entry.golfer_espn_id, event_id
-                ))
-            })?;
+        let golfer_name = golfers_by_id.get(&entry.golfer_espn_id).ok_or_else(|| {
+            StorageError::new(format!(
+                "missing golfer_espn_id {} for event {}",
+                entry.golfer_espn_id, event_id
+            ))
+        })?;
 
         golfers_out.push(GolferAssignment {
             eup_id,

@@ -1,24 +1,14 @@
 mod common;
 
 use common::serverless::{
-    AdminSeedRequest,
-    WranglerPaths,
-    admin_cleanup_events,
-    admin_seed_event,
-    admin_test_lock_retry,
-    admin_test_unlock,
-    event_id_i32,
-    load_espn_cache,
-    load_eup_event,
-    load_score_struct,
-    shared_wrangler_dirs,
-    test_lock_token,
+    AdminSeedRequest, WranglerPaths, admin_cleanup_events, admin_seed_event, admin_test_lock_retry,
+    admin_test_unlock, event_id_i32, load_espn_cache, load_eup_event, load_score_struct,
+    shared_wrangler_dirs, test_lock_token,
 };
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
-
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
@@ -64,11 +54,8 @@ async fn test11_listing_endpoint() -> Result<(), Box<dyn Error>> {
 
     let test_result = async {
         for event_id in &first_events {
-            let payload = build_admin_seed_request(
-                &workspace_root,
-                *event_id,
-                Some(auth_tokens.clone()),
-            )?;
+            let payload =
+                build_admin_seed_request(&workspace_root, *event_id, Some(auth_tokens.clone()))?;
             admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
         }
 
@@ -189,8 +176,7 @@ async fn assert_listing_response(
     auth_token: &str,
     miniflare_url: &str,
 ) -> Result<(), Box<dyn Error>> {
-    let resp =
-        reqwest::get(format!("{miniflare_url}/listing?auth_token={auth_token}")).await?;
+    let resp = reqwest::get(format!("{miniflare_url}/listing?auth_token={auth_token}")).await?;
     assert!(
         resp.status().is_success(),
         "Unexpected status: {}",
@@ -210,18 +196,13 @@ async fn assert_listing_response(
         body.contains("401580360"),
         "Listing missing event 401580360"
     );
-    assert!(
-        body.contains("The Open"),
-        "Listing missing The Open"
-    );
+    assert!(body.contains("The Open"), "Listing missing The Open");
     Ok(())
 }
 
 fn init_env() {
     let _ = dotenvy::dotenv();
-    if std::env::var("MINIFLARE_URL").is_err()
-        || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err()
-    {
+    if std::env::var("MINIFLARE_URL").is_err() || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err() {
         let _ = dotenvy::from_filename("../.env");
     }
 }

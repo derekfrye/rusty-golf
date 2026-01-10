@@ -1,5 +1,5 @@
-use reqwest::Client;
 use chrono::Utc;
+use reqwest::Client;
 use rusty_golf_core::model::Scores;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -320,10 +320,7 @@ pub async fn admin_test_lock_retry(
         }
         attempts += 1;
         if attempts >= max_attempts {
-            return Err(format!(
-                "Timed out waiting for {mode} lock on event {event_id}"
-            )
-            .into());
+            return Err(format!("Timed out waiting for {mode} lock on event {event_id}").into());
         }
         tokio::time::sleep(std::time::Duration::from_millis(250)).await;
     }
@@ -356,6 +353,5 @@ pub async fn admin_update_end_date(
 }
 
 pub fn event_id_i32(event_id: i64) -> Result<i32, Box<dyn Error>> {
-    i32::try_from(event_id)
-        .map_err(|_| format!("event_id out of range: {event_id}").into())
+    i32::try_from(event_id).map_err(|_| format!("event_id out of range: {event_id}").into())
 }

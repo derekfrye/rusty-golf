@@ -1,8 +1,8 @@
 use maud::{Markup, html};
 
+use crate::HTMX_PATH;
 use crate::error::CoreError;
 use crate::storage::Storage;
-use crate::HTMX_PATH;
 
 pub const DEFAULT_INDEX_TITLE: &str = "Scoreboard";
 
@@ -22,10 +22,7 @@ pub async fn try_resolve_index_title(
     Ok(event_details.event_name)
 }
 
-pub async fn resolve_index_title_or_default(
-    storage: &dyn Storage,
-    event_str: &str,
-) -> String {
+pub async fn resolve_index_title_or_default(storage: &dyn Storage, event_str: &str) -> String {
     match try_resolve_index_title(storage, event_str).await {
         Ok(title) => title,
         Err(_) => DEFAULT_INDEX_TITLE.to_string(),

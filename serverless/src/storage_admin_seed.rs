@@ -9,9 +9,7 @@ use crate::storage_admin_seed_helpers::{
     build_golfers_out, build_player_factors, resolve_last_refresh_ts, validate_seed_request,
 };
 use crate::storage_helpers::format_rfc3339;
-use crate::storage_types::{
-    AdminSeedRequest, AuthTokensDoc, LastRefreshDoc, SeededAtDoc,
-};
+use crate::storage_types::{AdminSeedRequest, AuthTokensDoc, LastRefreshDoc, SeededAtDoc};
 
 impl ServerlessStorage {
     pub async fn admin_seed_event(&self, request: AdminSeedRequest) -> Result<(), StorageError> {

@@ -58,7 +58,8 @@ async fn test1_scores_endpoint() -> Result<(), Box<dyn std::error::Error>> {
         "Unexpected number of bettors returned"
     );
 
-    let reference_result: Value = serde_json::from_str(include_str!("test01_expected_output.json"))?;
+    let reference_result: Value =
+        serde_json::from_str(include_str!("test01_expected_output.json"))?;
     let reference_array = reference_result
         .get("bettor_struct")
         .and_then(|v| v.as_array())

@@ -1,5 +1,5 @@
-use crate::seed::eup::load_events;
 use crate::seed::espn_header::fetch_end_dates;
+use crate::seed::eup::load_events;
 use crate::seed::files::{write_auth_tokens, write_event_files};
 use crate::seed::wrangler::{load_kv_namespace_id, seed_event_kv};
 use anyhow::{Context, Result, bail};
@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
-mod eup;
 mod espn_header;
+mod eup;
 mod files;
 mod wrangler;
 

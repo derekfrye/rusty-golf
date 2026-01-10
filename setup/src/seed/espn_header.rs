@@ -27,11 +27,9 @@ struct HeaderEvent {
 }
 
 pub(crate) fn fetch_end_dates() -> Result<HashMap<i64, String>> {
-    let response = reqwest::blocking::get(SCOREBOARD_HEADER_URL)
-        .context("fetch scoreboard header")?;
-    let header: ScoreboardHeader = response
-        .json()
-        .context("parse scoreboard header")?;
+    let response =
+        reqwest::blocking::get(SCOREBOARD_HEADER_URL).context("fetch scoreboard header")?;
+    let header: ScoreboardHeader = response.json().context("parse scoreboard header")?;
 
     let mut end_dates = HashMap::new();
     for sport in header.sports {

@@ -1,7 +1,7 @@
 use rusty_golf_actix::args;
 use rusty_golf_actix::controller::{db_prefill, score::scores};
-use rusty_golf_actix::view::index::{DEFAULT_INDEX_TITLE, try_resolve_index_title};
 use rusty_golf_actix::storage::SqlStorage;
+use rusty_golf_actix::view::index::{DEFAULT_INDEX_TITLE, try_resolve_index_title};
 use sql_middleware::middleware::{
     ConfigAndPool, DatabaseType, PgConfig, PostgresOptions, SqliteOptions,
 };
@@ -104,7 +104,8 @@ async fn run_startup_tasks(
     db_type: DatabaseType,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if args.db_startup_script.is_some() {
-        rusty_golf_actix::model::execute_batch_sql(config_and_pool, &args.combined_sql_script).await?;
+        rusty_golf_actix::model::execute_batch_sql(config_and_pool, &args.combined_sql_script)
+            .await?;
     }
 
     if let Some(json_data) = &args.db_populate_json {

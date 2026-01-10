@@ -1,7 +1,7 @@
 use aws_sign_v4::AwsSign;
 use chrono::Utc;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use reqwest::Url;
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use rusty_golf_core::storage::StorageError;
 use sha256::digest as sha256_digest;
 

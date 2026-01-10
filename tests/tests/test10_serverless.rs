@@ -1,18 +1,9 @@
 mod common;
 
 use common::serverless::{
-    AdminSeedRequest,
-    WranglerPaths,
-    admin_cleanup_events,
-    admin_seed_event,
-    admin_test_lock_retry,
-    admin_test_unlock,
-    event_id_i32,
-    load_espn_cache,
-    load_eup_event,
-    load_score_struct,
-    shared_wrangler_dirs,
-    test_lock_token,
+    AdminSeedRequest, WranglerPaths, admin_cleanup_events, admin_seed_event, admin_test_lock_retry,
+    admin_test_unlock, event_id_i32, load_espn_cache, load_eup_event, load_score_struct,
+    shared_wrangler_dirs, test_lock_token,
 };
 use serde_json::Value;
 use std::error::Error;
@@ -41,9 +32,14 @@ async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     wait_for_health(&format!("{miniflare_url}/health")).await?;
     println!("miniflare health check passed");
 
-    let lock =
-        admin_test_lock_retry(&miniflare_url, &admin_token, event_id, &lock_token, "shared")
-            .await?;
+    let lock = admin_test_lock_retry(
+        &miniflare_url,
+        &admin_token,
+        event_id,
+        &lock_token,
+        "shared",
+    )
+    .await?;
     if lock.is_first {
         admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
     }
@@ -157,7 +153,6 @@ fn build_local(
     Ok(())
 }
 
-
 async fn wait_for_health(url: &str) -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(2))
@@ -171,10 +166,7 @@ async fn wait_for_health(url: &str) -> Result<(), Box<dyn Error>> {
     Err(format!("Timed out waiting for {url}").into())
 }
 
-async fn assert_scores_response(
-    event_id: i64,
-    miniflare_url: &str,
-) -> Result<(), Box<dyn Error>> {
+async fn assert_scores_response(event_id: i64, miniflare_url: &str) -> Result<(), Box<dyn Error>> {
     let resp = reqwest::get(format!(
         "{miniflare_url}/scores?event={event_id}&yr=2024&cache=1&json=1"
     ))
@@ -201,7 +193,8 @@ async fn assert_scores_response(
         "Unexpected number of bettors returned"
     );
 
-    let reference_result: Value = serde_json::from_str(include_str!("test01_expected_output.json"))?;
+    let reference_result: Value =
+        serde_json::from_str(include_str!("test01_expected_output.json"))?;
     let reference_array = reference_result
         .get("bettor_struct")
         .and_then(|v| v.as_array())
@@ -265,9 +258,7 @@ async fn assert_scores_response(
 
 fn init_env() {
     let _ = dotenvy::dotenv();
-    if std::env::var("MINIFLARE_URL").is_err()
-        || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err()
-    {
+    if std::env::var("MINIFLARE_URL").is_err() || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err() {
         let _ = dotenvy::from_filename("../.env");
     }
 }

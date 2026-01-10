@@ -7,17 +7,14 @@ use rusty_golf_core::score::{
     load_score_context, parse_score_request,
 };
 use rusty_golf_core::view::score::{
-    RefreshData, render_drop_down_bar_pure, render_line_score_tables,
-    render_scores_template_pure, render_summary_scores,
-    scores_and_last_refresh_to_line_score_tables,
+    RefreshData, render_drop_down_bar_pure, render_line_score_tables, render_scores_template_pure,
+    render_summary_scores, scores_and_last_refresh_to_line_score_tables,
 };
 
 use crate::espn_client::ServerlessEspnClient;
 use crate::utils::{parse_query_params, respond_html, storage_from_env};
 
-fn parse_score_request_from_req(
-    req: &Request,
-) -> Result<rusty_golf_core::score::ScoreRequest> {
+fn parse_score_request_from_req(req: &Request) -> Result<rusty_golf_core::score::ScoreRequest> {
     let query = parse_query_params(req)?;
     parse_score_request(&query).map_err(|e| worker::Error::RustError(e.to_string()))
 }

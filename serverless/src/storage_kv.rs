@@ -2,10 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use rusty_golf_core::storage::StorageError;
+use crate::storage::ServerlessStorage;
 use crate::storage_helpers::parse_event_id;
 use crate::storage_types::{AuthTokensDoc, EventDetailsDoc, EventListing};
-use crate::storage::ServerlessStorage;
+use rusty_golf_core::storage::StorageError;
 
 impl ServerlessStorage {
     pub fn scores_key(event_id: i32) -> String {
@@ -105,7 +105,10 @@ impl ServerlessStorage {
         Ok(())
     }
 
-    pub async fn kv_list_keys_with_prefix(&self, prefix: &str) -> Result<Vec<String>, StorageError> {
+    pub async fn kv_list_keys_with_prefix(
+        &self,
+        prefix: &str,
+    ) -> Result<Vec<String>, StorageError> {
         let mut keys = Vec::new();
         let mut cursor: Option<String> = None;
         loop {

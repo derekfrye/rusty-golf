@@ -1,6 +1,6 @@
 #![cfg(target_arch = "wasm32")]
 
-use maud::{html, Markup};
+use maud::{Markup, html};
 use worker::{Request, Response, Result, RouteContext};
 
 use crate::storage::EventListing;

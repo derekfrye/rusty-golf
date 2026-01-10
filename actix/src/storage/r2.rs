@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::model::{RefreshSource, Scores, ScoresAndLastRefresh, Statistic};
 use super::r2_types::R2EventDetails;
+use crate::model::{RefreshSource, Scores, ScoresAndLastRefresh, Statistic};
 
 pub use super::r2_config::R2StorageConfig;
 pub use super::r2_signing::{MissingSigner, S3Signer, SigV4Signer};
@@ -104,9 +104,7 @@ impl R2Storage {
         let body = serde_json::to_vec(value).map_err(|e| StorageError::new(e.to_string()))?;
         self.put_object(key, body).await
     }
-
 }
-
 
 #[async_trait::async_trait]
 impl Storage for R2Storage {

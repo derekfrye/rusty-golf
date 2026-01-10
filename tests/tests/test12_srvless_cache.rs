@@ -2,19 +2,9 @@ mod common;
 
 use chrono::{DateTime, Duration, Utc};
 use common::serverless::{
-    AdminSeedRequest,
-    WranglerPaths,
-    admin_cleanup_events,
-    admin_seed_event,
-    admin_test_lock_retry,
-    admin_test_unlock,
-    admin_update_end_date,
-    event_id_i32,
-    load_espn_cache,
-    load_eup_event,
-    load_score_struct,
-    shared_wrangler_dirs,
-    test_lock_token,
+    AdminSeedRequest, WranglerPaths, admin_cleanup_events, admin_seed_event, admin_test_lock_retry,
+    admin_test_unlock, admin_update_end_date, event_id_i32, load_espn_cache, load_eup_event,
+    load_score_struct, shared_wrangler_dirs, test_lock_token,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -45,9 +35,14 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
     wait_for_health(&format!("{miniflare_url}/health")).await?;
     println!("miniflare health check passed");
 
-    let lock =
-        admin_test_lock_retry(&miniflare_url, &admin_token, event_id, &lock_token, "exclusive")
-            .await?;
+    let lock = admin_test_lock_retry(
+        &miniflare_url,
+        &admin_token,
+        event_id,
+        &lock_token,
+        "exclusive",
+    )
+    .await?;
     if lock.is_first {
         admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
     }
@@ -278,9 +273,7 @@ async fn wait_for_health(url: &str) -> Result<(), Box<dyn Error>> {
 
 fn init_env() {
     let _ = dotenvy::dotenv();
-    if std::env::var("MINIFLARE_URL").is_err()
-        || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err()
-    {
+    if std::env::var("MINIFLARE_URL").is_err() || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err() {
         let _ = dotenvy::from_filename("../.env");
     }
 }

@@ -1,7 +1,7 @@
 use rusty_golf_core::storage::StorageError;
 
-use crate::storage::r2_signing::SigV4Signer;
 use crate::storage::r2::R2Storage;
+use crate::storage::r2_signing::SigV4Signer;
 
 #[derive(Clone, Debug)]
 pub struct R2StorageConfig {

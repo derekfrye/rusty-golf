@@ -94,7 +94,9 @@ impl ServerlessStorage {
     }
 
     pub async fn admin_test_unlock_all(&self) -> Result<(), StorageError> {
-        let keys = self.kv_list_keys_with_prefix(Self::kv_test_lock_prefix()).await?;
+        let keys = self
+            .kv_list_keys_with_prefix(Self::kv_test_lock_prefix())
+            .await?;
         for key in keys {
             if key.ends_with(":test_lock") {
                 let _ = self.kv.delete(&key).await;

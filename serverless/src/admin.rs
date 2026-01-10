@@ -19,9 +19,7 @@ fn admin_token(env: &Env) -> Result<String> {
         .map_err(|e| worker::Error::RustError(format!("Missing ADMIN_TOKEN env var: {e}")))?;
     let value = value.to_string();
     if value.trim().is_empty() {
-        Err(worker::Error::RustError(
-            "ADMIN_TOKEN is empty".to_string(),
-        ))
+        Err(worker::Error::RustError("ADMIN_TOKEN is empty".to_string()))
     } else {
         Ok(value)
     }
@@ -161,13 +159,22 @@ pub async fn admin_test_lock_handler(mut req: Request, ctx: RouteContext<()>) ->
         _ => TestLockMode::Shared,
     };
     let (acquired, is_first) = storage
-        .admin_test_lock(payload.event_id, &payload.token, ttl_secs, mode, payload.force)
+        .admin_test_lock(
+            payload.event_id,
+            &payload.token,
+            ttl_secs,
+            mode,
+            payload.force,
+        )
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
     Response::from_json(&AdminTestLockResponse { acquired, is_first })
 }
 
-pub async fn admin_test_unlock_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+pub async fn admin_test_unlock_handler(
+    mut req: Request,
+    ctx: RouteContext<()>,
+) -> Result<Response> {
     if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
         return Ok(resp);
     }

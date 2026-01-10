@@ -1,5 +1,5 @@
-use maud::Markup;
 use crate::model::{ScoreData, ScoresAndLastRefresh};
+use maud::Markup;
 use rusty_golf_core::error::CoreError;
 use std::collections::HashMap;
 

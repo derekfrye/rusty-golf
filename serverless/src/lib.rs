@@ -35,7 +35,7 @@ use static_assets::static_handler;
 #[cfg(target_arch = "wasm32")]
 use utils::storage_from_env;
 #[cfg(target_arch = "wasm32")]
-use worker::{event, Env, Request, Response, Result, Router};
+use worker::{Env, Request, Response, Result, Router, event};
 
 #[cfg(target_arch = "wasm32")]
 #[event(fetch)]
