@@ -27,7 +27,7 @@ async fn load_context(
     let cache_max_age = cache_max_age_for_event(&storage, score_req.event_id)
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
-    let espn_client = ServerlessEspnClient::new();
+    let espn_client = ServerlessEspnClient::new(storage.clone());
     let context = load_score_context(
         &storage,
         &espn_client,

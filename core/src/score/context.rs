@@ -134,7 +134,7 @@ pub async fn load_score_context(
 /// Load cached scores if they are still valid.
 ///
 /// # Errors
-/// Returns an error if the cache lookup fails.
+/// Returns `Ok(None)` when cache is missing, invalid, or unreadable.
 pub async fn load_cached_scores(
     storage: &dyn Storage,
     event_id: i32,
@@ -145,7 +145,10 @@ pub async fn load_cached_scores(
         .await
         .unwrap_or(false)
     {
-        Ok(Some(storage.get_scores(event_id, RefreshSource::Db).await?))
+        match storage.get_scores(event_id, RefreshSource::Db).await {
+            Ok(scores) => Ok(Some(scores)),
+            Err(_) => Ok(None),
+        }
     } else {
         Ok(None)
     }

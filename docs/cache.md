@@ -14,6 +14,7 @@ This document describes how score caching works and how it differs between the A
 
 ## Serverless behavior
 - Cached scores live in R2 at `events/<event_id>/scores.json`.
+- If `scores.json` is missing or unreadable and ESPN cannot be reached, the serverless runtime falls back to the seeded ESPN cache at `cache/espn/<event_id>.json`.
 - Last refresh metadata is stored in KV (`event:<event_id>:last_refresh`).
 - Freshness check compares the KV timestamp to the cache max age in seconds.
 - With `cache=0`, ESPN is polled on every request (fallback to cached if ESPN fails).

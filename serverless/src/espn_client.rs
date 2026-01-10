@@ -3,18 +3,25 @@
 use futures::{StreamExt, TryStreamExt, stream};
 use rusty_golf_core::error::CoreError;
 use rusty_golf_core::espn::EspnApiClient;
+use rusty_golf_core::espn::processing::{merge_statistics_with_scores, process_json_to_statistics};
 use rusty_golf_core::model::{PlayerJsonResponse, Scores};
+use rusty_golf_core::storage::Storage;
+use serde::Deserialize;
 use std::collections::HashMap;
 use worker::{Fetch, Url};
 
-pub struct ServerlessEspnClient;
+use crate::storage::ServerlessStorage;
+
+pub struct ServerlessEspnClient {
+    storage: ServerlessStorage,
+}
 
 const ESPN_FETCH_FANOUT: usize = 6;
 
 impl ServerlessEspnClient {
     #[must_use]
-    pub fn new() -> Self {
-        Self
+    pub fn new(storage: ServerlessStorage) -> Self {
+        Self { storage }
     }
 }
 
@@ -70,5 +77,40 @@ impl EspnApiClient for ServerlessEspnClient {
         }
 
         Ok(player_response)
+    }
+
+    async fn fallback_scores(&self, event_id: i32) -> Result<Option<Vec<Scores>>, CoreError> {
+        let cache_key = ServerlessStorage::espn_cache_key(event_id);
+        let cached: serde_json::Value = match self.storage.r2_get_json(&cache_key).await {
+            Ok(value) => value,
+            Err(_) => return Ok(None),
+        };
+        Ok(self.parse_cached_scores(event_id, cached).await)
+    }
+}
+
+#[derive(Deserialize)]
+struct CachedScoresPayload {
+    score_struct: Vec<Scores>,
+}
+
+impl ServerlessEspnClient {
+    async fn parse_cached_scores(
+        &self,
+        event_id: i32,
+        cached: serde_json::Value,
+    ) -> Option<Vec<Scores>> {
+        if let Ok(payload) = serde_json::from_value::<CachedScoresPayload>(cached.clone()) {
+            return Some(payload.score_struct);
+        }
+        if let Ok(scores) = serde_json::from_value::<Vec<Scores>>(cached.clone()) {
+            return Some(scores);
+        }
+        if let Ok(player_json) = serde_json::from_value::<PlayerJsonResponse>(cached) {
+            let active_golfers = self.storage.get_golfers_for_event(event_id).await.ok()?;
+            let stats = process_json_to_statistics(&player_json).ok()?;
+            return merge_statistics_with_scores(&stats, &active_golfers).ok();
+        }
+        None
     }
 }
