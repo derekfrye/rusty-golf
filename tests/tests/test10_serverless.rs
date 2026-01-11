@@ -36,23 +36,21 @@ async fn test10_serverless_scores_endpoint() -> Result<(), Box<dyn Error>> {
     wait_for_health(&format!("{miniflare_url}/health")).await?;
     println!("miniflare health check passed");
 
-    let lock = admin_test_lock_retry(
+    // Use an exclusive lock because test12 mutates the same event during parallel runs
+    // (e.g., toggling end_date and forcing refresh), which can overwrite fixture scores.
+    let _lock = admin_test_lock_retry(
         &miniflare_url,
         &admin_token,
         event_id,
         &lock_token,
-        "shared",
+        "exclusive",
     )
     .await?;
-    if lock.is_first {
-        admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
-    }
+    admin_cleanup_events(&miniflare_url, &admin_token, &[event_id], false).await?;
 
     let test_result = async {
-        if lock.is_first {
-            let payload = build_admin_seed_request(&workspace_root, event_id, None)?;
-            admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
-        }
+        let payload = build_admin_seed_request(&workspace_root, event_id, None)?;
+        admin_seed_event(&miniflare_url, &admin_token, &payload).await?;
 
         assert_scores_response(event_id, &miniflare_url).await?;
 
