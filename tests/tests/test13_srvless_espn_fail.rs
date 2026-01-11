@@ -2,9 +2,9 @@ mod common;
 
 use common::serverless::{
     AdminSeedRequest, WranglerPaths, admin_cleanup_events, admin_cleanup_scores,
-    admin_seed_event, admin_set_espn_failure, admin_test_lock_retry, admin_test_unlock,
-    event_id_i32, is_local_miniflare, load_espn_cache, load_eup_event, load_score_struct,
-    shared_wrangler_dirs, test_lock_token,
+    admin_scores_exists, admin_seed_event, admin_set_espn_failure, admin_test_lock_retry,
+    admin_test_unlock, event_id_i32, is_local_miniflare, load_espn_cache, load_eup_event,
+    load_score_struct, shared_wrangler_dirs, test_lock_token,
 };
 use serde_json::Value;
 use std::error::Error;
@@ -57,9 +57,15 @@ async fn test13_serverless_espn_failure_falls_back_to_seed_cache(
         }
 
         admin_cleanup_scores(&miniflare_url, &admin_token, event_id).await?;
+        let (scores_exists, espn_cache_exists) =
+            admin_scores_exists(&miniflare_url, &admin_token, event_id).await?;
+        assert!(!scores_exists, "Expected scores.json to be deleted");
+        assert!(espn_cache_exists, "Expected espn_cache to exist");
         admin_set_espn_failure(&miniflare_url, &admin_token, event_id, true).await?;
 
         assert_scores_response(event_id, &miniflare_url).await?;
+        let (scores_exists, _) = admin_scores_exists(&miniflare_url, &admin_token, event_id).await?;
+        assert!(scores_exists, "Expected scores.json to be restored");
 
         Ok(())
     }

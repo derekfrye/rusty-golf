@@ -12,6 +12,9 @@ struct AdminListingResponse {
     events: Vec<EventListing>,
     kv_keys: Vec<String>,
     r2_keys: Vec<String>,
+    event_id: Option<i32>,
+    scores_exists: Option<bool>,
+    espn_cache_exists: Option<bool>,
 }
 
 fn admin_header_valid(req: &Request, env: &Env) -> Result<bool> {
@@ -39,6 +42,10 @@ fn admin_header_valid(req: &Request, env: &Env) -> Result<bool> {
 pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let storage = storage_from_env(&ctx.env)?;
     if admin_header_valid(&req, &ctx.env)? {
+        let query = parse_query_params(&req)?;
+        let event_id = query
+            .get("event_id")
+            .and_then(|value| value.trim().parse::<i32>().ok());
         let events = storage
             .list_event_listings()
             .await
@@ -47,14 +54,32 @@ pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Resp
             .kv_list_keys_with_prefix("")
             .await
             .map_err(|e| worker::Error::RustError(e.to_string()))?;
-        let r2_keys = storage
-            .r2_list_keys_with_prefix(None)
-            .await
-            .map_err(|e| worker::Error::RustError(e.to_string()))?;
+        let (r2_keys, scores_exists, espn_cache_exists) = if let Some(id) = event_id {
+            let scores_key = crate::storage::ServerlessStorage::scores_key(id);
+            let cache_key = crate::storage::ServerlessStorage::espn_cache_key(id);
+            let scores_exists = storage
+                .r2_key_exists(&scores_key)
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?;
+            let espn_cache_exists = storage
+                .r2_key_exists(&cache_key)
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?;
+            (Vec::new(), Some(scores_exists), Some(espn_cache_exists))
+        } else {
+            let r2_keys = storage
+                .r2_list_keys_with_prefix(None)
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?;
+            (r2_keys, None, None)
+        };
         return Response::from_json(&AdminListingResponse {
             events,
             kv_keys,
             r2_keys,
+            event_id,
+            scores_exists,
+            espn_cache_exists,
         });
     }
 

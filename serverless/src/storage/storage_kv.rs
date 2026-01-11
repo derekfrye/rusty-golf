@@ -138,6 +138,16 @@ impl ServerlessStorage {
         Ok(keys)
     }
 
+    pub async fn r2_key_exists(&self, key: &str) -> Result<bool, StorageError> {
+        let obj = self
+            .bucket
+            .get(key.to_string())
+            .execute()
+            .await
+            .map_err(|e| StorageError::new(e.to_string()))?;
+        Ok(obj.is_some())
+    }
+
     pub async fn kv_list_keys_with_prefix(
         &self,
         prefix: &str,

@@ -153,6 +153,12 @@ struct AdminTestUnlockResponse {
     is_last: bool,
 }
 
+#[derive(Debug, Deserialize)]
+struct AdminListingResponse {
+    scores_exists: Option<bool>,
+    espn_cache_exists: Option<bool>,
+}
+
 #[derive(Debug, Serialize)]
 struct AdminEndDateRequest {
     event_id: i32,
@@ -284,6 +290,30 @@ pub async fn admin_set_espn_failure(
         return Err(format!("admin espn fail failed: {status}\n{body}").into());
     }
     Ok(())
+}
+
+pub async fn admin_scores_exists(
+    miniflare_url: &str,
+    admin_token: &str,
+    event_id: i64,
+) -> Result<(bool, bool), Box<dyn Error>> {
+    let event_id_i32 = event_id_i32(event_id)?;
+    let url = format!("{miniflare_url}/listing?event_id={event_id_i32}");
+    let client = Client::new();
+    let resp = client
+        .get(url)
+        .header("x-admin-token", admin_token)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("admin listing failed: {status}\n{body}").into());
+    }
+    let body: AdminListingResponse = resp.json().await?;
+    let scores_exists = body.scores_exists.unwrap_or(false);
+    let espn_cache_exists = body.espn_cache_exists.unwrap_or(false);
+    Ok((scores_exists, espn_cache_exists))
 }
 
 pub fn test_lock_token(test_name: &str) -> String {
