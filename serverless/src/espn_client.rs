@@ -33,6 +33,10 @@ impl EspnApiClient for ServerlessEspnClient {
         year: i32,
         event_id: i32,
     ) -> Result<PlayerJsonResponse, CoreError> {
+        if self.espn_failure_enabled(event_id).await {
+            return Err(CoreError::Network("forced ESPN failure".to_string()));
+        }
+
         let fetches = stream::iter(scores.iter().map(|score| {
             let espn_id = score.espn_id;
             let eup_id = score.eup_id;
@@ -95,6 +99,18 @@ struct CachedScoresPayload {
 }
 
 impl ServerlessEspnClient {
+    async fn espn_failure_enabled(&self, event_id: i32) -> bool {
+        let key = ServerlessStorage::kv_force_espn_fail_key(event_id);
+        self.storage
+            .kv
+            .get(&key)
+            .json::<bool>()
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or(false)
+    }
+
     async fn parse_cached_scores(
         &self,
         event_id: i32,

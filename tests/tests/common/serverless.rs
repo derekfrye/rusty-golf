@@ -116,6 +116,17 @@ struct AdminCleanupRequest {
 }
 
 #[derive(Debug, Serialize)]
+struct AdminCleanupScoresRequest {
+    event_id: i32,
+}
+
+#[derive(Debug, Serialize)]
+struct AdminEspnFailRequest {
+    event_id: i32,
+    enabled: bool,
+}
+
+#[derive(Debug, Serialize)]
 struct AdminTestLockRequest {
     event_id: i32,
     token: String,
@@ -223,6 +234,54 @@ pub async fn admin_cleanup_events(
             let body = resp.text().await.unwrap_or_default();
             return Err(format!("admin cleanup failed: {status}\n{body}").into());
         }
+    }
+    Ok(())
+}
+
+pub async fn admin_cleanup_scores(
+    miniflare_url: &str,
+    admin_token: &str,
+    event_id: i64,
+) -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
+    let event_id_i32 = event_id_i32(event_id)?;
+    let payload = AdminCleanupScoresRequest { event_id: event_id_i32 };
+    let resp = client
+        .post(format!("{miniflare_url}/admin/cleanup_scores"))
+        .header("x-admin-token", admin_token)
+        .json(&payload)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("admin cleanup scores failed: {status}\n{body}").into());
+    }
+    Ok(())
+}
+
+pub async fn admin_set_espn_failure(
+    miniflare_url: &str,
+    admin_token: &str,
+    event_id: i64,
+    enabled: bool,
+) -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
+    let event_id_i32 = event_id_i32(event_id)?;
+    let payload = AdminEspnFailRequest {
+        event_id: event_id_i32,
+        enabled,
+    };
+    let resp = client
+        .post(format!("{miniflare_url}/admin/espn_fail"))
+        .header("x-admin-token", admin_token)
+        .json(&payload)
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("admin espn fail failed: {status}\n{body}").into());
     }
     Ok(())
 }

@@ -51,6 +51,7 @@ impl ServerlessStorage {
             Self::kv_seeded_at_key(event_id, "golfers"),
             Self::kv_seeded_at_key(event_id, "player_factors"),
             Self::kv_seeded_at_key(event_id, "last_refresh"),
+            Self::kv_force_espn_fail_key(event_id),
         ];
         for key in kv_keys {
             let _ = self.kv.delete(&key).await;
@@ -65,6 +66,26 @@ impl ServerlessStorage {
         let cache_key = Self::espn_cache_key(event_id);
         let _ = self.bucket.delete(scores_key).await;
         let _ = self.bucket.delete(cache_key).await;
+        Ok(())
+    }
+
+    pub async fn admin_cleanup_scores(&self, event_id: i32) -> Result<(), StorageError> {
+        let scores_key = Self::scores_key(event_id);
+        let _ = self.bucket.delete(scores_key).await;
+        Ok(())
+    }
+
+    pub async fn admin_set_espn_failure(
+        &self,
+        event_id: i32,
+        enabled: bool,
+    ) -> Result<(), StorageError> {
+        let key = Self::kv_force_espn_fail_key(event_id);
+        if enabled {
+            self.kv_put_json(&key, &true).await?;
+        } else {
+            let _ = self.kv.delete(&key).await;
+        }
         Ok(())
     }
 

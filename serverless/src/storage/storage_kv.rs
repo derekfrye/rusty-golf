@@ -36,6 +36,10 @@ impl ServerlessStorage {
         format!("event:{event_id}:{suffix}:seeded_at")
     }
 
+    pub fn kv_force_espn_fail_key(event_id: i32) -> String {
+        format!("event:{event_id}:force_espn_fail")
+    }
+
     pub fn kv_test_lock_key(event_id: i32) -> String {
         format!("event:{event_id}:test_lock")
     }

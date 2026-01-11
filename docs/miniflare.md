@@ -44,7 +44,7 @@ podman run --rm --name miniflare \
   sh -c 'token="$(cat /run/secrets/miniflare_token)"; echo "ADMIN_ENABLED=1" > /work/serverless/.dev.vars; echo "ADMIN_TOKEN=$token" >> /work/serverless/.dev.vars; exec wrangler dev --local --port 8787 --ip 0.0.0.0 --config /work/serverless/wrangler.toml --env dev --persist-to /work/.wrangler/state'
 ```
 
-Miniflare is now runing on `http://127.0.0.1:8787`.
+Miniflare is now running on `http://127.0.0.1:8787`.
 
 Alternatively, to make this a more permanent running container using a quadlet, copy the quadlet file into your user systemd config and start it:
 ```bash

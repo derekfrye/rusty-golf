@@ -19,7 +19,8 @@ pub use rusty_golf_core as core;
 
 #[cfg(target_arch = "wasm32")]
 use admin::{
-    admin_cleanup_handler, admin_end_date_handler, admin_seed_handler, admin_test_lock_handler,
+    admin_cleanup_handler, admin_cleanup_scores_handler, admin_end_date_handler,
+    admin_espn_fail_handler, admin_seed_handler, admin_test_lock_handler,
     admin_test_unlock_handler,
 };
 #[cfg(target_arch = "wasm32")]
@@ -72,8 +73,14 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .post_async("/admin/cleanup", |req, ctx| async move {
             admin_cleanup_handler(req, ctx).await
         })
+        .post_async("/admin/cleanup_scores", |req, ctx| async move {
+            admin_cleanup_scores_handler(req, ctx).await
+        })
         .post_async("/admin/event_end_date", |req, ctx| async move {
             admin_end_date_handler(req, ctx).await
+        })
+        .post_async("/admin/espn_fail", |req, ctx| async move {
+            admin_espn_fail_handler(req, ctx).await
         })
         .post_async("/admin/test_lock", |req, ctx| async move {
             admin_test_lock_handler(req, ctx).await

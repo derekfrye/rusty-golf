@@ -57,9 +57,20 @@ struct AdminCleanupRequest {
 }
 
 #[derive(Deserialize)]
+struct AdminCleanupScoresRequest {
+    event_id: i32,
+}
+
+#[derive(Deserialize)]
 struct AdminEndDateRequest {
     event_id: i32,
     end_date: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AdminEspnFailRequest {
+    event_id: i32,
+    enabled: bool,
 }
 
 #[derive(Deserialize)]
@@ -126,6 +137,41 @@ pub async fn admin_cleanup_handler(mut req: Request, ctx: RouteContext<()>) -> R
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
     Response::ok("cleaned")
+}
+
+pub async fn admin_cleanup_scores_handler(
+    mut req: Request,
+    ctx: RouteContext<()>,
+) -> Result<Response> {
+    if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
+        return Ok(resp);
+    }
+    let payload: AdminCleanupScoresRequest = req
+        .json()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
+    storage
+        .admin_cleanup_scores(payload.event_id)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    Response::ok("cleaned scores")
+}
+
+pub async fn admin_espn_fail_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    if let Some(resp) = admin_auth_response(&req, &ctx.env)? {
+        return Ok(resp);
+    }
+    let payload: AdminEspnFailRequest = req
+        .json()
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    let storage = storage_from_env(&ctx.env)?;
+    storage
+        .admin_set_espn_failure(payload.event_id, payload.enabled)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?;
+    Response::ok("updated")
 }
 
 pub async fn admin_end_date_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
