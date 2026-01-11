@@ -24,14 +24,14 @@ pub fn respond_html(body: String) -> Result<Response> {
     Ok(resp)
 }
 
-pub fn escape_html(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#39;")
-}
+// pub fn escape_html(value: &str) -> String {
+//     value
+//         .replace('&', "&amp;")
+//         .replace('<', "&lt;")
+//         .replace('>', "&gt;")
+//         .replace('"', "&quot;")
+//         .replace('\'', "&#39;")
+// }
 
 pub fn read_env_binding(env: &Env, var_name: &str) -> Result<String> {
     let value = env.var(var_name).map_err(|e| {
