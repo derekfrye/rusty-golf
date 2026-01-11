@@ -30,10 +30,10 @@ async fn test13_serverless_espn_failure_falls_back_to_seed_cache(
     let event_id = 401_580_351_i64;
     let lock_token = test_lock_token("test13");
 
-    if !is_local_miniflare(&miniflare_url) {
-        build_local(&workspace_root, &wrangler_paths)?;
-    } else {
+    if is_local_miniflare(&miniflare_url) {
         println!("Skipping build_local; MINIFLARE_URL is localhost.");
+    } else {
+        build_local(&workspace_root, &wrangler_paths)?;
     }
     wait_for_health(&format!("{miniflare_url}/health")).await?;
     println!("miniflare health check passed");
