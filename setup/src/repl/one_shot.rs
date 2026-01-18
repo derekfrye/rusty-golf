@@ -38,11 +38,18 @@ pub fn run_new_event_one_shot(
 /// # Errors
 /// Returns an error if event details cannot be fetched or written.
 pub fn run_get_event_details_one_shot(
+    eup_json: Option<PathBuf>,
     output_json: Option<&Path>,
     output_json_stdout: bool,
     event_ids: Option<Vec<i64>>,
 ) -> Result<()> {
-    run_get_event_details_one_shot_with_client(output_json, output_json_stdout, event_ids, None)
+    run_get_event_details_one_shot_with_client(
+        eup_json,
+        output_json,
+        output_json_stdout,
+        event_ids,
+        None,
+    )
 }
 
 /// Run the one-shot event details flow with an injected ESPN client.
@@ -50,14 +57,17 @@ pub fn run_get_event_details_one_shot(
 /// # Errors
 /// Returns an error if event details cannot be fetched or written.
 pub fn run_get_event_details_one_shot_with_client(
+    eup_json: Option<PathBuf>,
     output_json: Option<&Path>,
     output_json_stdout: bool,
     event_ids: Option<Vec<i64>>,
     espn: Option<Arc<dyn EspnClient>>,
 ) -> Result<()> {
     let mut state = match espn {
-        Some(client) => ReplState::new_with_client(None, None, client).context("init repl state")?,
-        None => ReplState::new(None, None).context("init repl state")?,
+        Some(client) => {
+            ReplState::new_with_client(eup_json, None, client).context("init repl state")?
+        }
+        None => ReplState::new(eup_json, None).context("init repl state")?,
     };
     let (event_ids, event_names) = if let Some(ids) = event_ids {
         (ids, std::collections::BTreeMap::new())

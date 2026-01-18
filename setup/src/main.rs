@@ -34,9 +34,15 @@ fn main() -> Result<()> {
             }
         }
         AppMode::GetEventDetails {
+            eup_json,
             output_json,
             output_json_stdout,
             event_ids,
-        } => run_get_event_details_one_shot(output_json.as_deref(), output_json_stdout, event_ids),
+        } => run_get_event_details_one_shot(
+            eup_json,
+            output_json.as_deref(),
+            output_json_stdout,
+            event_ids,
+        ),
     }
 }

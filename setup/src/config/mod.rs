@@ -32,6 +32,7 @@ pub enum AppMode {
         golfers_by_bettor: Option<Vec<GolferByBettorInput>>,
     },
     GetEventDetails {
+        eup_json: Option<std::path::PathBuf>,
         output_json: Option<std::path::PathBuf>,
         output_json_stdout: bool,
         event_ids: Option<Vec<i64>>,

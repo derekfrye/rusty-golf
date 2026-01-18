@@ -31,6 +31,7 @@ pub(crate) fn build_get_event_details_mode(cli: &Cli, file_config: &FileConfig) 
         .transpose()?;
 
     Ok(AppMode::GetEventDetails {
+        eup_json: cli.eup_json.clone().or_else(|| file_config.eup_json.clone()),
         output_json,
         output_json_stdout,
         event_ids,
