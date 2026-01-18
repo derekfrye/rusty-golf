@@ -3,7 +3,8 @@ use crate::event_details::{EventDetailsRow, build_event_details_row};
 use crate::espn::EspnClient;
 use crate::repl::payload::{build_event_payload_string, write_event_payload};
 use crate::repl::state::{
-    GolferSelection, ReplState, ensure_list_events, eup_event_exists, load_event_golfers,
+    GolferSelection, ReplState, ensure_list_events, eup_event_exists, load_eup_event_dates,
+    load_event_golfers,
 };
 use anyhow::{Context, Result, anyhow};
 use serde_json::to_string_pretty;
@@ -90,14 +91,23 @@ pub fn run_get_event_details_one_shot_with_client(
         return Err(anyhow!("no events found"));
     }
 
+    let eup_dates = match load_eup_event_dates(&state) {
+        Ok(dates) => Some(dates),
+        Err(err) => {
+            eprintln!("Warning: failed to load eup dates: {err}");
+            None
+        }
+    };
     let mut rows = Vec::new();
     for event_id in event_ids {
         let event_name_hint = event_names.get(&event_id.to_string()).map(String::as_str);
+        let eup_dates = eup_dates.as_ref().and_then(|dates| dates.get(&event_id));
         match build_event_details_row(
             event_id,
             event_name_hint,
             state.espn.as_ref(),
             &state.event_cache_dir,
+            eup_dates,
         ) {
             Ok(row) => rows.push(row),
             Err(err) => eprintln!("Failed to load event {event_id}: {err}"),

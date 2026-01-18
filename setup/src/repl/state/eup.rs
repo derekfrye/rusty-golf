@@ -1,7 +1,8 @@
 use super::ReplState;
+use crate::event_details::EupEventDates;
 use anyhow::{Context, Result};
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 
@@ -31,6 +32,48 @@ pub(crate) fn load_eup_json(state: &ReplState) -> Result<Vec<Value>> {
         return Err(anyhow::Error::msg("eup json must be an array"));
     };
     Ok(array.clone())
+}
+
+pub(crate) fn load_eup_event_dates(state: &ReplState) -> Result<BTreeMap<i64, EupEventDates>> {
+    let Some(path) = state.eup_json_path.as_ref() else {
+        return Ok(BTreeMap::new());
+    };
+    let contents = fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let payload: Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
+    let Some(array) = payload.as_array() else {
+        return Err(anyhow::Error::msg("eup json must be an array"));
+    };
+
+    let mut dates = BTreeMap::new();
+    for entry in array {
+        let Some(event_id) = entry.get("event").and_then(Value::as_i64) else {
+            continue;
+        };
+        let start_date = extract_string(entry, &["startDate", "start_date"]);
+        let end_date = extract_string(entry, &["endDate", "end_date"]);
+        if start_date.is_some() || end_date.is_some() {
+            dates.insert(
+                event_id,
+                EupEventDates {
+                    start_date,
+                    end_date,
+                },
+            );
+        }
+    }
+    Ok(dates)
+}
+
+fn extract_string(value: &Value, keys: &[&str]) -> Option<String> {
+    for key in keys {
+        if let Some(value) = value.get(*key).and_then(Value::as_str)
+            && !value.trim().is_empty()
+        {
+            return Some(value.to_string());
+        }
+    }
+    None
 }
 
 pub(crate) fn read_eup_event_ids(path: &Path) -> Result<Vec<i64>> {

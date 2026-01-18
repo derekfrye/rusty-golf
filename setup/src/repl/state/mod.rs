@@ -16,7 +16,7 @@ pub(crate) use bettors::{
     persist_bettors_selection,
 };
 pub(crate) use cache::{has_cached_events, load_cached_golfers, load_event_golfers};
-pub(crate) use eup::{eup_event_exists, load_eup_json};
+pub(crate) use eup::{eup_event_exists, load_eup_event_dates, load_eup_json};
 pub(crate) use events::{ensure_list_events, print_list_event_error};
 pub(crate) use golfers::{output_json_path, set_golfers_by_bettor, take_golfers_by_bettor};
 

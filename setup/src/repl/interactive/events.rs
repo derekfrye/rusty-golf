@@ -3,7 +3,9 @@ use crate::event_details::build_event_details_row;
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
 use crate::repl::parse::format_parse_error;
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};
-use crate::repl::state::{ReplState, ensure_list_events, print_list_event_error};
+use crate::repl::state::{
+    ReplState, ensure_list_events, load_eup_event_dates, print_list_event_error,
+};
 use anyhow::Result;
 use rustyline::Editor;
 use rustyline::history::DefaultHistory;
@@ -116,6 +118,13 @@ pub(super) fn handle_get_event_details(
         .iter()
         .map(|(id, name)| (id.as_str(), name.as_str()))
         .collect();
+    let eup_dates = match load_eup_event_dates(state) {
+        Ok(dates) => Some(dates),
+        Err(err) => {
+            println!("Warning: failed to load eup dates: {err}");
+            None
+        }
+    };
     let mut rows = Vec::new();
     for raw_id in selected {
         let event_id: i64 = if let Ok(value) = raw_id.parse() {
@@ -125,11 +134,13 @@ pub(super) fn handle_get_event_details(
             continue;
         };
         let event_name_hint = event_lookup.get(raw_id.as_str()).copied();
+        let eup_dates = eup_dates.as_ref().and_then(|dates| dates.get(&event_id));
         match build_event_details_row(
             event_id,
             event_name_hint,
             state.espn.as_ref(),
             &state.event_cache_dir,
+            eup_dates,
         ) {
             Ok(row) => rows.push(row),
             Err(err) => println!("Failed to load event {event_id}: {err}"),

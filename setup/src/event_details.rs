@@ -15,6 +15,12 @@ pub struct EventDetailsRow {
     pub end_date: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct EupEventDates {
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+}
+
 /// Build a single event details row from the ESPN event payload.
 ///
 /// # Errors
@@ -24,6 +30,7 @@ pub fn build_event_details_row(
     event_name_hint: Option<&str>,
     espn: &dyn EspnClient,
     cache_dir: &Path,
+    eup_dates: Option<&EupEventDates>,
 ) -> Result<EventDetailsRow> {
     let payload = espn
         .fetch_event_json_cached(event_id, cache_dir)
@@ -42,26 +49,34 @@ pub fn build_event_details_row(
         ],
     );
     let mut end_date = extract_event_field(&payload, &[&["event", "endDate"], &["endDate"]]);
-    if start_date.is_none() || end_date.is_none() {
-        if let Ok(scoreboard) = espn.fetch_scoreboard_header_cached(cache_dir) {
-            if let Some((header_start, header_end)) =
-                extract_dates_from_scoreboard(&scoreboard, event_id)
-            {
-                if start_date.is_none() {
-                    start_date = header_start;
-                }
-                if end_date.is_none() {
-                    end_date = header_end;
-                }
-            }
+    if (start_date.is_none() || end_date.is_none())
+        && let Ok(scoreboard) = espn.fetch_scoreboard_header_cached(cache_dir)
+        && let Some((header_start, header_end)) =
+            extract_dates_from_scoreboard(&scoreboard, event_id)
+    {
+        if start_date.is_none() {
+            start_date = header_start;
+        }
+        if end_date.is_none() {
+            end_date = header_end;
         }
     }
-    let start_date = start_date
-        .map(|value| format_event_date_local(&value).unwrap_or(value))
-        .unwrap_or_else(|| "-".to_string());
-    let end_date = end_date
-        .map(|value| format_event_date_local(&value).unwrap_or(value))
-        .unwrap_or_else(|| "-".to_string());
+    if (start_date.is_none() || end_date.is_none()) && let Some(dates) = eup_dates {
+        if start_date.is_none() {
+            start_date.clone_from(&dates.start_date);
+        }
+        if end_date.is_none() {
+            end_date.clone_from(&dates.end_date);
+        }
+    }
+    let start_date = start_date.map_or_else(
+        || "-".to_string(),
+        |value| format_event_date_local(&value).unwrap_or(value),
+    );
+    let end_date = end_date.map_or_else(
+        || "-".to_string(),
+        |value| format_event_date_local(&value).unwrap_or(value),
+    );
     Ok(EventDetailsRow {
         event_id,
         event_name,
@@ -108,10 +123,10 @@ fn format_event_date_local(value: &str) -> Option<String> {
     let parsed = DateTime::parse_from_rfc3339(value).ok()?;
     if let Some(tz) = resolve_tz() {
         let local = parsed.with_timezone(&tz);
-        return Some(format_event_date(local));
+        return Some(format_event_date(&local));
     }
     let local = parsed.with_timezone(&Local);
-    Some(format_event_date(local))
+    Some(format_event_date(&local))
 }
 
 fn resolve_tz() -> Option<Tz> {
@@ -120,7 +135,7 @@ fn resolve_tz() -> Option<Tz> {
         .and_then(|value| value.parse::<Tz>().ok())
 }
 
-fn format_event_date<TzType>(local: DateTime<TzType>) -> String
+fn format_event_date<TzType>(local: &DateTime<TzType>) -> String
 where
     TzType: TimeZone,
     TzType::Offset: std::fmt::Display,

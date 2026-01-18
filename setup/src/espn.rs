@@ -44,6 +44,9 @@ pub trait EspnClient: Send + Sync {
     /// Returns an error if the cached payload cannot be read or fetched.
     fn fetch_event_json_cached(&self, event_id: i64, cache_dir: &Path) -> Result<Value>;
     /// Fetch the ESPN scoreboard header payload, using the cache if available.
+    ///
+    /// # Errors
+    /// Returns an error if the cached payload cannot be read or fetched.
     fn fetch_scoreboard_header_cached(&self, cache_dir: &Path) -> Result<Value>;
 }
 
