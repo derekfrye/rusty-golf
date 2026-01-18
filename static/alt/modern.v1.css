@@ -280,17 +280,27 @@ body.alt-zen {
 }
 
 .golfer-bar-container {
-  display: grid;
-  grid-template-columns: minmax(160px, 220px) 1fr;
-  gap: 12px;
+  display: flex;
   align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.golfer-name {
+.golfer-label {
   font-size: 0.9rem;
   color: var(--ink-soft);
+  text-align: right;
+  width: 16ch;
+  padding-right: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.bar-row {
+  flex: 1;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 8px;
 }
 
 .progress-bar {
@@ -325,10 +335,11 @@ body.alt-zen {
   border-radius: 999px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding-right: 6px;
+  padding-left: 6px;
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 400;
   color: #0f172a;
 }
 

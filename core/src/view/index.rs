@@ -36,7 +36,7 @@ pub fn render_index_template(title: &str) -> Markup {
         head{
             meta charset="UTF-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
-            link id="theme-stylesheet" rel="stylesheet" type="text/css" href="static/alt/zen218.v7.css" data-theme-new="static/alt/zen218.v7.css" data-theme-classic="static/styles.v2.css";
+            link id="theme-stylesheet" rel="stylesheet" type="text/css" href="static/alt/modern.v1.css" data-theme-modern="static/alt/modern.v1.css" data-theme-classic="static/styles.v2.css";
             link rel="stylesheet" href="static/ex.css";
             title { (title) }
             script src=(HTMX_PATH) defer integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous" {}
@@ -47,10 +47,10 @@ pub fn render_index_template(title: &str) -> Markup {
         }
         body {
             div class="switches" {
-                button class="theme-toggle" id="theme-toggle" title="Toggles classic & new" aria-label="auto" aria-live="polite" {
+                button class="theme-toggle" id="theme-toggle" title="Toggles classic & modern" aria-label="auto" aria-live="polite" {
                     span class="theme-label" { "Theme:" }
                     span class="theme-toggle-text theme-toggle-classic" { "classic" }
-                    span class="theme-toggle-text theme-toggle-text-new" { "new" }
+                    span class="theme-toggle-text theme-toggle-text-modern" { "modern" }
                 }
             }
             h1 {
