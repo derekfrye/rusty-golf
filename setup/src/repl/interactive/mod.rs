@@ -15,7 +15,7 @@ mod golfers;
 mod setup;
 
 use bettors::handle_pick_bettors;
-use events::{handle_get_available_golfers, handle_list_events_command};
+use events::{handle_get_available_golfers, handle_get_event_details, handle_list_events_command};
 use golfers::select_golfers_by_bettor;
 use setup::run_setup_event;
 
@@ -78,6 +78,9 @@ fn handle_repl_line(
         }
         CommandId::ListEvents => {
             handle_list_events_command(state, command, parts.next());
+        }
+        CommandId::GetEventDetails => {
+            handle_get_event_details(rl, helper_state, state)?;
         }
         CommandId::GetAvailableGolfers => {
             handle_get_available_golfers(rl, helper_state, state)?;

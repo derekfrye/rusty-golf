@@ -2,6 +2,7 @@
 pub(crate) enum CommandId {
     Help,
     ListEvents,
+    GetEventDetails,
     GetAvailableGolfers,
     PickBettors,
     SetGolfersByBettor,
@@ -57,6 +58,13 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "List events on ESPN API.",
         aliases: &[],
         subcommands: LIST_EVENTS_SUBCOMMANDS,
+    },
+    ReplCommand {
+        id: CommandId::GetEventDetails,
+        name: "get_event_details",
+        description: "Show details for one or more events.",
+        aliases: &[],
+        subcommands: &[],
     },
     ReplCommand {
         id: CommandId::GetAvailableGolfers,

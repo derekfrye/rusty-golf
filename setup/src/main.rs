@@ -1,7 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
 use rusty_golf_setup::config::{AppMode, Cli, load_config};
-use rusty_golf_setup::repl::{run_new_event_one_shot, run_new_event_repl};
+use rusty_golf_setup::repl::{
+    run_get_event_details_one_shot, run_new_event_one_shot, run_new_event_repl,
+};
 use rusty_golf_setup::seed_kv_from_eup;
 
 fn main() -> Result<()> {
@@ -25,5 +27,9 @@ fn main() -> Result<()> {
                 run_new_event_repl(eup_json, output_json)
             }
         }
+        AppMode::GetEventDetails {
+            output_json,
+            event_ids,
+        } => run_get_event_details_one_shot(&output_json, event_ids),
     }
 }

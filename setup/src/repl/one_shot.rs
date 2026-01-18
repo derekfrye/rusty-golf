@@ -1,11 +1,14 @@
 use crate::config::GolferByBettorInput;
+use crate::event_details::{EventDetailsRow, build_event_details_row};
 use crate::espn::EspnClient;
 use crate::repl::payload::write_event_payload;
 use crate::repl::state::{
     GolferSelection, ReplState, ensure_list_events, eup_event_exists, load_event_golfers,
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
+use serde_json::to_string_pretty;
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -20,6 +23,68 @@ pub fn run_new_event_one_shot(
     golfers_by_bettor: Vec<GolferByBettorInput>,
 ) -> Result<()> {
     run_new_event_one_shot_with_client(eup_json, output_json, event_id, golfers_by_bettor, None)
+}
+
+/// Run the one-shot event details flow.
+///
+/// # Errors
+/// Returns an error if event details cannot be fetched or written.
+pub fn run_get_event_details_one_shot(
+    output_json: &Path,
+    event_ids: Option<Vec<i64>>,
+) -> Result<()> {
+    run_get_event_details_one_shot_with_client(output_json, event_ids, None)
+}
+
+/// Run the one-shot event details flow with an injected ESPN client.
+///
+/// # Errors
+/// Returns an error if event details cannot be fetched or written.
+pub fn run_get_event_details_one_shot_with_client(
+    output_json: &Path,
+    event_ids: Option<Vec<i64>>,
+    espn: Option<Arc<dyn EspnClient>>,
+) -> Result<()> {
+    let mut state = match espn {
+        Some(client) => ReplState::new_with_client(None, None, client).context("init repl state")?,
+        None => ReplState::new(None, None).context("init repl state")?,
+    };
+    let (event_ids, event_names) = if let Some(ids) = event_ids {
+        (ids, std::collections::BTreeMap::new())
+    } else {
+        let events = ensure_list_events(&mut state, false, true)?;
+        if events.is_empty() {
+            return Err(anyhow!("no events found"));
+        }
+        let mut ids = Vec::new();
+        let mut names = std::collections::BTreeMap::new();
+        for (id, name) in events {
+            if let Ok(parsed) = id.parse::<i64>() {
+                ids.push(parsed);
+                names.insert(id, name);
+            }
+        }
+        (ids, names)
+    };
+    if event_ids.is_empty() {
+        return Err(anyhow!("no events found"));
+    }
+
+    let mut rows = Vec::new();
+    for event_id in event_ids {
+        let event_name_hint = event_names.get(&event_id.to_string()).map(String::as_str);
+        match build_event_details_row(
+            event_id,
+            event_name_hint,
+            state.espn.as_ref(),
+            &state.event_cache_dir,
+        ) {
+            Ok(row) => rows.push(row),
+            Err(err) => eprintln!("Failed to load event {event_id}: {err}"),
+        }
+    }
+
+    write_event_details(output_json, &rows)
 }
 
 /// Run the one-shot event setup flow with an injected ESPN client.
@@ -96,6 +161,12 @@ fn match_golfer_exact(golfers: &[(String, i64)], golfer: &str) -> Result<i64> {
         "Unknown golfer: {golfer}. Closest matches: {}",
         suggestions.join(", ")
     ))
+}
+
+fn write_event_details(path: &Path, rows: &[EventDetailsRow]) -> Result<()> {
+    let payload = to_string_pretty(rows).context("serialize event details")?;
+    fs::write(path, payload).with_context(|| format!("write {}", path.display()))?;
+    Ok(())
 }
 
 fn closest_golfers(golfers: &[(String, i64)], golfer: &str) -> Vec<String> {

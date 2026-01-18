@@ -4,6 +4,7 @@ use clap::ValueEnum;
 use serde::Deserialize;
 
 mod cli;
+mod get_event_details;
 mod new_event;
 mod parse;
 mod seed;
@@ -16,6 +17,8 @@ pub enum Mode {
     Seed,
     #[value(name = "new_event")]
     NewEvent,
+    #[value(name = "get_event_details")]
+    GetEventDetails,
 }
 
 pub enum AppMode {
@@ -26,6 +29,10 @@ pub enum AppMode {
         one_shot: bool,
         event_id: Option<i64>,
         golfers_by_bettor: Option<Vec<GolferByBettorInput>>,
+    },
+    GetEventDetails {
+        output_json: std::path::PathBuf,
+        event_ids: Option<Vec<i64>>,
     },
 }
 
@@ -41,6 +48,9 @@ pub struct GolferByBettorInput {
 /// Returns an error if required CLI values are missing, the config file is
 /// unreadable or invalid, or if auth tokens are malformed.
 pub fn load_config(cli: &Cli) -> Result<AppMode> {
+    if cli.one_shot && cli.mode.is_none() {
+        return Err(anyhow!("--one-shot requires --mode"));
+    }
     let file_config = read_file_config(cli)?;
     let mode = cli
         .mode
@@ -49,6 +59,7 @@ pub fn load_config(cli: &Cli) -> Result<AppMode> {
     match mode {
         Mode::Seed => seed::build_seed_mode(cli, &file_config),
         Mode::NewEvent => new_event::build_new_event_mode(cli, &file_config),
+        Mode::GetEventDetails => get_event_details::build_get_event_details_mode(cli, &file_config),
     }
 }
 

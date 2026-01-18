@@ -11,14 +11,18 @@ Required args (seed mode):
 
 Required args:
 
-- `--mode` Operation mode (`seed` or `new_event`).
+- `--mode` Operation mode (`seed`, `new_event`, or `get_event_details`).
+  - `seed`: non-interactive, reads EUP JSON and seeds KV.
+  - `new_event`: interactive REPL unless `--one-shot` is provided.
+  - `get_event_details`: one-shot JSON export of event details.
 
 Optional args:
 
 - `--config-toml` Path to a TOML config file. Values from CLI flags override it.
 - `--kv-binding` KV binding name (useful for `wrangler --local`).
 - `--auth-tokens` CSV list of tokens to allow `/listing?auth_token=...` access (min 8 chars each).
-- `--event-id` Filter to a single event id.
+- `--event-id` Event id filter. For `seed` and `new_event` one-shot, this must be a single id.
+  For `get_event_details`, it can be CSV or space-separated.
 - `--refresh-from-espn` Value written into `event_details.json` (default: `1`).
 - The setup CLI also fetches `endDate` from the ESPN scoreboard header when available and stores it in `event_details.json` to disable refreshes after the event ends.
 - `--wrangler-config` Path to `wrangler.toml` (default: `serverless/wrangler.toml`).
@@ -31,18 +35,93 @@ Optional args:
 Example:
 
 ```bash
-cargo run -p setup -- \
+cargo run -p rusty-golf-setup -- \
   --eup-json tests/test05_dbprefill.json \
-  --kv-env dev
+  --kv-env dev --wrangler-config serverless/wrangler.toml
 ```
 
 With config:
 
 ```bash
-cargo run -p setup -- \
+cargo run -p rusty-golf-setup -- \
   --config-toml setup/seed_config.toml \
   --event-id 401703504
 ```
+
+Get event details (one-shot):
+
+```bash
+cargo run -p rusty-golf-setup -- \
+  --mode get_event_details \
+  --one-shot \
+  --output-json /tmp/event_details.json \
+  --event-id "401703504,401580355"
+```
+
+## Mode `new_event`
+
+This mode runs an interactive REPL (unless `--one-shot` is provided).
+
+### `help`
+
+- Prints the REPL command list and descriptions.
+- Aliases: `?`, `-h`, `--help`.
+
+### `list_events`
+
+- Fetches the current ESPN event list and caches it for the session.
+- Adds any missing event IDs from the EUP JSON (if provided) by fetching names.
+- Prints event IDs and names as `"<id> <name>"`.
+
+Subcommands:
+
+- `help`
+  - Prints the `list_events` subcommand help text.
+- `refresh`
+  - Forces a fresh ESPN fetch even if events are already cached.
+
+### `get_event_details`
+
+- Lists events (fetching if needed), then prompts for event IDs.
+- For each event, fetches the ESPN event JSON and extracts name, start date, and end date.
+- Prints a table with `event_id`, `event_name`, `start_date`, and `end_date`.
+
+### `get_available_golfers`
+
+- Lists events (fetching if needed), then prompts for event IDs.
+- Echoes the selected event IDs as a space-separated line.
+- Does not persist selections; it is a helper for copy/paste.
+
+### `pick_bettors`
+
+- Loads bettor names from the EUP JSON (if available) and prompts for selection.
+- Persists the selection in the session temp dir.
+- Prints the selected bettors as a space-separated line.
+
+### `set_golfers_by_bettor`
+
+- Prompts for golfers for each bettor, using cached event golfer data.
+- Writes the selection into the REPL state (used by `setup_event`).
+- Prints a JSON array per bettor with `{ bettor, golfer_espn_id }` entries.
+
+### `setup_event`
+
+- Guides full event setup and writes a new EUP JSON entry.
+- Reuses bettors and golfer selections if already chosen.
+- Prompts for output filename and overwriting if it already exists.
+
+### `exit` / `quit`
+
+- Exits the REPL.
+
+## Mode `get_event_details`
+
+This mode is non-interactive and requires `--one-shot` and `--output-json`.
+
+- If `--event-id` is provided, it is parsed as CSV/space-separated ids and used directly.
+- If `--event-id` is omitted, it fetches the live ESPN event list and emits details for all of
+  those events.
+- Output is a JSON array of `{ event_id, event_name, start_date, end_date }`.
 
 ## Config file
 
@@ -88,6 +167,24 @@ It also writes seeded-at metadata keys:
 When `--auth-tokens` is provided, it stores them for `/listing` access:
 
 - `event:<event_id>:auth_tokens`
+
+## What have I seeded?
+
+If you do not remember which events are in KV (or whether auth tokens were set), use one of these:
+
+- Admin listing (preferred): enable admin mode in your deployed worker, then call
+  `/listing` with the admin header to get a JSON response that includes KV keys and
+  parsed event listings.
+  - Set `ADMIN_ENABLED=1` and `ADMIN_TOKEN=<token>` in the worker's dev env vars.
+  - Request: `curl -H "x-admin-token: <token>" "https://<your-worker>/listing"`
+- Wrangler KV key list: list keys directly in the dev namespace to see seeded events.
+  - `wrangler kv key list --env dev --namespace-id <dev_kv_namespace_id>`. Unless you edit `wrangler.toml`, in this project that's:
+
+```shell
+wrangler kv key list --env dev --namespace-id djf_rusty_golf_kv
+```
+
+  - Seeded events show up as `event:<event_id>:details`, `event:<event_id>:golfers`, etc.
 
 ## Limitations
 

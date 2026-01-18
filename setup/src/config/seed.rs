@@ -1,14 +1,16 @@
 use super::AppMode;
 use super::cli::Cli;
 use super::cli::FileConfig;
-use super::parse::parse_auth_tokens;
+use super::parse::{parse_auth_tokens, parse_single_event_id};
 use crate::seed::SeedOptions;
 use anyhow::{Result, anyhow};
 use std::path::PathBuf;
 
 pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<AppMode> {
     if cli.one_shot || file_config.one_shot.unwrap_or(false) {
-        return Err(anyhow!("--one-shot is only valid with --mode=new_event"));
+        return Err(anyhow!(
+            "--one-shot is only valid with --mode=new_event or --mode=get_event_details"
+        ));
     }
     let eup_json = cli
         .eup_json
@@ -21,7 +23,11 @@ pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<App
         .or_else(|| file_config.kv_env.clone())
         .ok_or_else(|| anyhow!("missing --kv-env"))?;
 
-    let event_id = cli.event_id.or(file_config.event_id);
+    let event_id_input = resolve_event_id_input(cli, file_config);
+    let event_id = event_id_input
+        .as_deref()
+        .map(parse_single_event_id)
+        .transpose()?;
     let auth_tokens = match cli
         .auth_tokens
         .as_deref()
@@ -71,6 +77,15 @@ pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<App
             .clone()
             .or_else(|| file_config.wrangler_config_dir.clone()),
     })))
+}
+
+fn resolve_event_id_input(cli: &Cli, file_config: &FileConfig) -> Option<String> {
+    cli.event_id.clone().or_else(|| {
+        file_config
+            .event_id
+            .as_ref()
+            .map(super::cli::EventIdConfig::as_string)
+    })
 }
 
 fn resolve_wrangler_flags(

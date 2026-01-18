@@ -1,6 +1,6 @@
 use super::AppMode;
 use super::cli::{Cli, FileConfig, GolfersByBettorConfig};
-use super::parse::parse_golfers_by_bettor;
+use super::parse::{parse_golfers_by_bettor, parse_single_event_id};
 use anyhow::{Result, anyhow};
 
 pub(crate) fn build_new_event_mode(cli: &Cli, file_config: &FileConfig) -> Result<AppMode> {
@@ -13,7 +13,11 @@ pub(crate) fn build_new_event_mode(cli: &Cli, file_config: &FileConfig) -> Resul
         .output_json
         .clone()
         .or_else(|| file_config.output_json.clone());
-    let event_id = cli.event_id.or(file_config.event_id);
+    let event_id_input = resolve_event_id_input(cli, file_config);
+    let event_id = event_id_input
+        .as_deref()
+        .map(parse_single_event_id)
+        .transpose()?;
     let golfers_by_bettor = resolve_golfers_by_bettor(cli, file_config)?;
 
     if one_shot {
@@ -55,4 +59,13 @@ fn resolve_golfers_by_bettor(
         return Ok(Some(entries));
     }
     Ok(None)
+}
+
+fn resolve_event_id_input(cli: &Cli, file_config: &FileConfig) -> Option<String> {
+    cli.event_id.clone().or_else(|| {
+        file_config
+            .event_id
+            .as_ref()
+            .map(super::cli::EventIdConfig::as_string)
+    })
 }

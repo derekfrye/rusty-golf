@@ -21,7 +21,7 @@ pub struct Cli {
     #[arg(long)]
     pub auth_tokens: Option<String>,
     #[arg(long)]
-    pub event_id: Option<i64>,
+    pub event_id: Option<String>,
     #[arg(long)]
     pub refresh_from_espn: Option<i64>,
     #[arg(long)]
@@ -49,7 +49,7 @@ pub(crate) struct FileConfig {
     pub kv_env: Option<String>,
     pub kv_binding: Option<String>,
     pub auth_tokens: Option<String>,
-    pub event_id: Option<i64>,
+    pub event_id: Option<EventIdConfig>,
     pub refresh_from_espn: Option<i64>,
     pub wrangler_config: Option<PathBuf>,
     pub wrangler_env: Option<String>,
@@ -69,4 +69,20 @@ pub(crate) struct FileConfig {
 pub(crate) enum GolfersByBettorConfig {
     Json(String),
     Entries(Vec<GolferByBettorInput>),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum EventIdConfig {
+    Number(i64),
+    Text(String),
+}
+
+impl EventIdConfig {
+    pub(crate) fn as_string(&self) -> String {
+        match self {
+            Self::Number(value) => value.to_string(),
+            Self::Text(value) => value.clone(),
+        }
+    }
 }
