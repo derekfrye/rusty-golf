@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none;
+}
+
 body.alt-zen {
   margin: 0;
   color: var(--ink);
@@ -188,6 +192,91 @@ body.alt-zen {
 
 .chart.visible {
   display: block;
+}
+
+.linescore-container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  display: none;
+}
+
+.linescore-container.visible {
+  display: flex;
+  gap: 1rem;
+}
+
+.linescore-table {
+  width: auto;
+  border-collapse: collapse;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.linescore-table th,
+.linescore-table td {
+  padding: 0.3rem 0.3rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+  font-size: 0.6rem;
+}
+
+.linescore-table thead th {
+  background: #28c7a7;
+  color: #ffffff;
+}
+
+.linescore-round-button.selected {
+  border: 1px solid var(--ink-soft);
+  background: transparent;
+  color: var(--ink-soft);
+  /* padding: 4px 8px; */
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.linescore-round-button {
+  background: var(--mint);
+  color: #ffffff;
+  border-color: var(--mint);
+  border-radius: 999px;
+  border: none;
+  font-size: 11px;
+}
+
+.score-shape-birdie {
+  background: #d5f1e6;
+  border: 1px solid #9fd6c2;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.score-shape-bogey {
+  background: #ffd5cc;
+  border: 1px solid #f0a693;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.score-shape-doublebogey,
+.score-shape-double-bogey {
+  background: #ffc7c2;
+  border: 1px solid #ef948c;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
+}
+
+.score-shape-par {
+  background: #ece6d8;
+  border: 1px solid #d1c6b2;
+  border-radius: 8px;
+  padding: 2px 6px;
+  display: inline-block;
 }
 
 .golfer-bar-container {
