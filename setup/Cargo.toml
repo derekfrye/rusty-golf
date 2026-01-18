@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1"
 chrono = { version = "0", default-features = false, features = ["clock", "std"] }
+chrono-tz = "0"
 clap = { version = "4", features = ["derive"] }
 indicatif = "0"
 rayon = "1"

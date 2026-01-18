@@ -8,6 +8,7 @@ use std::path::Path;
 
 pub const ESPN_SCOREBOARD_URL: &str = "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=golf&league=pga&region=us&lang=en&contentorigin=espn";
 pub const ESPN_EVENT_URL_PREFIX: &str = "https://site.web.api.espn.com/apis/site/v2/sports/golf/pga/leaderboard/players?region=us&lang=en&event=";
+const ESPN_SCOREBOARD_CACHE_NAME: &str = "scoreboard_header.json";
 
 #[derive(Debug)]
 pub struct MalformedEspnJson;
@@ -42,6 +43,8 @@ pub trait EspnClient: Send + Sync {
     /// # Errors
     /// Returns an error if the cached payload cannot be read or fetched.
     fn fetch_event_json_cached(&self, event_id: i64, cache_dir: &Path) -> Result<Value>;
+    /// Fetch the ESPN scoreboard header payload, using the cache if available.
+    fn fetch_scoreboard_header_cached(&self, cache_dir: &Path) -> Result<Value>;
 }
 
 pub struct HttpEspnClient;
@@ -66,6 +69,10 @@ impl EspnClient for HttpEspnClient {
 
     fn fetch_event_json_cached(&self, event_id: i64, cache_dir: &Path) -> Result<Value> {
         fetch_event_json_cached_http(event_id, cache_dir)
+    }
+
+    fn fetch_scoreboard_header_cached(&self, cache_dir: &Path) -> Result<Value> {
+        fetch_scoreboard_header_cached_http(cache_dir)
     }
 }
 
@@ -156,6 +163,30 @@ fn fetch_event_json_cached_http(event_id: i64, cache_dir: &Path) -> Result<Value
         .context("fetch ESPN event")?
         .text()
         .context("read ESPN event response body")?;
+    let payload: Value =
+        serde_json::from_str(&response).map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+    fs::write(&cache_path, response).with_context(|| format!("write {}", cache_path.display()))?;
+    Ok(payload)
+}
+
+/// Fetch the scoreboard header payload with a local cache.
+///
+/// # Errors
+/// Returns an error if the cache cannot be read/written or ESPN returns bad JSON.
+pub fn fetch_scoreboard_header_cached_http(cache_dir: &Path) -> Result<Value> {
+    let cache_path = cache_dir.join(ESPN_SCOREBOARD_CACHE_NAME);
+    if cache_path.is_file() {
+        let contents = fs::read_to_string(&cache_path)
+            .with_context(|| format!("read {}", cache_path.display()))?;
+        let payload: Value =
+            serde_json::from_str(&contents).map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
+        return Ok(payload);
+    }
+
+    let response = reqwest::blocking::get(ESPN_SCOREBOARD_URL)
+        .context("fetch ESPN scoreboard header")?
+        .text()
+        .context("read ESPN scoreboard header response body")?;
     let payload: Value =
         serde_json::from_str(&response).map_err(|_| anyhow::Error::new(MalformedEspnJson))?;
     fs::write(&cache_path, response).with_context(|| format!("write {}", cache_path.display()))?;
