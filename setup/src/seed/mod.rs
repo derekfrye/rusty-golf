@@ -51,6 +51,17 @@ pub fn seed_kv_from_eup(options: &SeedOptions) -> Result<()> {
         bail!("no events found to seed");
     }
 
+    let mut golfers_by_id = HashMap::new();
+    for event in &events {
+        if let Some(data) = event.data_to_fill_if_event_and_year_missing.first() {
+            for golfer in &data.golfers {
+                golfers_by_id
+                    .entry(golfer.espn_id)
+                    .or_insert_with(|| golfer.name.clone());
+            }
+        }
+    }
+
     let end_dates = match fetch_end_dates() {
         Ok(map) => map,
         Err(err) => {
@@ -65,7 +76,13 @@ pub fn seed_kv_from_eup(options: &SeedOptions) -> Result<()> {
             .end_date
             .as_deref()
             .or_else(|| end_dates.get(&event.event).map(String::as_str));
-        write_event_files(event, options.refresh_from_espn, end_date, temp_dir.path())?;
+        write_event_files(
+            event,
+            options.refresh_from_espn,
+            end_date,
+            &golfers_by_id,
+            temp_dir.path(),
+        )?;
         if let Some(tokens) = options.auth_tokens.as_ref() {
             let event_dir = temp_dir.path().join(event.event.to_string());
             write_auth_tokens(tokens, &event_dir)?;

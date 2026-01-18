@@ -47,6 +47,7 @@ pub(crate) fn write_event_files(
     event: &EupEvent,
     refresh_from_espn: i64,
     end_date: Option<&str>,
+    golfers_by_id: &HashMap<i64, String>,
     root: &Path,
 ) -> Result<()> {
     let data_to_fill = event
@@ -70,9 +71,9 @@ pub(crate) fn write_event_files(
     };
     write_json(&event_dir.join("event_details.json"), &details)?;
 
-    let mut golfers_by_id = HashMap::new();
+    let mut event_golfers_by_id = HashMap::new();
     for golfer in &data_to_fill.golfers {
-        golfers_by_id.insert(golfer.espn_id, golfer.name.as_str());
+        event_golfers_by_id.insert(golfer.espn_id, golfer.name.as_str());
     }
 
     let mut bettor_counts: HashMap<&str, usize> = HashMap::new();
@@ -82,13 +83,17 @@ pub(crate) fn write_event_files(
         let count = bettor_counts.entry(entry.bettor.as_str()).or_insert(0);
         *count += 1;
 
-        let golfer_name = golfers_by_id.get(&entry.golfer_espn_id).ok_or_else(|| {
-            anyhow!(
-                "missing golfer_espn_id {} in golfers list for event {}",
-                entry.golfer_espn_id,
-                event.event
-            )
-        })?;
+        let golfer_name = event_golfers_by_id
+            .get(&entry.golfer_espn_id)
+            .copied()
+            .or_else(|| golfers_by_id.get(&entry.golfer_espn_id).map(String::as_str))
+            .ok_or_else(|| {
+                anyhow!(
+                    "missing golfer_espn_id {} in golfers list for event {}",
+                    entry.golfer_espn_id,
+                    event.event
+                )
+            })?;
 
         golfers_out.push(GolferOut {
             eup_id,
