@@ -6,15 +6,19 @@ use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-pub fn write_event_payload(
+/// Build the EUP JSON payload with the new event appended.
+///
+/// # Errors
+/// Returns an error if the existing EUP JSON cannot be read or if the payload
+/// cannot be serialized.
+pub fn build_event_payload_string(
     state: &ReplState,
-    output_path: &Path,
     event_id: i64,
     event_name: &str,
     golfers: &[(String, i64)],
     bettors: &[String],
     selections: &[GolferSelection],
-) -> Result<()> {
+) -> Result<String> {
     let existing = load_eup_json(state)?;
     let year = chrono::Utc::now().year();
     let event_user_player = build_event_user_player(selections);
@@ -31,6 +35,30 @@ pub fn write_event_payload(
     let mut payload = existing;
     payload.push(new_event);
     let serialized = serde_json::to_string_pretty(&payload)?;
+    Ok(serialized)
+}
+
+/// Write the EUP JSON payload with the new event appended.
+///
+/// # Errors
+/// Returns an error if the payload cannot be built or written.
+pub fn write_event_payload(
+    state: &ReplState,
+    output_path: &Path,
+    event_id: i64,
+    event_name: &str,
+    golfers: &[(String, i64)],
+    bettors: &[String],
+    selections: &[GolferSelection],
+) -> Result<()> {
+    let serialized = build_event_payload_string(
+        state,
+        event_id,
+        event_name,
+        golfers,
+        bettors,
+        selections,
+    )?;
     std::fs::write(output_path, serialized)
         .with_context(|| format!("write {}", output_path.display()))?;
     println!("Wrote {}", output_path.display());

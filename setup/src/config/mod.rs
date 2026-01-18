@@ -26,12 +26,14 @@ pub enum AppMode {
     NewEvent {
         eup_json: Option<std::path::PathBuf>,
         output_json: Option<std::path::PathBuf>,
+        output_json_stdout: bool,
         one_shot: bool,
         event_id: Option<i64>,
         golfers_by_bettor: Option<Vec<GolferByBettorInput>>,
     },
     GetEventDetails {
-        output_json: std::path::PathBuf,
+        output_json: Option<std::path::PathBuf>,
+        output_json_stdout: bool,
         event_ids: Option<Vec<i64>>,
     },
 }

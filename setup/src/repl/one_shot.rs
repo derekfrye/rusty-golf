@@ -1,7 +1,7 @@
 use crate::config::GolferByBettorInput;
 use crate::event_details::{EventDetailsRow, build_event_details_row};
 use crate::espn::EspnClient;
-use crate::repl::payload::write_event_payload;
+use crate::repl::payload::{build_event_payload_string, write_event_payload};
 use crate::repl::state::{
     GolferSelection, ReplState, ensure_list_events, eup_event_exists, load_event_golfers,
 };
@@ -18,11 +18,19 @@ use std::sync::Arc;
 /// Returns an error if the event data cannot be loaded or written.
 pub fn run_new_event_one_shot(
     eup_json: Option<PathBuf>,
-    output_json: &Path,
+    output_json: Option<&Path>,
+    output_json_stdout: bool,
     event_id: i64,
     golfers_by_bettor: Vec<GolferByBettorInput>,
 ) -> Result<()> {
-    run_new_event_one_shot_with_client(eup_json, output_json, event_id, golfers_by_bettor, None)
+    run_new_event_one_shot_with_client(
+        eup_json,
+        output_json,
+        output_json_stdout,
+        event_id,
+        golfers_by_bettor,
+        None,
+    )
 }
 
 /// Run the one-shot event details flow.
@@ -30,10 +38,11 @@ pub fn run_new_event_one_shot(
 /// # Errors
 /// Returns an error if event details cannot be fetched or written.
 pub fn run_get_event_details_one_shot(
-    output_json: &Path,
+    output_json: Option<&Path>,
+    output_json_stdout: bool,
     event_ids: Option<Vec<i64>>,
 ) -> Result<()> {
-    run_get_event_details_one_shot_with_client(output_json, event_ids, None)
+    run_get_event_details_one_shot_with_client(output_json, output_json_stdout, event_ids, None)
 }
 
 /// Run the one-shot event details flow with an injected ESPN client.
@@ -41,7 +50,8 @@ pub fn run_get_event_details_one_shot(
 /// # Errors
 /// Returns an error if event details cannot be fetched or written.
 pub fn run_get_event_details_one_shot_with_client(
-    output_json: &Path,
+    output_json: Option<&Path>,
+    output_json_stdout: bool,
     event_ids: Option<Vec<i64>>,
     espn: Option<Arc<dyn EspnClient>>,
 ) -> Result<()> {
@@ -84,7 +94,7 @@ pub fn run_get_event_details_one_shot_with_client(
         }
     }
 
-    write_event_details(output_json, &rows)
+    write_event_details(output_json, output_json_stdout, &rows)
 }
 
 /// Run the one-shot event setup flow with an injected ESPN client.
@@ -93,16 +103,17 @@ pub fn run_get_event_details_one_shot_with_client(
 /// Returns an error if the event data cannot be loaded or written.
 pub fn run_new_event_one_shot_with_client(
     eup_json: Option<PathBuf>,
-    output_json: &Path,
+    output_json: Option<&Path>,
+    output_json_stdout: bool,
     event_id: i64,
     golfers_by_bettor: Vec<GolferByBettorInput>,
     espn: Option<Arc<dyn EspnClient>>,
 ) -> Result<()> {
-    let output_json_path = output_json.to_path_buf();
+    let output_json_path = output_json.map(Path::to_path_buf);
     let mut state = match espn {
-        Some(client) => ReplState::new_with_client(eup_json, Some(output_json_path), client)
+        Some(client) => ReplState::new_with_client(eup_json, output_json_path, client)
             .context("init repl state")?,
-        None => ReplState::new(eup_json, Some(output_json_path)).context("init repl state")?,
+        None => ReplState::new(eup_json, output_json_path).context("init repl state")?,
     };
     let events = ensure_list_events(&mut state, false, true)?;
     if events.is_empty() {
@@ -138,6 +149,21 @@ pub fn run_new_event_one_shot_with_client(
         });
     }
 
+    if output_json_stdout {
+        let payload = build_event_payload_string(
+            &state,
+            event_id,
+            &event_name,
+            &golfers,
+            &bettors,
+            &selections,
+        )?;
+        println!("{payload}");
+        return Ok(());
+    }
+    let Some(output_json) = output_json else {
+        return Err(anyhow!("missing output path for new event payload"));
+    };
     write_event_payload(
         &state,
         output_json,
@@ -163,8 +189,19 @@ fn match_golfer_exact(golfers: &[(String, i64)], golfer: &str) -> Result<i64> {
     ))
 }
 
-fn write_event_details(path: &Path, rows: &[EventDetailsRow]) -> Result<()> {
+fn write_event_details(
+    path: Option<&Path>,
+    output_json_stdout: bool,
+    rows: &[EventDetailsRow],
+) -> Result<()> {
     let payload = to_string_pretty(rows).context("serialize event details")?;
+    if output_json_stdout {
+        println!("{payload}");
+        return Ok(());
+    }
+    let Some(path) = path else {
+        return Err(anyhow!("missing output path for event details"));
+    };
     fs::write(path, payload).with_context(|| format!("write {}", path.display()))?;
     Ok(())
 }

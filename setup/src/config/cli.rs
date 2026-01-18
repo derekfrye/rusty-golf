@@ -39,6 +39,8 @@ pub struct Cli {
     #[arg(long)]
     pub output_json: Option<PathBuf>,
     #[arg(long)]
+    pub output_json_stdout: bool,
+    #[arg(long)]
     pub golfers_by_bettor: Option<String>,
 }
 
@@ -58,6 +60,7 @@ pub(crate) struct FileConfig {
     pub wrangler_log_dir: Option<PathBuf>,
     pub wrangler_config_dir: Option<PathBuf>,
     pub output_json: Option<PathBuf>,
+    pub output_json_stdout: Option<bool>,
     #[serde(rename = "one-shot")]
     pub one_shot: Option<bool>,
     #[serde(rename = "golfers-by-bettor")]

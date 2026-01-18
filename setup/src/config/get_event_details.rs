@@ -16,8 +16,13 @@ pub(crate) fn build_get_event_details_mode(cli: &Cli, file_config: &FileConfig) 
     let output_json = cli
         .output_json
         .clone()
-        .or_else(|| file_config.output_json.clone())
-        .ok_or_else(|| anyhow!("missing --output-json for --mode=get_event_details"))?;
+        .or_else(|| file_config.output_json.clone());
+    let output_json_stdout = cli.output_json_stdout || file_config.output_json_stdout.unwrap_or(false);
+    if output_json.is_none() && !output_json_stdout {
+        return Err(anyhow!(
+            "missing --output-json or --output-json-stdout for --mode=get_event_details"
+        ));
+    }
 
     let event_id_input = resolve_event_id_input(cli, file_config);
     let event_ids = event_id_input
@@ -27,6 +32,7 @@ pub(crate) fn build_get_event_details_mode(cli: &Cli, file_config: &FileConfig) 
 
     Ok(AppMode::GetEventDetails {
         output_json,
+        output_json_stdout,
         event_ids,
     })
 }

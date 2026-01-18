@@ -13,23 +13,30 @@ fn main() -> Result<()> {
         AppMode::NewEvent {
             eup_json,
             output_json,
+            output_json_stdout,
             one_shot,
             event_id,
             golfers_by_bettor,
         } => {
             if one_shot {
                 let event_id = event_id.expect("event_id required for one-shot");
-                let output_json = output_json.expect("output_json required for one-shot");
                 let golfers_by_bettor =
                     golfers_by_bettor.expect("golfers_by_bettor required for one-shot");
-                run_new_event_one_shot(eup_json, &output_json, event_id, golfers_by_bettor)
+                run_new_event_one_shot(
+                    eup_json,
+                    output_json.as_deref(),
+                    output_json_stdout,
+                    event_id,
+                    golfers_by_bettor,
+                )
             } else {
                 run_new_event_repl(eup_json, output_json)
             }
         }
         AppMode::GetEventDetails {
             output_json,
+            output_json_stdout,
             event_ids,
-        } => run_get_event_details_one_shot(&output_json, event_ids),
+        } => run_get_event_details_one_shot(output_json.as_deref(), output_json_stdout, event_ids),
     }
 }

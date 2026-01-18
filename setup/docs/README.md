@@ -31,6 +31,7 @@ Optional args:
 - `--wrangler-kv-flag` Overrides `--wrangler-flag` for KV commands (repeatable).
 - `--wrangler-log-dir` Directory for wrangler logs (sets `WRANGLER_LOG_DIR`).
 - `--wrangler-config-dir` Directory for wrangler config (sets `XDG_CONFIG_HOME`).
+- `--output-json-stdout` Write one-shot JSON output to stdout instead of a file.
 
 Example:
 
@@ -114,14 +115,19 @@ Subcommands:
 
 - Exits the REPL.
 
+One-shot (`--mode new_event --one-shot`) writes JSON to `--output-json` unless
+`--output-json-stdout` is set.
+
 ## Mode `get_event_details`
 
-This mode is non-interactive and requires `--one-shot` and `--output-json`.
+This mode is non-interactive and requires `--one-shot` plus `--output-json` or
+`--output-json-stdout`.
 
 - If `--event-id` is provided, it is parsed as CSV/space-separated ids and used directly.
 - If `--event-id` is omitted, it fetches the live ESPN event list and emits details for all of
   those events.
 - Output is a JSON array of `{ event_id, event_name, start_date, end_date }`.
+  Use `--output-json-stdout` to print the JSON instead of writing a file.
 
 ## Config file
 

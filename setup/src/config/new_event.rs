@@ -13,6 +13,8 @@ pub(crate) fn build_new_event_mode(cli: &Cli, file_config: &FileConfig) -> Resul
         .output_json
         .clone()
         .or_else(|| file_config.output_json.clone());
+    let output_json_stdout =
+        (cli.output_json_stdout || file_config.output_json_stdout.unwrap_or(false)) && one_shot;
     let event_id_input = resolve_event_id_input(cli, file_config);
     let event_id = event_id_input
         .as_deref()
@@ -24,8 +26,10 @@ pub(crate) fn build_new_event_mode(cli: &Cli, file_config: &FileConfig) -> Resul
         if event_id.is_none() {
             return Err(anyhow!("missing --event-id for --one-shot"));
         }
-        if output_json.is_none() {
-            return Err(anyhow!("missing --output-json for --one-shot"));
+        if output_json.is_none() && !output_json_stdout {
+            return Err(anyhow!(
+                "missing --output-json or --output-json-stdout for --one-shot"
+            ));
         }
         if golfers_by_bettor.is_none() {
             return Err(anyhow!("missing --golfers-by-bettor for --one-shot"));
@@ -38,6 +42,7 @@ pub(crate) fn build_new_event_mode(cli: &Cli, file_config: &FileConfig) -> Resul
             .clone()
             .or_else(|| file_config.eup_json.clone()),
         output_json,
+        output_json_stdout,
         one_shot,
         event_id,
         golfers_by_bettor,
