@@ -1,5 +1,5 @@
 const storageKey = 'theme-preference'
-const themes = ['classic', 'modern', 'dark']
+const themes = ['classic', 'modern']
 
 const onClick = () => {
   // flip current value
@@ -15,9 +15,7 @@ const getColorPreference = () => {
   if (stored && themes.includes(stored))
     return stored
   else
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'modern'
+    return 'modern'
 }
 
 const setPreference = () => {
@@ -68,8 +66,8 @@ window.onload = () => {
 // sync with system changes
 window
   .matchMedia('(prefers-color-scheme: dark)')
-  .addEventListener('change', ({matches:isDark}) => {
-    theme.value = isDark ? 'dark' : 'modern'
+  .addEventListener('change', () => {
+    theme.value = 'modern'
     setPreference()
   })
         

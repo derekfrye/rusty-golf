@@ -45,19 +45,26 @@ pub fn render_index_template(title: &str) -> Markup {
             script src="static/scores.js" defer {}
             script src="static/ex.js" defer {}
         }
-        body {
-            div class="switches" {
-                button class="theme-toggle" id="theme-toggle" title="Toggles classic & modern" aria-label="auto" aria-live="polite" {
-                    span class="theme-label" { "Theme:" }
-                    span class="theme-toggle-text theme-toggle-classic" { "classic" }
-                    span class="theme-toggle-text theme-toggle-text-modern" { "modern" }
+        body class="alt-zen" {
+            div class="paper-bg" aria-hidden="true" {}
+            div class="page" {
+                div class="switches" {
+                    button class="theme-toggle" id="theme-toggle" title="Toggles classic & modern" aria-label="auto" aria-live="polite" {
+                        span class="theme-label" { "Theme:" }
+                        span class="theme-toggle-text" id="theme-toggle-text" { "classic" }
+                    }
                 }
-            }
-            h1 {
-                (title)
-            }
-            div id="scores" {
-                img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
+                main class="content" {
+                    section class="panel" {
+                        div class="golf-ball-overlay" aria-hidden="true" {}
+                        h1 {
+                            (title)
+                        }
+                        div id="scores" {
+                            img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
+                        }
+                    }
+                }
             }
         }
     }

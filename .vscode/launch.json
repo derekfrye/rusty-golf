@@ -9,11 +9,11 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=rusty-golf",
-                    "--package=rusty-golf",
+                    "--bin=rusty-golf-actix",
+                    "--package=rusty-golf-actix",
                 ],
                 "filter": {
-                    "name": "rusty-golf",
+                    "name": "rusty-golf-actix",
                     "kind": "bin"
                 }
             },
@@ -22,7 +22,7 @@
                 // "--db-name=file::memory:?cache=shared",
                 "--db-name=xxx",
                 "--db-startup-script=actix/src/sql/schema/sqlite/00_event.sql;actix/src/sql/schema/sqlite/02_golfer.sql;actix/src/sql/schema/sqlite/03_bettor.sql;actix/src/sql/schema/sqlite/04_event_user_player.sql;actix/src/sql/schema/sqlite/05_eup_statistic.sql",
-                "--db-populate-json=tests/tests/test5_dbprefill.json",
+                "--db-populate-json=tests/tests/test05_dbprefill.json",
             ],
             "cwd": "${workspaceFolder}",
         },
@@ -34,11 +34,11 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=rusty-golf",
-                    "--package=rusty-golf"
+                    "--bin=rusty-golf-actix",
+                    "--package=rusty-golf-actix"
                 ],
                 "filter": {
-                    "name": "rusty-golf",
+                    "name": "rusty-golf-actix",
                     "kind": "bin"
                 }
             },
