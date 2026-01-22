@@ -55,14 +55,11 @@ pub fn render_index_template(title: &str) -> Markup {
                     }
                 }
                 main class="content" {
-                    section class="panel" {
-                        div class="golf-ball-overlay" aria-hidden="true" {}
-                        h1 {
-                            (title)
-                        }
-                        div id="scores" {
-                            img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
-                        }
+                    h1 {
+                        (title)
+                    }
+                    div id="scores" {
+                        img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
                     }
                 }
             }

@@ -32,13 +32,15 @@
 </head>
 
 <body class="alt-zen">
+    <div class="paper-bg" aria-hidden="true"></div>
+     <div class="page">
     <div class="switches">
         <button class="theme-toggle" id="theme-toggle" title="Toggles classic &amp; modern"
-            aria-label="classic" aria-live="polite"><span class="theme-label">Theme:</span><span
-                class="theme-toggle-text theme-toggle-classic">classic</span><span
-                class="theme-toggle-text theme-toggle-text-modern">modern</span></button></div>
-    <h1>The Open 2025</h1>
-    <div id="scores" class="">
+            aria-label="classic" aria-live="polite"><span class="theme-label">Theme:</span><span class="theme-toggle-text" id="theme-toggle-text">classic</span></button></div>
+     <main class="content">
+      <h1>The Open 2025</h1>
+      <section class="panel linescore-panel">
+        <div class="golf-ball-overlay" aria-hidden="true"></div>
         <h3>Scoreboard</h3>
         <table class="styled-table">
             <thead>
@@ -427,6 +429,8 @@
                 </div>
             </div>
         </div>
+      </section>
+      <section class="panel">
         <div id="linescore" hx-get="scores/linescore?event=401703521&amp;yr=2025&amp;cache=1&amp;expanded=0"
             hx-trigger="load" hx-swap="innerHTML" class="">
             <h3 class="playerbars">Score by Golfer</h3>
@@ -6120,6 +6124,8 @@
             </div>
             <p class="refresh">Last refreshed from database 2 days ago.</p>
         </div>
+    </section>
+    </main>
     </div>
 </body>
 

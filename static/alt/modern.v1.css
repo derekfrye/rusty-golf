@@ -97,6 +97,14 @@ body.alt-zen {
   margin-top: 28px;
   display: grid;
   gap: 28px;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#scores {
+  min-width: 0;
+  display: grid;
+  gap: 28px;
 }
 
 .panel {
@@ -106,6 +114,14 @@ body.alt-zen {
   background: var(--surface-1);
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  min-width: 0;
+  width: 100%;
+}
+
+.linescore-panel {
+  width: 100%;
+  overflow-x: auto;
+  min-width: 0;
 }
 
 .golf-ball-overlay {
@@ -126,6 +142,7 @@ body.alt-zen {
   text-transform: uppercase;
   font-size: 0.8rem;
   letter-spacing: 0.08em;
+  /* table-layout: fixed; */
 }
 
 .styled-table thead th {
@@ -139,6 +156,11 @@ body.alt-zen {
   padding: 12px;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
+
+/* .styled-table th,
+.styled-table td {
+  overflow-wrap: anywhere;
+} */
 
 .styled-table tbody tr:nth-child(odd) {
   background: rgba(255, 107, 74, 0.04);
@@ -159,6 +181,14 @@ body.alt-zen {
 
 .drop-down-bar-chart {
   margin-top: 16px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.chart-container {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .player-selection {
@@ -284,6 +314,7 @@ body.alt-zen {
   align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  min-width: 0;
 }
 
 .golfer-label {
@@ -301,6 +332,8 @@ body.alt-zen {
   background: var(--surface-2);
   border-radius: 12px;
   padding: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .progress-bar {
@@ -309,12 +342,13 @@ body.alt-zen {
   border-radius: 999px;
   background: var(--surface-2);
   overflow: hidden;
+  min-width: 0;
 }
 
 .centerline.horizontal-line {
   position: absolute;
-  inset: 0;
-  margin: auto;
+  top: 0;
+  bottom: 0;
   width: 2px;
   height: 100%;
   background: rgba(15, 23, 42, 0.1);
@@ -381,11 +415,49 @@ body.alt-zen {
     padding: 20px 20px;
   }
 
-  .panel {
+  /* .panel {
     padding: 22px 18px 24px;
-  }
+  } */
 
   .golfer-bar-container {
     grid-template-columns: 1fr;
+  }
+
+  .styled-table {
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+  }
+
+  /* .styled-table thead th,
+  .styled-table tbody td {
+    padding: 8px 8px;
+  } */
+
+  .playerbars {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+  }
+
+  .player-selection {
+    gap: 8px;
+  }
+
+  .player-button {
+    font-size: 0.7rem;
+    padding: 5px 10px;
+    letter-spacing: 0.1em;
+  }
+
+  .golfer-label {
+    /* width: min(12ch, 35vw); */
+    font-size: 0.8rem;
+  }
+
+  .bar-row {
+    padding: 6px;
+  }
+
+  .bar {
+    font-size: 0.6rem;
   }
 }
