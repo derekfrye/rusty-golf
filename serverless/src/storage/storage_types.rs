@@ -10,6 +10,7 @@ use rusty_golf_core::model::Scores;
 pub struct EventListing {
     pub event_id: i32,
     pub event_name: String,
+    pub year: Option<i32>,
     pub score_view_step_factor: f32,
     pub refresh_from_espn: i64,
 }

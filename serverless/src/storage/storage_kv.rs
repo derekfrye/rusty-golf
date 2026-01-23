@@ -181,9 +181,11 @@ impl ServerlessStorage {
                 None => continue,
             };
             let doc: EventDetailsDoc = self.kv_get_json(&key).await?;
+            let year = parse_year_from_end_date(doc.end_date.as_deref());
             entries.push(EventListing {
                 event_id,
                 event_name: doc.event_name,
+                year,
                 score_view_step_factor: doc.score_view_step_factor,
                 refresh_from_espn: doc.refresh_from_espn,
             });
@@ -208,4 +210,16 @@ impl ServerlessStorage {
         }
         Ok(false)
     }
+}
+
+fn parse_year_from_end_date(end_date: Option<&str>) -> Option<i32> {
+    let value = end_date?.trim();
+    if value.len() < 4 {
+        return None;
+    }
+    let year_bytes = value.as_bytes();
+    if !year_bytes[..4].iter().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    value[..4].parse().ok()
 }

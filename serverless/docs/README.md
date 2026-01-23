@@ -23,7 +23,7 @@ Notes:
 Use `setup` to seed event details, golfers, and player_factors into the KV
 namespace configured in `serverless/wrangler.toml`. You only have to seed KV; on first run the `-serverless` app will store data in R2.
 
-Usage:
+Example:
 ```bash
 cargo run -p setup -- \
   --eup-json ~/docker/golf/eup.json \
@@ -34,6 +34,17 @@ cargo run -p setup -- \
   --wrangler-flag --remote \
   --wrangler-flag --preview \
   --wrangler-flag false
+```
+
+Example:
+```bash
+cargo run -p rusty-golf-setup -- \
+  --eup-json ~/docker/golf/eup.json \
+  --kv-env prod \
+  --wrangler-config serverless/wrangler.toml \
+  --wrangler-env prod \
+  --auth-tokens "xyz" \
+  --mode seed
 ```
 
 Notes:
@@ -56,7 +67,7 @@ Example:
 ```
 
 If `ADMIN_ENABLED=1` and the `x-admin-token` header matches `ADMIN_TOKEN` (from `.dev.vars` in
-Miniflare), `/listing` returns a JSON payload with KV and R2 keys for debugging:
+Miniflare), `/listing` further returns a JSON payload with KV and R2 keys for debugging:
 
 ```bash
 curl -H "x-admin-token: $MINIFLARE_ADMIN_TOKEN" \

@@ -122,15 +122,24 @@ fn render_listing(entries: Vec<EventListing>) -> Markup {
                             tr {
                                 th { "Event ID" }
                                 th { "Event Name" }
+                                th { "Link" }
                                 th { "Step Factor" }
                                 th { "Refresh" }
                             }
                         }
                         tbody {
                             @for entry in entries {
+                                @let link = entry.year.map(|year| format!("/?event={}&yr={}", entry.event_id, year));
                                 tr {
                                     td { (entry.event_id) }
                                     td { (entry.event_name) }
+                                    td {
+                                        @if let Some(url) = link {
+                                            a href=(url) { "Open" }
+                                        } @else {
+                                            "n/a"
+                                        }
+                                    }
                                     td { (entry.score_view_step_factor) }
                                     td { (entry.refresh_from_espn) }
                                 }

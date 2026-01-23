@@ -36,7 +36,7 @@ pub fn render_index_template(title: &str) -> Markup {
         head{
             meta charset="UTF-8";
             meta name="viewport" content="width=device-width, initial-scale=1.0";
-            link id="theme-stylesheet" rel="stylesheet" type="text/css" href="static/alt/modern.v2.css" data-theme-modern="static/alt/modern.v2.css" data-theme-classic="static/styles.v2.css";
+            link id="theme-stylesheet" rel="stylesheet" type="text/css" href="static/alt/modern.v3.css" data-theme-modern="static/alt/modern.v3.css" data-theme-classic="static/styles.v2.css";
             link rel="stylesheet" href="static/ex.css";
             title { (title) }
             script src=(HTMX_PATH) defer integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous" {}

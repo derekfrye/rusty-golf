@@ -19,9 +19,15 @@ pub fn render_scoreboard(data: &ScoreData) -> Markup {
                     }
                 }
                 tbody {
-                    @for bettor in grouped_bettors {
+                    @for (idx, bettor) in grouped_bettors.iter().enumerate() {
+                        @let emoji = rank_emoji(idx);
                         tr {
-                            td { (bettor.scoreboard_position_name) }
+                            td {
+                                (bettor.scoreboard_position_name)
+                                @if let Some(mark) = emoji {
+                                    " " (mark)
+                                }
+                            }
                             td { (bettor.bettor_name) }
                             td { (bettor.total_score) }
                         }
@@ -65,5 +71,16 @@ pub fn render_scoreboard(data: &ScoreData) -> Markup {
                 }
             }
         }
+    }
+}
+
+fn rank_emoji(index: usize) -> Option<&'static str> {
+    match index {
+        0 => Some("🥇"),
+        1 => Some("🥈"),
+        2 => Some("🥉"),
+        3 => Some("😐"),
+        4 => Some("🪨"),
+        _ => None,
     }
 }
