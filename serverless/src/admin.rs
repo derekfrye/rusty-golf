@@ -1,18 +1,15 @@
 #![cfg(target_arch = "wasm32")]
 
-use worker::{Env, Request, Response, Result, RouteContext};
+use worker::{Request, Response, Result, RouteContext};
 
-use self::admin_auth::admin_auth_response;
-use self::admin_types::{
+use crate::admin_auth::admin_auth_response;
+use crate::admin_types::{
     AdminCleanupRequest, AdminCleanupScoresRequest, AdminEndDateRequest, AdminEspnFailRequest,
     AdminEventSelector, AdminTestLockRequest, AdminTestLockResponse, AdminTestUnlockRequest,
     AdminTestUnlockResponse,
 };
 use crate::storage::{AdminSeedRequest, TestLockMode};
 use crate::utils::storage_from_env;
-
-mod admin_auth;
-mod admin_types;
 
 pub async fn admin_seed_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     if let Some(resp) = admin_auth_response(&req, &ctx.env)? {

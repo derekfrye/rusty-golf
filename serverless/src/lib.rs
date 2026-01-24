@@ -1,6 +1,10 @@
 #[cfg(target_arch = "wasm32")]
 mod admin;
 #[cfg(target_arch = "wasm32")]
+mod admin_auth;
+#[cfg(target_arch = "wasm32")]
+mod admin_types;
+#[cfg(target_arch = "wasm32")]
 mod espn_client;
 #[cfg(target_arch = "wasm32")]
 mod index;
