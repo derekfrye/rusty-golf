@@ -155,7 +155,13 @@ pub async fn fetch_scores_from_espn_with_timing(
         let cached = timed!(
             timing,
             "cache.load_cached_scores_ms",
-            crate::score::context::load_cached_scores(storage, event_id, cache_max_age).await
+            crate::score::context::load_cached_scores(
+                storage,
+                event_id,
+                cache_max_age,
+                timing,
+            )
+            .await
         )?;
         if let Some(cached) = cached {
             return Ok((cached, true));

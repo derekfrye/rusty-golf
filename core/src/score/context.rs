@@ -227,13 +227,22 @@ pub async fn load_cached_scores(
     storage: &dyn Storage,
     event_id: i32,
     max_age_seconds: i64,
+    timing: Option<&dyn TimingSink>,
 ) -> Result<Option<ScoresAndLastRefresh>, CoreError> {
-    if storage
-        .event_and_scores_already_in_db(event_id, max_age_seconds)
-        .await
-        .unwrap_or(false)
-    {
-        match storage.get_scores(event_id, RefreshSource::Db).await {
+    let has_fresh_scores = timed!(
+        timing,
+        "cache.event_and_scores_fresh_ms",
+        storage
+            .event_and_scores_already_in_db(event_id, max_age_seconds)
+            .await
+            .unwrap_or(false)
+    );
+    if has_fresh_scores {
+        match timed!(
+            timing,
+            "cache.get_scores_ms",
+            storage.get_scores(event_id, RefreshSource::Db).await
+        ) {
             Ok(scores) => Ok(Some(scores)),
             Err(_) => Ok(None),
         }

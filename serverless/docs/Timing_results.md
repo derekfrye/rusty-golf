@@ -51,6 +51,35 @@ avoid R2 reads or shrink the payload:
 - Optional: store a compressed payload (gz) and decode in the Worker. This trades a small CPU cost
   for lower transfer time; only worth it if payloads are large and CPU headroom exists.
 
+## Cache Status Endpoint
+
+Admin endpoint to inspect cache presence/TTLs for a given event/year. Authorized if either the
+`x-instrument-token` header is valid or a seeded `auth_token` is provided.
+
+Example usage:
+
+```bash
+curl -H "x-instrument-token: $TOKEN" \
+  "https://golfdev.dfrye.io/admin/cache_status?event=401703515&yr=2025"
+```
+
+```bash
+curl "https://golfdev.dfrye.io/admin/cache_status?event=401703515&yr=2025&auth_token=$AUTH_TOKEN"
+```
+
+Response shape:
+
+```json
+{
+  "event_id": 401703515,
+  "year": 2025,
+  "in_memory": { "exists": true, "remaining_ttl_seconds": 18 },
+  "kv": { "exists": true, "remaining_ttl_seconds": 244 },
+  "r2": { "exists": true, "remaining_ttl_seconds": null },
+  "keys": { "kv": "event:401703515:scores_cache", "r2_scores": "events/401703515/scores.json" }
+}
+```
+
 ## Parsing Script
 
 ```bash

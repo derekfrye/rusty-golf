@@ -5,11 +5,17 @@ use chrono::Utc;
 use rusty_golf_core::model::score::Statistic;
 use rusty_golf_core::model::{RefreshSource, Scores, ScoresAndLastRefresh};
 use rusty_golf_core::storage::{EventDetails, Storage, StorageError};
+use rusty_golf_core::timed;
+use rusty_golf_core::timing::{record_timing, start_timing};
 use std::collections::HashMap;
 
 use super::storage_helpers::{format_rfc3339, parse_rfc3339};
 use super::storage_types::{
     EventDetailsDoc, GolferAssignment, LastRefreshDoc, PlayerFactorEntry, SeededAtDoc,
+};
+use crate::storage::storage_cache::{
+    build_kv_scores_entry, get_in_memory_scores, parse_kv_scores_entry, set_in_memory_scores,
+    KV_SCORES_TTL_SECONDS,
 };
 use crate::storage::ServerlessStorage;
 
@@ -69,7 +75,45 @@ impl Storage for ServerlessStorage {
         source: RefreshSource,
     ) -> Result<ScoresAndLastRefresh, StorageError> {
         let key = Self::scores_key(event_id);
+        let timing = self.timing();
+        let in_memory_start = start_timing();
+        let in_memory = get_in_memory_scores(event_id);
+        if let Some(mut scores) = in_memory {
+            record_timing(timing, "cache.in_memory_hit_ms", in_memory_start);
+            scores.last_refresh_source = source;
+            return Ok(scores);
+        }
+        record_timing(timing, "cache.in_memory_miss_ms", in_memory_start);
+
+        let kv_key = Self::kv_scores_cache_key(event_id);
+        let kv_start = start_timing();
+        let kv_text = self.kv_get_optional_text(&kv_key).await?;
+        let kv_cached = match kv_text {
+            Some(text) => timed!(
+                timing,
+                "storage.kv_get_optional_parse_ms",
+                parse_kv_scores_entry(&text).map(|(scores, _)| scores)
+            )
+            .ok(),
+            None => None,
+        };
+        if let Some(mut scores) = timed!(timing, "cache.kv_scores_ms", kv_cached) {
+            record_timing(timing, "cache.kv_hit_ms", kv_start);
+            set_in_memory_scores(event_id, &scores);
+            scores.last_refresh_source = source;
+            return Ok(scores);
+        }
+        record_timing(timing, "cache.kv_miss_ms", kv_start);
+
         let mut scores: ScoresAndLastRefresh = self.r2_get_json(&key).await?;
+        let kv_entry = build_kv_scores_entry(&scores);
+        let _ = timed!(
+            timing,
+            "cache.kv_fill_ms",
+            self.kv_put_json_with_ttl(&kv_key, &kv_entry, KV_SCORES_TTL_SECONDS)
+                .await
+        );
+        set_in_memory_scores(event_id, &scores);
         scores.last_refresh_source = source;
         Ok(scores)
     }
@@ -83,6 +127,11 @@ impl Storage for ServerlessStorage {
         };
         let key = Self::scores_key(event_id);
         self.r2_put_json(&key, &payload).await?;
+        let kv_key = Self::kv_scores_cache_key(event_id);
+        let kv_entry = build_kv_scores_entry(&payload);
+        self.kv_put_json_with_ttl(&kv_key, &kv_entry, KV_SCORES_TTL_SECONDS)
+            .await?;
+        set_in_memory_scores(event_id, &payload);
 
         let last_refresh = LastRefreshDoc {
             ts: format_rfc3339(now),
@@ -104,19 +153,17 @@ impl Storage for ServerlessStorage {
         event_id: i32,
         max_age_seconds: i64,
     ) -> Result<bool, StorageError> {
+        let timing = self.timing();
         if max_age_seconds <= 0 {
             return Ok(false);
         }
         let details_key = Self::kv_event_details_key(event_id);
-        if self
-            .kv
-            .get(&details_key)
-            .text()
-            .await
-            .ok()
-            .flatten()
-            .is_none()
-        {
+        let details_text = timed!(
+            timing,
+            "storage.kv_event_details_exists_ms",
+            self.kv.get(&details_key).text().await
+        );
+        if details_text.ok().flatten().is_none() {
             return Ok(false);
         }
 

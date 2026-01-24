@@ -10,6 +10,7 @@ use super::storage_admin_seed_helpers::{
 use super::storage_helpers::format_rfc3339;
 use super::storage_types::{AdminSeedRequest, AuthTokensDoc, LastRefreshDoc, SeededAtDoc};
 use crate::storage::ServerlessStorage;
+use crate::storage::storage_cache::clear_in_memory_scores;
 
 impl ServerlessStorage {
     pub async fn admin_seed_event(&self, request: AdminSeedRequest) -> Result<(), StorageError> {
@@ -47,6 +48,7 @@ impl ServerlessStorage {
             Self::kv_golfers_key(event_id),
             Self::kv_player_factors_key(event_id),
             Self::kv_last_refresh_key(event_id),
+            Self::kv_scores_cache_key(event_id),
             Self::kv_seeded_at_key(event_id, "details"),
             Self::kv_seeded_at_key(event_id, "golfers"),
             Self::kv_seeded_at_key(event_id, "player_factors"),
@@ -66,6 +68,7 @@ impl ServerlessStorage {
         let cache_key = Self::espn_cache_key(event_id);
         let _ = self.bucket.delete(scores_key).await;
         let _ = self.bucket.delete(cache_key).await;
+        clear_in_memory_scores(event_id);
         Ok(())
     }
 
