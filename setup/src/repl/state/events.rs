@@ -4,7 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use super::ReplState;
+use super::{ReplState, list_kv_events};
 use super::cache::warm_event_cache;
 use super::eup::read_eup_event_ids;
 
@@ -54,11 +54,34 @@ pub(crate) fn ensure_list_events(
         events.insert(id, name);
     }
 
+    match list_kv_events(state) {
+        Ok(Some(kv_events)) => {
+            for (event_id, name) in kv_events {
+                let id = event_id.to_string();
+                if let Some(name) = name {
+                    events.insert(id, name);
+                } else {
+                    events.entry(id).or_insert_with(String::new);
+                }
+            }
+        }
+        Ok(None) => {}
+        Err(err) => {
+            println!("Warning: failed to list KV events: {err}");
+        }
+    }
+
     if let Some(path) = state.eup_json_path.as_ref() {
         let eup_event_ids = read_eup_event_ids(path)?;
         missing_ids = eup_event_ids
             .into_iter()
-            .filter(|event_id| !events.contains_key(&event_id.to_string()))
+            .filter(|event_id| {
+                let key = event_id.to_string();
+                match events.get(&key) {
+                    Some(name) => name.is_empty(),
+                    None => true,
+                }
+            })
             .collect();
     }
     overall.set_length(1 + missing_ids.len() as u64);

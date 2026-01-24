@@ -20,8 +20,10 @@ pub(super) fn select_golfers_by_bettor(
     helper_state: &Rc<RefCell<ReplHelperState>>,
     state: &mut ReplState,
     emit_output: bool,
+    golfers_override: Option<&Vec<(String, i64)>>,
+    current_golfers: Option<&BTreeMap<String, Vec<String>>>,
 ) -> Result<Vec<GolferSelection>> {
-    if !has_cached_events(state)? {
+    if golfers_override.is_none() && !has_cached_events(state)? {
         println!("no events in cache; run list_events first.");
         return Ok(Vec::new());
     }
@@ -41,9 +43,17 @@ pub(super) fn select_golfers_by_bettor(
         return Ok(Vec::new());
     }
 
-    let golfers = load_cached_golfers(state)?;
+    let golfers = if let Some(golfers) = golfers_override {
+        golfers.clone()
+    } else {
+        load_cached_golfers(state)?
+    };
     if golfers.is_empty() {
-        println!("No golfers found in cache.");
+        if golfers_override.is_some() {
+            println!("No golfers found in KV.");
+        } else {
+            println!("No golfers found in cache.");
+        }
         return Ok(Vec::new());
     }
     let golfer_names: Vec<String> = golfers.iter().map(|(name, _)| name.clone()).collect();
@@ -51,6 +61,19 @@ pub(super) fn select_golfers_by_bettor(
 
     let mut selections = Vec::new();
     for bettor in bettors {
+        if let Some(current_by_bettor) = current_golfers {
+            match current_by_bettor.get(&bettor) {
+                Some(current) if current.is_empty() => {
+                    println!("Current golfers for {bettor}: (none)");
+                }
+                Some(current) => {
+                    println!("Current golfers for {bettor}: {}", current.join(", "));
+                }
+                None => {
+                    println!("Current golfers for {bettor}: (none)");
+                }
+            }
+        }
         helper_state
             .borrow_mut()
             .set_mode(ReplCompletionMode::PromptItems {

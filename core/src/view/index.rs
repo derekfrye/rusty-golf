@@ -30,7 +30,7 @@ pub async fn resolve_index_title_or_default(storage: &dyn Storage, event_str: &s
 }
 
 #[must_use]
-pub fn render_index_template(title: &str) -> Markup {
+pub fn render_index_template_with_scores(title: &str, scores_markup: Option<Markup>) -> Markup {
     html! {
         (maud::DOCTYPE)
         head{
@@ -59,10 +59,19 @@ pub fn render_index_template(title: &str) -> Markup {
                         (title)
                     }
                     div id="scores" {
-                        img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
+                        @if let Some(markup) = scores_markup {
+                            (markup)
+                        } @else {
+                            img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
+                        }
                     }
                 }
             }
         }
     }
+}
+
+#[must_use]
+pub fn render_index_template(title: &str) -> Markup {
+    render_index_template_with_scores(title, None)
 }

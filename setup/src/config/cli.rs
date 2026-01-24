@@ -40,7 +40,11 @@ pub struct Cli {
     pub output_json: Option<PathBuf>,
     #[arg(long)]
     pub output_json_stdout: bool,
-    #[arg(long)]
+    #[arg(
+        long,
+        help = "Golfer assignments. Format: JSON array of {\"bettor\":\"Name\",\"golfer\":\"Golfer Name\"} entries.",
+        long_help = "Golfer assignments. Format: JSON array of {\"bettor\":\"Name\",\"golfer\":\"Golfer Name\"} entries. Example: --golfers-by-bettor='[{\"bettor\":\"Alice\",\"golfer\":\"Rory McIlroy\"},{\"bettor\":\"Bob\",\"golfer\":\"Jon Rahm\"}]'"
+    )]
     pub golfers_by_bettor: Option<String>,
 }
 

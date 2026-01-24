@@ -21,6 +21,15 @@ pub(super) fn handle_pick_bettors(
             println!("{bettor}");
         }
     }
+    prompt_for_bettors(rl, helper_state, state, bettors)
+}
+
+pub(super) fn prompt_for_bettors(
+    rl: &mut Editor<ReplHelper, DefaultHistory>,
+    helper_state: &Rc<RefCell<ReplHelperState>>,
+    state: &mut ReplState,
+    bettors: Vec<String>,
+) -> Result<()> {
     helper_state
         .borrow_mut()
         .set_mode(ReplCompletionMode::PromptItems {

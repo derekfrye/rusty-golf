@@ -46,14 +46,22 @@ pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<App
         .clone()
         .or_else(|| file_config.wrangler_config.clone())
         .unwrap_or_else(|| PathBuf::from("serverless/wrangler.toml"));
-    let wrangler_env = cli
+    let wrangler_env_explicit = cli
         .wrangler_env
         .clone()
-        .or_else(|| file_config.wrangler_env.clone())
-        .unwrap_or_else(|| "dev".to_string());
+        .or_else(|| file_config.wrangler_env.clone());
+    let wrangler_env = wrangler_env_explicit
+        .clone()
+        .unwrap_or_else(|| kv_env.clone());
     let wrangler_flags = resolve_wrangler_flags(cli, file_config, &wrangler_config);
     let wrangler_kv_flags =
         resolve_wrangler_kv_flags(cli, file_config, &wrangler_flags, &wrangler_env);
+    validate_env_consistency(
+        Some(&kv_env),
+        wrangler_env_explicit.as_deref(),
+        extract_env_flag(&wrangler_kv_flags).as_deref(),
+        cli.kv_binding.as_deref().or(file_config.kv_binding.as_deref()),
+    )?;
 
     Ok(AppMode::Seed(Box::new(SeedOptions {
         eup_json,
@@ -124,4 +132,46 @@ fn resolve_wrangler_kv_flags(
     flags.push("--env".to_string());
     flags.push(wrangler_env.to_string());
     flags
+}
+
+fn extract_env_flag(flags: &[String]) -> Option<String> {
+    flags
+        .iter()
+        .position(|flag| flag == "--env")
+        .and_then(|idx| flags.get(idx + 1))
+        .cloned()
+}
+
+fn validate_env_consistency(
+    kv_env: Option<&str>,
+    wrangler_env: Option<&str>,
+    kv_flags_env: Option<&str>,
+    kv_binding: Option<&str>,
+) -> Result<()> {
+    if kv_env.is_some() && kv_binding.is_some() {
+        return Err(anyhow!(
+            "--kv-env conflicts with --kv-binding; choose one targeting method"
+        ));
+    }
+    if let (Some(kv_env), Some(wrangler_env)) = (kv_env, wrangler_env) {
+        if kv_env != wrangler_env {
+            return Err(anyhow!(
+                "--kv-env ({kv_env}) conflicts with --wrangler-env ({wrangler_env})"
+            ));
+        }
+    }
+    if let (Some(kv_env), Some(kv_flags_env)) = (kv_env, kv_flags_env) {
+        if kv_env != kv_flags_env {
+            return Err(anyhow!(
+                "--kv-env ({kv_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
+            ));
+        }
+    } else if let (Some(wrangler_env), Some(kv_flags_env)) = (wrangler_env, kv_flags_env) {
+        if wrangler_env != kv_flags_env {
+            return Err(anyhow!(
+                "--wrangler-env ({wrangler_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
+            ));
+        }
+    }
+    Ok(())
 }

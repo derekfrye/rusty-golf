@@ -66,9 +66,9 @@ pub fn run_get_event_details_one_shot_with_client(
 ) -> Result<()> {
     let mut state = match espn {
         Some(client) => {
-            ReplState::new_with_client(eup_json, None, client).context("init repl state")?
+            ReplState::new_with_client(eup_json, None, None, client).context("init repl state")?
         }
-        None => ReplState::new(eup_json, None).context("init repl state")?,
+        None => ReplState::new(eup_json, None, None).context("init repl state")?,
     };
     let (event_ids, event_names) = if let Some(ids) = event_ids {
         (ids, std::collections::BTreeMap::new())
@@ -131,9 +131,9 @@ pub fn run_new_event_one_shot_with_client(
 ) -> Result<()> {
     let output_json_path = output_json.map(Path::to_path_buf);
     let mut state = match espn {
-        Some(client) => ReplState::new_with_client(eup_json, output_json_path, client)
+        Some(client) => ReplState::new_with_client(eup_json, output_json_path, None, client)
             .context("init repl state")?,
-        None => ReplState::new(eup_json, output_json_path).context("init repl state")?,
+        None => ReplState::new(eup_json, output_json_path, None).context("init repl state")?,
     };
     let events = ensure_list_events(&mut state, false, true)?;
     if events.is_empty() {

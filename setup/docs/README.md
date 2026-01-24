@@ -11,7 +11,7 @@ Required args (seed mode):
 
 Required args:
 
-- `--mode` Operation mode (`seed`, `new_event`, or `get_event_details`).
+- `--mode` Operation mode (`seed`, `new_event`/`setup_event`/`repl`, `update_event`/`edit_event`, or `get_event_details`).
   - `seed`: non-interactive, reads EUP JSON and seeds KV.
   - `new_event`: interactive REPL unless `--one-shot` is provided.
   - `get_event_details`: one-shot JSON export of event details.
@@ -72,6 +72,7 @@ This mode runs an interactive REPL (unless `--one-shot` is provided).
 
 - Fetches the current ESPN event list and caches it for the session.
 - Adds any missing event IDs from the EUP JSON (if provided) by fetching names.
+- If `--kv-env`/`--kv-binding` is provided, adds event IDs from KV (preferring KV names).
 - Prints event IDs and names as `"<id> <name>"`.
 
 Subcommands:
@@ -111,12 +112,24 @@ Subcommands:
 - Reuses bettors and golfer selections if already chosen.
 - Prompts for output filename and overwriting if it already exists.
 
+### `update_event`
+
+- Guides event updates and writes a new EUP JSON entry.
+- Always prompts for bettors, then golfers (with KV golfer assignments shown above each prompt).
+- Prompts for output filename and overwriting if it already exists.
+
 ### `exit` / `quit`
 
 - Exits the REPL.
 
 One-shot (`--mode new_event --one-shot`) writes JSON to `--output-json` unless
 `--output-json-stdout` is set.
+
+## Mode `update_event`
+
+This mode runs the same interactive REPL as `new_event`, but adds the
+`update_event` command to show current golfer assignments from KV before
+prompting for new selections.
 
 ## Mode `get_event_details`
 

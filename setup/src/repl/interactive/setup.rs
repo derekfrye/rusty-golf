@@ -1,4 +1,4 @@
-use super::bettors::handle_pick_bettors;
+use super::bettors::{handle_pick_bettors, prompt_for_bettors};
 use super::golfers::select_golfers_by_bettor;
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
 use crate::repl::parse::format_parse_error;
@@ -6,7 +6,8 @@ use crate::repl::payload::write_event_payload;
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};
 use crate::repl::state::{
     ReplState, bettors_selection_exists, ensure_list_events, eup_event_exists,
-    load_bettors_selection, load_event_golfers, output_json_path, take_golfers_by_bettor,
+    load_bettors_selection, load_kv_bettors, load_kv_golfers_list,
+    output_json_path, take_golfers_by_bettor,
 };
 use anyhow::{Context, Result};
 use rustyline::Editor;
@@ -57,26 +58,58 @@ pub(super) fn run_setup_event(
         println!("Warning: event {event_id} already exists in eup json.");
     }
 
-    if !bettors_selection_exists(state) {
+    let kv_bettors = match load_kv_bettors(state, event_id) {
+        Ok(Some(bettors)) => Some(bettors),
+        Ok(None) => None,
+        Err(err) => {
+            println!("Failed to load bettors from KV: {err}");
+            None
+        }
+    };
+    let kv_golfers = match load_kv_golfers_list(state, event_id) {
+        Ok(Some(golfers)) => Some(golfers),
+        Ok(None) => None,
+        Err(err) => {
+            println!("Failed to load golfers from KV: {err}");
+            None
+        }
+    };
+    if let Some(kv_bettors) = kv_bettors.clone() {
+        if kv_bettors.is_empty() {
+            println!("No bettors found.");
+        } else {
+            for bettor in &kv_bettors {
+                println!("{bettor}");
+            }
+        }
+        prompt_for_bettors(rl, helper_state, state, kv_bettors)?;
+    } else if !bettors_selection_exists(state) {
         handle_pick_bettors(rl, helper_state, state)?;
     }
 
     let selections = if let Some(existing) = take_golfers_by_bettor(state) {
-        existing
-    } else {
-        let selections = select_golfers_by_bettor(rl, helper_state, state, false)?;
-        if selections.is_empty() {
-            return Ok(());
+        if existing.is_empty() {
+            select_golfers_by_bettor(rl, helper_state, state, false, None, None)?
+        } else {
+            existing
         }
-        selections
+    } else {
+        select_golfers_by_bettor(rl, helper_state, state, false, None, None)?
     };
+    if selections.is_empty() {
+        return Ok(());
+    }
 
     let output_path = ensure_output_path(rl, helper_state, state)?;
     let event_name = events
         .iter()
         .find(|(id, _)| *id == event_id_raw)
         .map_or_else(|| event_id_raw.clone(), |(_, name)| name.clone());
-    let golfers = load_event_golfers(state, &event_id_raw)?;
+    let golfers = if let Some(kv_golfers) = kv_golfers.as_ref() {
+        kv_golfers.clone()
+    } else {
+        crate::repl::state::load_cached_golfers(state)?
+    };
     let bettors = load_bettors_selection(state)?;
     write_event_payload(
         state,
@@ -89,7 +122,7 @@ pub(super) fn run_setup_event(
     )
 }
 
-fn print_events(events: &[(String, String)]) {
+pub(super) fn print_events(events: &[(String, String)]) {
     if events.is_empty() {
         println!("No events found.");
         return;
@@ -99,7 +132,7 @@ fn print_events(events: &[(String, String)]) {
     }
 }
 
-fn ensure_output_path(
+pub(super) fn ensure_output_path(
     rl: &mut Editor<ReplHelper, DefaultHistory>,
     helper_state: &Rc<RefCell<ReplHelperState>>,
     state: &ReplState,

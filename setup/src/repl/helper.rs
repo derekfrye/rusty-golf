@@ -22,17 +22,27 @@ pub(crate) enum ReplCompletionMode {
 
 pub(crate) struct ReplHelperState {
     mode: ReplCompletionMode,
+    expert_enabled: bool,
 }
 
 impl ReplHelperState {
     pub(crate) fn new() -> Self {
         Self {
             mode: ReplCompletionMode::Repl,
+            expert_enabled: false,
         }
     }
 
     pub(crate) fn set_mode(&mut self, mode: ReplCompletionMode) {
         self.mode = mode;
+    }
+
+    pub(crate) fn set_expert_enabled(&mut self, enabled: bool) {
+        self.expert_enabled = enabled;
+    }
+
+    pub(crate) fn expert_enabled(&self) -> bool {
+        self.expert_enabled
     }
 }
 
@@ -57,7 +67,11 @@ impl Completer for ReplHelper {
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
         let mode = self.state.borrow().mode.clone();
         match mode {
-            ReplCompletionMode::Repl => Ok(Self::complete_repl(line, pos)),
+            ReplCompletionMode::Repl => Ok(Self::complete_repl(
+                line,
+                pos,
+                self.state.borrow().expert_enabled(),
+            )),
             ReplCompletionMode::PromptItems { items, quote_items } => {
                 Ok(complete_items_prompt(line, pos, &items, quote_items))
             }
@@ -69,7 +83,7 @@ impl Completer for ReplHelper {
 }
 
 impl ReplHelper {
-    fn complete_repl(line: &str, pos: usize) -> (usize, Vec<Pair>) {
+    fn complete_repl(line: &str, pos: usize, expert_enabled: bool) -> (usize, Vec<Pair>) {
         let prefix = &line[..pos];
         let mut parts = prefix.split_whitespace();
         let first = parts.next().unwrap_or_default();
@@ -101,6 +115,7 @@ impl ReplHelper {
 
         let candidates = REPL_COMMANDS
             .iter()
+            .filter(|command| !command.expert_only || expert_enabled)
             .flat_map(|command| command.aliases.iter().copied().chain([command.name]))
             .filter(|cmd| cmd.starts_with(prefix))
             .map(|cmd| Pair {

@@ -1,7 +1,11 @@
 use rusty_golf_actix::args;
 use rusty_golf_actix::controller::{db_prefill, score::scores};
 use rusty_golf_actix::storage::SqlStorage;
-use rusty_golf_actix::view::index::{DEFAULT_INDEX_TITLE, try_resolve_index_title};
+use rusty_golf_actix::mvu::runtime::run_score;
+use rusty_golf_actix::mvu::score::{decode_request_to_model, Deps, Msg};
+use rusty_golf_actix::view::index::{
+    DEFAULT_INDEX_TITLE, render_index_template_with_scores, try_resolve_index_title,
+};
 use sql_middleware::middleware::{
     ConfigAndPool, DatabaseType, PgConfig, PostgresOptions, SqliteOptions,
 };
@@ -62,7 +66,38 @@ async fn index(
         }
     };
 
-    let markup = rusty_golf_actix::view::index::render_index_template(&title);
+    let scores_markup = if query.contains_key("event")
+        && query.contains_key("yr")
+        && matches!(query.get("nojs").map(String::as_str), Some("1"))
+    {
+        match decode_request_to_model(&query, storage.get_ref()).await {
+            Ok(mut model) => {
+                model.want_json = false;
+                if let Err(e) = run_score(
+                    &mut model,
+                    Msg::PageLoad,
+                    Deps {
+                        storage: storage.get_ref(),
+                    },
+                )
+                .await
+                {
+                    eprintln!("Error: {e}");
+                    None
+                } else {
+                    model.markup
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: {e}");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    let markup = render_index_template_with_scores(&title, scores_markup);
     HttpResponse::Ok()
         .content_type("text/html")
         .body(markup.into_string())

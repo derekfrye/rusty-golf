@@ -10,7 +10,7 @@ use tempfile::TempDir;
 mod espn_header;
 mod eup;
 mod files;
-mod wrangler;
+pub(crate) mod wrangler;
 
 #[derive(Debug)]
 pub struct SeedOptions {

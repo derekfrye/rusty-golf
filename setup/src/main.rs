@@ -3,6 +3,7 @@ use clap::Parser;
 use rusty_golf_setup::config::{AppMode, Cli, load_config};
 use rusty_golf_setup::repl::{
     run_get_event_details_one_shot, run_new_event_one_shot, run_new_event_repl,
+    run_update_event_repl,
 };
 use rusty_golf_setup::seed_kv_from_eup;
 
@@ -17,6 +18,7 @@ fn main() -> Result<()> {
             one_shot,
             event_id,
             golfers_by_bettor,
+            kv_access,
         } => {
             if one_shot {
                 let event_id = event_id.expect("event_id required for one-shot");
@@ -30,7 +32,7 @@ fn main() -> Result<()> {
                     golfers_by_bettor,
                 )
             } else {
-                run_new_event_repl(eup_json, output_json)
+                run_new_event_repl(eup_json, output_json, kv_access)
             }
         }
         AppMode::GetEventDetails {
@@ -44,5 +46,10 @@ fn main() -> Result<()> {
             output_json_stdout,
             event_ids,
         ),
+        AppMode::UpdateEvent {
+            eup_json,
+            output_json,
+            kv_access,
+        } => run_update_event_repl(eup_json, output_json, kv_access),
     }
 }

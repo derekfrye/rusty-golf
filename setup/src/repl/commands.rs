@@ -7,6 +7,8 @@ pub(crate) enum CommandId {
     PickBettors,
     SetGolfersByBettor,
     SetupEvent,
+    UpdateEvent,
+    Expert,
     Exit,
     Quit,
 }
@@ -23,6 +25,7 @@ pub(crate) struct ReplCommand {
     pub(crate) description: &'static str,
     pub(crate) aliases: &'static [&'static str],
     pub(crate) subcommands: &'static [ReplSubcommand],
+    pub(crate) expert_only: bool,
 }
 
 pub(crate) struct ReplSubcommand {
@@ -51,6 +54,7 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "Show this help.",
         aliases: &["?", "-h", "--help"],
         subcommands: &[],
+        expert_only: false,
     },
     ReplCommand {
         id: CommandId::ListEvents,
@@ -58,6 +62,7 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "List events on ESPN API.",
         aliases: &[],
         subcommands: LIST_EVENTS_SUBCOMMANDS,
+        expert_only: false,
     },
     ReplCommand {
         id: CommandId::GetEventDetails,
@@ -65,6 +70,7 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "Show details for one or more events.",
         aliases: &[],
         subcommands: &[],
+        expert_only: false,
     },
     ReplCommand {
         id: CommandId::GetAvailableGolfers,
@@ -72,6 +78,7 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "Prompt for event IDs to use for golfers.",
         aliases: &[],
         subcommands: &[],
+        expert_only: true,
     },
     ReplCommand {
         id: CommandId::PickBettors,
@@ -79,6 +86,7 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "Prompt for bettor names.",
         aliases: &[],
         subcommands: &[],
+        expert_only: true,
     },
     ReplCommand {
         id: CommandId::SetGolfersByBettor,
@@ -86,13 +94,31 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "Prompt for golfers for each bettor.",
         aliases: &[],
         subcommands: &[],
+        expert_only: true,
     },
     ReplCommand {
         id: CommandId::SetupEvent,
         name: "setup_event",
         description: "Guide setup and write a new EUP event JSON.",
+        aliases: &["new_event"],
+        subcommands: &[],
+        expert_only: false,
+    },
+    ReplCommand {
+        id: CommandId::UpdateEvent,
+        name: "update_event",
+        description: "Guide an event update and write a new EUP event JSON.",
+        aliases: &["edit_event"],
+        subcommands: &[],
+        expert_only: false,
+    },
+    ReplCommand {
+        id: CommandId::Expert,
+        name: "expert",
+        description: "Toggle expert mode (show/hide advanced commands).",
         aliases: &[],
         subcommands: &[],
+        expert_only: false,
     },
     ReplCommand {
         id: CommandId::Exit,
@@ -100,6 +126,7 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "Exit the REPL.",
         aliases: &[],
         subcommands: &[],
+        expert_only: false,
     },
     ReplCommand {
         id: CommandId::Quit,
@@ -107,6 +134,7 @@ pub(crate) const REPL_COMMANDS: &[ReplCommand] = &[
         description: "Exit the REPL.",
         aliases: &[],
         subcommands: &[],
+        expert_only: false,
     },
 ];
 
@@ -131,9 +159,12 @@ pub(crate) fn print_subcommand_help(command: &ReplCommand) {
     }
 }
 
-pub(crate) fn build_repl_help() -> String {
+pub(crate) fn build_repl_help(expert_enabled: bool) -> String {
     let mut help = String::from("Commands:");
     for command in REPL_COMMANDS {
+        if command.expert_only && !expert_enabled {
+            continue;
+        }
         let names = if command.aliases.is_empty() {
             command.name.to_string()
         } else {
