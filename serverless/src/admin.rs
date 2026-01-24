@@ -9,7 +9,7 @@ use crate::admin_types::{
     AdminEventSelector, AdminTestLockRequest, AdminTestLockResponse, AdminTestUnlockRequest,
     AdminTestUnlockResponse,
 };
-use crate::instrument::instrumentation_from_request;
+use crate::instrument::request_instrumentation;
 use crate::storage::storage_cache::{CacheStatus, in_memory_status, parse_kv_scores_entry};
 use crate::storage::{AdminSeedRequest, TestLockMode};
 use crate::utils::{parse_query_params, storage_from_env};
@@ -175,12 +175,9 @@ pub async fn admin_test_unlock_handler(
 }
 
 pub async fn admin_cache_status_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
-    let timing = instrumentation
-        .as_ref()
-        .map(|collector| collector.as_ref() as &dyn TimingSink);
-    let timing_rc: Option<Rc<dyn TimingSink>> =
-        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let instrumentation = request_instrumentation(&req, &ctx.env)?;
+    let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
+    let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
         .with_timing(timing_rc);
     let query = timed!(
@@ -196,11 +193,25 @@ pub async fn admin_cache_status_handler(req: Request, ctx: RouteContext<()>) -> 
         Some(value) => value,
         None => return Response::error("yr is required", 400),
     };
-    let authorized = instrumentation.is_some();
+    let authorized = instrumentation.instrument_header_valid();
     if !authorized {
         let auth_token = match query.get("auth_token") {
             Some(value) if !value.trim().is_empty() => value.trim(),
-            _ => return Response::error("auth_token is required", 401),
+            _ => {
+                let details = serde_json::json!({
+                    "event_id": event_id,
+                    "year": year,
+                    "admin": true,
+                    "status": 401,
+                });
+                return crate::finalize_resp!(
+                    instrumentation,
+                    &req,
+                    &ctx.env,
+                    details,
+                    Response::error("auth_token is required", 401)
+                );
+            }
         };
         let auth_ok = timed!(
             timing,
@@ -211,7 +222,19 @@ pub async fn admin_cache_status_handler(req: Request, ctx: RouteContext<()>) -> 
                 .map_err(|e| worker::Error::RustError(e.to_string()))
         )?;
         if !auth_ok {
-            return Response::error("auth_token is invalid", 401);
+            let details = serde_json::json!({
+                "event_id": event_id,
+                "year": year,
+                "admin": true,
+                "status": 401,
+            });
+            return crate::finalize_resp!(
+                instrumentation,
+                &req,
+                &ctx.env,
+                details,
+                Response::error("auth_token is invalid", 401)
+            );
         }
     }
 
@@ -265,13 +288,16 @@ pub async fn admin_cache_status_handler(req: Request, ctx: RouteContext<()>) -> 
             r2_scores: r2_scores_key,
         },
     };
-    if let Some(instrumentation) = instrumentation {
-        let details = serde_json::json!({
-            "event_id": event_id,
-            "year": year,
-            "admin": true,
-        });
-        instrumentation.log_request(&req, details)?;
-    }
-    Response::from_json(&response)
+    let details = serde_json::json!({
+        "event_id": event_id,
+        "year": year,
+        "admin": true,
+    });
+    crate::finalize_resp!(
+        instrumentation,
+        &req,
+        &ctx.env,
+        details,
+        Response::from_json(&response)
+    )
 }

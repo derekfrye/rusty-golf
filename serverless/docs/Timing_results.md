@@ -80,6 +80,21 @@ Response shape:
 }
 ```
 
+## Analytics Engine Metrics
+
+Analytics Engine is enabled for request timings. We always emit a low-cost total timing data point,
+and emit full per-phase metrics when either:
+- `x-instrument-token` matches `INSTRUMENT_TOKEN`, or
+- `LOGGING_TOTAL_MS` is set and the request `total_ms` exceeds the threshold.
+
+Required settings:
+- Analytics dataset binding `REQUEST_METRICS` (set in `serverless/wrangler.toml`).
+
+Optional secrets:
+- `INSTRUMENT_TOKEN`: if set, matching requests emit full phase metrics and also console logs.
+- `LOGGING_TOTAL_MS`: numeric (ms) threshold for slow-request logging/metrics. If unset or empty,
+  only the totals are emitted (unless `INSTRUMENT_TOKEN` matches).
+
 ## Parsing Script
 
 ```bash

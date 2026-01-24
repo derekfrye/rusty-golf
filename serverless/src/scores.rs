@@ -15,7 +15,7 @@ use rusty_golf_core::view::score::{
 use std::rc::Rc;
 
 use crate::espn_client::ServerlessEspnClient;
-use crate::instrument::instrumentation_from_request;
+use crate::instrument::request_instrumentation;
 use crate::utils::{parse_query_params, respond_html, storage_from_env};
 
 fn parse_score_request_from_req(req: &Request) -> Result<rusty_golf_core::score::ScoreRequest> {
@@ -55,12 +55,9 @@ async fn load_context(
 }
 
 pub async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
-    let timing = instrumentation
-        .as_ref()
-        .map(|collector| collector.as_ref() as &dyn TimingSink);
-    let timing_rc: Option<Rc<dyn TimingSink>> =
-        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let instrumentation = request_instrumentation(&req, &ctx.env)?;
+    let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
+    let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
         .with_timing(timing_rc);
     let score_req = match timed!(
@@ -69,7 +66,18 @@ pub async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Respo
         parse_score_request_from_req(&req)
     ) {
         Ok(value) => value,
-        Err(err) => return Response::error(err.to_string(), 400),
+        Err(err) => {
+            let details = serde_json::json!({
+                "status": 400,
+            });
+            return crate::finalize_resp!(
+                instrumentation,
+                &req,
+                &ctx.env,
+                details,
+                Response::error(err.to_string(), 400)
+            );
+        }
     };
     let context = load_context(&score_req, &storage, timing).await?;
 
@@ -79,18 +87,21 @@ pub async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Respo
             "response.json_ms",
             Response::from_json(&context.data)
         );
-        if let Some(instrumentation) = instrumentation {
-            let details = serde_json::json!({
-                "event_id": score_req.event_id,
-                "year": score_req.year,
-                "cache": score_req.use_cache,
-                "json": true,
-                "expanded": score_req.expanded,
-                "cache_hit": context.data.cache_hit,
-            });
-            instrumentation.log_request(&req, details)?;
-        }
-        resp
+        let details = serde_json::json!({
+            "event_id": score_req.event_id,
+            "year": score_req.year,
+            "cache": score_req.use_cache,
+            "json": true,
+            "expanded": score_req.expanded,
+            "cache_hit": context.data.cache_hit,
+        });
+        crate::finalize_resp!(
+            instrumentation,
+            &req,
+            &ctx.env,
+            details,
+            resp
+        )
     } else {
         let bettor_struct = timed!(
             timing,
@@ -112,28 +123,28 @@ pub async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Respo
             )
         );
         let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
-        if let Some(instrumentation) = instrumentation {
-            let details = serde_json::json!({
-                "event_id": score_req.event_id,
-                "year": score_req.year,
-                "cache": score_req.use_cache,
-                "json": false,
-                "expanded": score_req.expanded,
-                "cache_hit": context.data.cache_hit,
-            });
-            instrumentation.log_request(&req, details)?;
-        }
-        resp
+        let details = serde_json::json!({
+            "event_id": score_req.event_id,
+            "year": score_req.year,
+            "cache": score_req.use_cache,
+            "json": false,
+            "expanded": score_req.expanded,
+            "cache_hit": context.data.cache_hit,
+        });
+        crate::finalize_resp!(
+            instrumentation,
+            &req,
+            &ctx.env,
+            details,
+            resp
+        )
     }
 }
 
 pub async fn scores_summary_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
-    let timing = instrumentation
-        .as_ref()
-        .map(|collector| collector.as_ref() as &dyn TimingSink);
-    let timing_rc: Option<Rc<dyn TimingSink>> =
-        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let instrumentation = request_instrumentation(&req, &ctx.env)?;
+    let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
+    let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
         .with_timing(timing_rc);
     let score_req = match timed!(
@@ -142,23 +153,36 @@ pub async fn scores_summary_handler(req: Request, ctx: RouteContext<()>) -> Resu
         parse_score_request_from_req(&req)
     ) {
         Ok(value) => value,
-        Err(err) => return Response::error(err.to_string(), 400),
+        Err(err) => {
+            let details = serde_json::json!({
+                "status": 400,
+            });
+            return crate::finalize_resp!(
+                instrumentation,
+                &req,
+                &ctx.env,
+                details,
+                Response::error(err.to_string(), 400)
+            );
+        }
     };
     if !score_req.expanded {
-        if let Some(instrumentation) = instrumentation {
-            let details = serde_json::json!({
-                "event_id": score_req.event_id,
-                "year": score_req.year,
-                "cache": score_req.use_cache,
-                "json": false,
-                "expanded": score_req.expanded,
-                "cache_hit": null,
-                "status": 204,
-            });
-            instrumentation.log_request(&req, details)?;
-        }
-        let resp = Response::empty()?.with_status(204);
-        return Ok(resp);
+        let details = serde_json::json!({
+            "event_id": score_req.event_id,
+            "year": score_req.year,
+            "cache": score_req.use_cache,
+            "json": false,
+            "expanded": score_req.expanded,
+            "cache_hit": null,
+            "status": 204,
+        });
+        return crate::finalize_resp!(
+            instrumentation,
+            &req,
+            &ctx.env,
+            details,
+            Response::empty().map(|response| response.with_status(204))
+        );
     }
     let context = load_context(&score_req, &storage, timing).await?;
     let summary = timed!(
@@ -168,27 +192,27 @@ pub async fn scores_summary_handler(req: Request, ctx: RouteContext<()>) -> Resu
     );
     let markup = timed!(timing, "view.render_summary_ms", render_summary_scores(&summary));
     let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
-    if let Some(instrumentation) = instrumentation {
-        let details = serde_json::json!({
-            "event_id": score_req.event_id,
-            "year": score_req.year,
-            "cache": score_req.use_cache,
-            "json": false,
-            "expanded": score_req.expanded,
-            "cache_hit": context.data.cache_hit,
-        });
-        instrumentation.log_request(&req, details)?;
-    }
-    resp
+    let details = serde_json::json!({
+        "event_id": score_req.event_id,
+        "year": score_req.year,
+        "cache": score_req.use_cache,
+        "json": false,
+        "expanded": score_req.expanded,
+        "cache_hit": context.data.cache_hit,
+    });
+    crate::finalize_resp!(
+        instrumentation,
+        &req,
+        &ctx.env,
+        details,
+        resp
+    )
 }
 
 pub async fn scores_chart_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
-    let timing = instrumentation
-        .as_ref()
-        .map(|collector| collector.as_ref() as &dyn TimingSink);
-    let timing_rc: Option<Rc<dyn TimingSink>> =
-        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let instrumentation = request_instrumentation(&req, &ctx.env)?;
+    let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
+    let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
         .with_timing(timing_rc);
     let score_req = match timed!(
@@ -197,7 +221,18 @@ pub async fn scores_chart_handler(req: Request, ctx: RouteContext<()>) -> Result
         parse_score_request_from_req(&req)
     ) {
         Ok(value) => value,
-        Err(err) => return Response::error(err.to_string(), 400),
+        Err(err) => {
+            let details = serde_json::json!({
+                "status": 400,
+            });
+            return crate::finalize_resp!(
+                instrumentation,
+                &req,
+                &ctx.env,
+                details,
+                Response::error(err.to_string(), 400)
+            );
+        }
     };
     let context = load_context(&score_req, &storage, timing).await?;
     let (summary_scores_x, detailed_scores) = timed!(
@@ -219,27 +254,27 @@ pub async fn scores_chart_handler(req: Request, ctx: RouteContext<()>) -> Result
         )
     );
     let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
-    if let Some(instrumentation) = instrumentation {
-        let details = serde_json::json!({
-            "event_id": score_req.event_id,
-            "year": score_req.year,
-            "cache": score_req.use_cache,
-            "json": false,
-            "expanded": score_req.expanded,
-            "cache_hit": context.data.cache_hit,
-        });
-        instrumentation.log_request(&req, details)?;
-    }
-    resp
+    let details = serde_json::json!({
+        "event_id": score_req.event_id,
+        "year": score_req.year,
+        "cache": score_req.use_cache,
+        "json": false,
+        "expanded": score_req.expanded,
+        "cache_hit": context.data.cache_hit,
+    });
+    crate::finalize_resp!(
+        instrumentation,
+        &req,
+        &ctx.env,
+        details,
+        resp
+    )
 }
 
 pub async fn scores_linescore_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
-    let timing = instrumentation
-        .as_ref()
-        .map(|collector| collector.as_ref() as &dyn TimingSink);
-    let timing_rc: Option<Rc<dyn TimingSink>> =
-        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let instrumentation = request_instrumentation(&req, &ctx.env)?;
+    let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
+    let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
         .with_timing(timing_rc);
     let score_req = match timed!(
@@ -248,7 +283,18 @@ pub async fn scores_linescore_handler(req: Request, ctx: RouteContext<()>) -> Re
         parse_score_request_from_req(&req)
     ) {
         Ok(value) => value,
-        Err(err) => return Response::error(err.to_string(), 400),
+        Err(err) => {
+            let details = serde_json::json!({
+                "status": 400,
+            });
+            return crate::finalize_resp!(
+                instrumentation,
+                &req,
+                &ctx.env,
+                details,
+                Response::error(err.to_string(), 400)
+            );
+        }
     };
     let context = load_context(&score_req, &storage, timing).await?;
     let bettor_struct = timed!(
@@ -266,16 +312,19 @@ pub async fn scores_linescore_handler(req: Request, ctx: RouteContext<()>) -> Re
         render_line_score_tables(&bettor_struct, &refresh_data)
     );
     let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
-    if let Some(instrumentation) = instrumentation {
-        let details = serde_json::json!({
-            "event_id": score_req.event_id,
-            "year": score_req.year,
-            "cache": score_req.use_cache,
-            "json": false,
-            "expanded": score_req.expanded,
-            "cache_hit": context.data.cache_hit,
-        });
-        instrumentation.log_request(&req, details)?;
-    }
-    resp
+    let details = serde_json::json!({
+        "event_id": score_req.event_id,
+        "year": score_req.year,
+        "cache": score_req.use_cache,
+        "json": false,
+        "expanded": score_req.expanded,
+        "cache_hit": context.data.cache_hit,
+    });
+    crate::finalize_resp!(
+        instrumentation,
+        &req,
+        &ctx.env,
+        details,
+        resp
+    )
 }

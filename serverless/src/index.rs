@@ -20,7 +20,7 @@ use rusty_golf_core::view::score::{
 use std::rc::Rc;
 
 use crate::espn_client::ServerlessEspnClient;
-use crate::instrument::instrumentation_from_request;
+use crate::instrument::request_instrumentation;
 use crate::storage::ServerlessStorage;
 use crate::utils::{parse_query_params, respond_html, storage_from_env};
 
@@ -78,12 +78,9 @@ async fn try_render_scores_markup(
 }
 
 pub async fn index_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
-    let timing = instrumentation
-        .as_ref()
-        .map(|collector| collector.as_ref() as &dyn TimingSink);
-    let timing_rc: Option<Rc<dyn TimingSink>> =
-        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let instrumentation = request_instrumentation(&req, &ctx.env)?;
+    let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
+    let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let query = parse_query_params(&req)?;
     let event_str = query.get("event").map(String::as_str).unwrap_or("");
     let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
@@ -107,13 +104,16 @@ pub async fn index_handler(req: Request, ctx: RouteContext<()>) -> Result<Respon
         render_index_template_with_scores(&title, scores_markup)
     );
     let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
-    if let Some(instrumentation) = instrumentation {
-        let details = serde_json::json!({
-            "event_id": query.get("event").and_then(|value| value.parse::<i32>().ok()),
-            "year": query.get("yr").and_then(|value| value.parse::<i32>().ok()),
-            "nojs": matches!(query.get("nojs").map(String::as_str), Some("1")),
-        });
-        instrumentation.log_request(&req, details)?;
-    }
-    resp
+    let details = serde_json::json!({
+        "event_id": query.get("event").and_then(|value| value.parse::<i32>().ok()),
+        "year": query.get("yr").and_then(|value| value.parse::<i32>().ok()),
+        "nojs": matches!(query.get("nojs").map(String::as_str), Some("1")),
+    });
+    crate::finalize_resp!(
+        instrumentation,
+        &req,
+        &ctx.env,
+        details,
+        resp
+    )
 }

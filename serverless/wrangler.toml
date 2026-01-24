@@ -42,6 +42,10 @@ r2_buckets = [
 KV_BINDING = "djf_rusty_golf_kv"
 R2_BINDING = "SCORES_R2"
 
+[[env.dev.analytics_engine_datasets]]
+binding = "REQUEST_METRICS"
+dataset = "rusty_golf_dev_metrics"
+
 [env.prod]
 name = "rusty-golf"
 account_id = "0d647b6009886e56766d5113275dbd66"
@@ -59,3 +63,7 @@ r2_buckets = [
 [env.prod.vars]
 KV_BINDING = "djf_rusty_golf_kv"
 R2_BINDING = "SCORES_R2"
+
+[[env.prod.analytics_engine_datasets]]
+binding = "REQUEST_METRICS"
+dataset = "rusty_golf_metrics"

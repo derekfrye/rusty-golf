@@ -6,7 +6,7 @@ use worker::{Env, Request, Response, Result, RouteContext};
 use std::rc::Rc;
 
 use crate::storage::EventListing;
-use crate::instrument::instrumentation_from_request;
+use crate::instrument::request_instrumentation;
 use rusty_golf_core::timed;
 use rusty_golf_core::timing::TimingSink;
 use crate::utils::{parse_query_params, respond_html, storage_from_env};
@@ -44,12 +44,9 @@ fn admin_header_valid(req: &Request, env: &Env) -> Result<bool> {
 }
 
 pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
-    let timing = instrumentation
-        .as_ref()
-        .map(|collector| collector.as_ref() as &dyn TimingSink);
-    let timing_rc: Option<Rc<dyn TimingSink>> =
-        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let instrumentation = request_instrumentation(&req, &ctx.env)?;
+    let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
+    let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
         .with_timing(timing_rc);
     if admin_header_valid(&req, &ctx.env)? {
@@ -108,22 +105,29 @@ pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Resp
             )?;
             (r2_keys, None, None)
         };
-        let resp = timed!(timing, "response.json_ms", Response::from_json(&AdminListingResponse {
-            events,
-            kv_keys,
-            r2_keys,
-            event_id,
-            scores_exists,
-            espn_cache_exists,
-        }));
-        if let Some(instrumentation) = instrumentation {
-            let details = serde_json::json!({
-                "admin": true,
-                "event_id": event_id,
-            });
-            instrumentation.log_request(&req, details)?;
-        }
-        return resp;
+        let resp = timed!(
+            timing,
+            "response.json_ms",
+            Response::from_json(&AdminListingResponse {
+                events,
+                kv_keys,
+                r2_keys,
+                event_id,
+                scores_exists,
+                espn_cache_exists,
+            })
+        );
+        let details = serde_json::json!({
+            "admin": true,
+            "event_id": event_id,
+        });
+        return crate::finalize_resp!(
+            instrumentation,
+            &req,
+            &ctx.env,
+            details,
+            resp
+        );
     }
 
     let query = timed!(
@@ -133,7 +137,19 @@ pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Resp
     )?;
     let auth_token = match query.get("auth_token") {
         Some(value) if !value.trim().is_empty() => value.trim(),
-        _ => return Response::error("auth_token is required", 401),
+        _ => {
+            let details = serde_json::json!({
+                "admin": false,
+                "status": 401,
+            });
+            return crate::finalize_resp!(
+                instrumentation,
+                &req,
+                &ctx.env,
+                details,
+                Response::error("auth_token is required", 401)
+            );
+        }
     };
     let auth_ok = timed!(
         timing,
@@ -144,7 +160,17 @@ pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Resp
             .map_err(|e| worker::Error::RustError(e.to_string()))
     )?;
     if !auth_ok {
-        return Response::error("auth_token is invalid", 401);
+        let details = serde_json::json!({
+            "admin": false,
+            "status": 401,
+        });
+        return crate::finalize_resp!(
+            instrumentation,
+            &req,
+            &ctx.env,
+            details,
+            Response::error("auth_token is invalid", 401)
+        );
     }
 
     let entries = timed!(
@@ -157,13 +183,16 @@ pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Resp
     )?;
     let markup = timed!(timing, "view.render_listing_ms", render_listing(entries));
     let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
-    if let Some(instrumentation) = instrumentation {
-        let details = serde_json::json!({
-            "admin": false,
-        });
-        instrumentation.log_request(&req, details)?;
-    }
-    resp
+    let details = serde_json::json!({
+        "admin": false,
+    });
+    crate::finalize_resp!(
+        instrumentation,
+        &req,
+        &ctx.env,
+        details,
+        resp
+    )
 }
 
 fn render_listing(entries: Vec<EventListing>) -> Markup {
