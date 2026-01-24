@@ -1,6 +1,9 @@
 use super::{AppMode, KvAccessConfig};
 use super::cli::{Cli, FileConfig, GolfersByBettorConfig};
 use super::parse::{parse_golfers_by_bettor, parse_single_event_id};
+use super::new_event_helpers::{
+    extract_env_flag, resolve_wrangler_flags, resolve_wrangler_kv_flags, validate_env_consistency,
+};
 use crate::seed::wrangler::load_kv_namespace_id;
 use anyhow::{Result, anyhow};
 use std::path::PathBuf;
@@ -135,84 +138,4 @@ fn resolve_kv_access(
             .clone()
             .or_else(|| file_config.wrangler_config_dir.clone()),
     }))
-}
-
-fn resolve_wrangler_flags(
-    cli: &Cli,
-    file_config: &FileConfig,
-    wrangler_config: &std::path::Path,
-) -> Vec<String> {
-    if !cli.wrangler_flag.is_empty() {
-        return cli.wrangler_flag.clone();
-    }
-    if let Some(flags) = file_config.wrangler_flags.as_ref() {
-        return flags.clone();
-    }
-    vec![
-        "--config".to_string(),
-        wrangler_config.display().to_string(),
-        "--remote".to_string(),
-        "--preview".to_string(),
-        "false".to_string(),
-    ]
-}
-
-fn resolve_wrangler_kv_flags(
-    cli: &Cli,
-    file_config: &FileConfig,
-    wrangler_flags: &[String],
-    wrangler_env: &str,
-) -> Vec<String> {
-    if !cli.wrangler_kv_flag.is_empty() {
-        return cli.wrangler_kv_flag.clone();
-    }
-    if let Some(flags) = file_config.wrangler_kv_flags.as_ref() {
-        return flags.clone();
-    }
-    let mut flags = wrangler_flags.to_vec();
-    flags.push("--env".to_string());
-    flags.push(wrangler_env.to_string());
-    flags
-}
-
-fn extract_env_flag(flags: &[String]) -> Option<String> {
-    flags
-        .iter()
-        .position(|flag| flag == "--env")
-        .and_then(|idx| flags.get(idx + 1))
-        .cloned()
-}
-
-fn validate_env_consistency(
-    kv_env: Option<&str>,
-    wrangler_env: Option<&str>,
-    kv_flags_env: Option<&str>,
-    kv_binding: Option<&str>,
-) -> Result<()> {
-    if kv_env.is_some() && kv_binding.is_some() {
-        return Err(anyhow!(
-            "--kv-env conflicts with --kv-binding; choose one targeting method"
-        ));
-    }
-    if let (Some(kv_env), Some(wrangler_env)) = (kv_env, wrangler_env) {
-        if kv_env != wrangler_env {
-            return Err(anyhow!(
-                "--kv-env ({kv_env}) conflicts with --wrangler-env ({wrangler_env})"
-            ));
-        }
-    }
-    if let (Some(kv_env), Some(kv_flags_env)) = (kv_env, kv_flags_env) {
-        if kv_env != kv_flags_env {
-            return Err(anyhow!(
-                "--kv-env ({kv_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
-            ));
-        }
-    } else if let (Some(wrangler_env), Some(kv_flags_env)) = (wrangler_env, kv_flags_env) {
-        if wrangler_env != kv_flags_env {
-            return Err(anyhow!(
-                "--wrangler-env ({wrangler_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
-            ));
-        }
-    }
-    Ok(())
 }

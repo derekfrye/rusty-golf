@@ -1,111 +1,18 @@
 #![cfg(target_arch = "wasm32")]
 
-use serde::{Deserialize, Serialize};
 use worker::{Env, Request, Response, Result, RouteContext};
 
 use crate::storage::{AdminSeedRequest, TestLockMode};
-use crate::utils::{parse_query_params, storage_from_env};
+use crate::utils::storage_from_env;
+use self::admin_auth::admin_auth_response;
+use self::admin_types::{
+    AdminCleanupRequest, AdminCleanupScoresRequest, AdminEndDateRequest, AdminEspnFailRequest,
+    AdminEventSelector, AdminTestLockRequest, AdminTestLockResponse, AdminTestUnlockRequest,
+    AdminTestUnlockResponse,
+};
 
-fn admin_enabled(env: &Env) -> bool {
-    env.var("ADMIN_ENABLED")
-        .ok()
-        .map(|value| value.to_string() == "1")
-        .unwrap_or(false)
-}
-
-fn admin_token(env: &Env) -> Result<String> {
-    let value = env
-        .var("ADMIN_TOKEN")
-        .map_err(|e| worker::Error::RustError(format!("Missing ADMIN_TOKEN env var: {e}")))?;
-    let value = value.to_string();
-    if value.trim().is_empty() {
-        Err(worker::Error::RustError("ADMIN_TOKEN is empty".to_string()))
-    } else {
-        Ok(value)
-    }
-}
-
-fn admin_request_token(req: &Request) -> Result<Option<String>> {
-    if let Ok(Some(token)) = req.headers().get("x-admin-token") {
-        if !token.trim().is_empty() {
-            return Ok(Some(token));
-        }
-    }
-    let query = parse_query_params(req)?;
-    Ok(query.get("admin_token").cloned())
-}
-
-fn admin_auth_response(req: &Request, env: &Env) -> Result<Option<Response>> {
-    if !admin_enabled(env) {
-        return Ok(Some(Response::error("not found", 404)?));
-    }
-    let expected = admin_token(env)?;
-    let Some(provided) = admin_request_token(req)? else {
-        return Ok(Some(Response::error("unauthorized", 401)?));
-    };
-    if provided != expected {
-        return Ok(Some(Response::error("unauthorized", 401)?));
-    }
-    Ok(None)
-}
-
-#[derive(Deserialize)]
-struct AdminCleanupRequest {
-    event_id: i32,
-    #[serde(default)]
-    include_auth_tokens: bool,
-}
-
-#[derive(Deserialize)]
-struct AdminCleanupScoresRequest {
-    event_id: i32,
-}
-
-#[derive(Deserialize)]
-struct AdminEndDateRequest {
-    event_id: i32,
-    end_date: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct AdminEspnFailRequest {
-    event_id: i32,
-    enabled: bool,
-}
-
-#[derive(Deserialize)]
-struct AdminTestLockRequest {
-    event_id: i32,
-    token: String,
-    ttl_secs: Option<i64>,
-    mode: Option<String>,
-    #[serde(default)]
-    force: bool,
-}
-
-#[derive(Serialize)]
-struct AdminTestLockResponse {
-    acquired: bool,
-    is_first: bool,
-}
-
-#[derive(Deserialize)]
-struct AdminTestUnlockRequest {
-    event_id: AdminEventSelector,
-    token: String,
-}
-
-#[derive(Serialize)]
-struct AdminTestUnlockResponse {
-    is_last: bool,
-}
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum AdminEventSelector {
-    All(String),
-    Id(i32),
-}
+mod admin_auth;
+mod admin_types;
 
 pub async fn admin_seed_handler(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     if let Some(resp) = admin_auth_response(&req, &ctx.env)? {

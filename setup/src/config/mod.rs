@@ -6,6 +6,7 @@ use serde::Deserialize;
 mod cli;
 mod get_event_details;
 mod new_event;
+mod new_event_helpers;
 mod parse;
 mod seed;
 mod update_event;

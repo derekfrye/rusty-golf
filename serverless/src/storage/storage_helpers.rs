@@ -19,3 +19,15 @@ pub fn parse_event_id(key: &str, suffix: &str) -> Option<i32> {
     let end = key.len().saturating_sub(suffix.len());
     key.get(start..end)?.parse().ok()
 }
+
+pub fn parse_year_from_end_date(end_date: Option<&str>) -> Option<i32> {
+    let value = end_date?.trim();
+    if value.len() < 4 {
+        return None;
+    }
+    let year_bytes = value.as_bytes();
+    if !year_bytes[..4].iter().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    value[..4].parse().ok()
+}

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::storage_helpers::parse_event_id;
+use super::storage_helpers::{parse_event_id, parse_year_from_end_date};
 use super::storage_types::{AuthTokensDoc, EventDetailsDoc, EventListing};
 use crate::storage::ServerlessStorage;
 use rusty_golf_core::storage::StorageError;
@@ -210,16 +210,4 @@ impl ServerlessStorage {
         }
         Ok(false)
     }
-}
-
-fn parse_year_from_end_date(end_date: Option<&str>) -> Option<i32> {
-    let value = end_date?.trim();
-    if value.len() < 4 {
-        return None;
-    }
-    let year_bytes = value.as_bytes();
-    if !year_bytes[..4].iter().all(|b| b.is_ascii_digit()) {
-        return None;
-    }
-    value[..4].parse().ok()
 }

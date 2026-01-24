@@ -2,6 +2,7 @@ mod commands;
 mod complete;
 mod helper;
 mod interactive;
+mod one_shot_helpers;
 mod one_shot;
 mod parse;
 mod payload;

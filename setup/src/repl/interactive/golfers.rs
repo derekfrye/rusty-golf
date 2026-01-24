@@ -28,21 +28,59 @@ pub(super) fn select_golfers_by_bettor(
         return Ok(Vec::new());
     }
 
+    let bettors = ensure_bettors_selected(rl, helper_state, state)?;
+    if bettors.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let golfers = resolve_golfers(state, golfers_override)?;
+    if golfers.is_empty() {
+        return Ok(Vec::new());
+    }
+    let golfer_names: Vec<String> = golfers.iter().map(|(name, _)| name.clone()).collect();
+    let golfer_lookup: BTreeMap<String, i64> = golfers.into_iter().collect();
+
+    let mut selections = Vec::new();
+    for bettor in bettors {
+        print_current_golfers(current_golfers, &bettor);
+        let entries = prompt_for_golfers(
+            rl,
+            helper_state,
+            &bettor,
+            &golfer_names,
+            &golfer_lookup,
+            emit_output,
+        )?;
+        selections.extend(entries);
+    }
+
+    Ok(selections)
+}
+
+fn ensure_bettors_selected(
+    rl: &mut Editor<ReplHelper, DefaultHistory>,
+    helper_state: &Rc<RefCell<ReplHelperState>>,
+    state: &mut ReplState,
+) -> Result<Vec<String>> {
     if !bettors_selection_exists(state) {
         handle_pick_bettors(rl, helper_state, state)?;
     }
-
     if !bettors_selection_exists(state) {
         println!("No bettors selected.");
         return Ok(Vec::new());
     }
-
     let bettors = load_bettors_selection(state)?;
     if bettors.is_empty() {
         println!("No bettors selected.");
         return Ok(Vec::new());
     }
+    Ok(bettors)
+}
 
+fn resolve_golfers(
+    state: &mut ReplState,
+    golfers_override: Option<&Vec<(String, i64)>>,
+) -> Result<Vec<(String, i64)>> {
     let golfers = if let Some(golfers) = golfers_override {
         golfers.clone()
     } else {
@@ -54,74 +92,83 @@ pub(super) fn select_golfers_by_bettor(
         } else {
             println!("No golfers found in cache.");
         }
-        return Ok(Vec::new());
     }
-    let golfer_names: Vec<String> = golfers.iter().map(|(name, _)| name.clone()).collect();
-    let golfer_lookup: BTreeMap<String, i64> = golfers.into_iter().collect();
+    Ok(golfers)
+}
 
-    let mut selections = Vec::new();
-    for bettor in bettors {
-        if let Some(current_by_bettor) = current_golfers {
-            match current_by_bettor.get(&bettor) {
-                Some(current) if current.is_empty() => {
-                    println!("Current golfers for {bettor}: (none)");
-                }
-                Some(current) => {
-                    println!("Current golfers for {bettor}: {}", current.join(", "));
-                }
-                None => {
-                    println!("Current golfers for {bettor}: (none)");
-                }
-            }
+fn print_current_golfers(
+    current_golfers: Option<&BTreeMap<String, Vec<String>>>,
+    bettor: &str,
+) {
+    let Some(current_by_bettor) = current_golfers else {
+        return;
+    };
+    match current_by_bettor.get(bettor) {
+        Some(current) if current.is_empty() => {
+            println!("Current golfers for {bettor}: (none)");
         }
-        helper_state
-            .borrow_mut()
-            .set_mode(ReplCompletionMode::PromptItems {
-                items: golfer_names.clone(),
-                quote_items: true,
-            });
-        let prompt =
-            format!("Which golfers for {bettor}? (csv or space separated, quote-delimited) ");
-        let response = prompt_for_items(rl, &prompt);
-        helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
-        match response {
-            Ok(selected) => {
-                let mut entries = Vec::new();
-                for golfer in selected {
-                    match golfer_lookup.get(&golfer) {
-                        Some(id) => {
-                            let selection = GolferSelection {
-                                bettor: bettor.clone(),
-                                golfer_espn_id: *id,
-                            };
-                            entries.push(selection.clone());
-                            selections.push(selection);
-                        }
-                        None => {
-                            println!("Unknown golfer: {golfer}");
-                        }
+        Some(current) => {
+            println!("Current golfers for {bettor}: {}", current.join(", "));
+        }
+        None => {
+            println!("Current golfers for {bettor}: (none)");
+        }
+    }
+}
+
+fn prompt_for_golfers(
+    rl: &mut Editor<ReplHelper, DefaultHistory>,
+    helper_state: &Rc<RefCell<ReplHelperState>>,
+    bettor: &str,
+    golfer_names: &[String],
+    golfer_lookup: &BTreeMap<String, i64>,
+    emit_output: bool,
+) -> Result<Vec<GolferSelection>> {
+    helper_state
+        .borrow_mut()
+        .set_mode(ReplCompletionMode::PromptItems {
+            items: golfer_names.to_vec(),
+            quote_items: true,
+        });
+    let prompt = format!("Which golfers for {bettor}? (csv or space separated, quote-delimited) ");
+    let response = prompt_for_items(rl, &prompt);
+    helper_state.borrow_mut().set_mode(ReplCompletionMode::Repl);
+    match response {
+        Ok(selected) => {
+            let mut entries = Vec::new();
+            for golfer in selected {
+                match golfer_lookup.get(&golfer) {
+                    Some(id) => {
+                        let selection = GolferSelection {
+                            bettor: bettor.to_string(),
+                            golfer_espn_id: *id,
+                        };
+                        entries.push(selection.clone());
+                    }
+                    None => {
+                        println!("Unknown golfer: {golfer}");
                     }
                 }
-                if emit_output {
-                    let payload: Vec<Value> = entries
-                        .iter()
-                        .map(|entry| {
-                            json!({
-                                "bettor": entry.bettor,
-                                "golfer_espn_id": entry.golfer_espn_id,
-                            })
+            }
+            if emit_output {
+                let payload: Vec<Value> = entries
+                    .iter()
+                    .map(|entry| {
+                        json!({
+                            "bettor": entry.bettor,
+                            "golfer_espn_id": entry.golfer_espn_id,
                         })
-                        .collect();
-                    println!("{}", serde_json::to_string(&payload)?);
-                }
+                    })
+                    .collect();
+                println!("{}", serde_json::to_string(&payload)?);
             }
-            Err(ReplPromptError::Interrupted) => {}
-            Err(ReplPromptError::Invalid(err, line)) => {
-                println!("{}", format_parse_error(&line, err.index));
-            }
-            Err(ReplPromptError::Failed(err)) => return Err(err),
+            Ok(entries)
         }
+        Err(ReplPromptError::Interrupted) => Ok(Vec::new()),
+        Err(ReplPromptError::Invalid(err, line)) => {
+            println!("{}", format_parse_error(&line, err.index));
+            Ok(Vec::new())
+        }
+        Err(ReplPromptError::Failed(err)) => Err(err),
     }
-
-    Ok(selections)
 }

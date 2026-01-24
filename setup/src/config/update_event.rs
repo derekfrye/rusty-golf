@@ -132,25 +132,23 @@ fn validate_env_consistency(
             "--kv-env conflicts with --kv-binding; choose one targeting method"
         ));
     }
-    if let (Some(kv_env), Some(wrangler_env)) = (kv_env, wrangler_env) {
-        if kv_env != wrangler_env {
+    if let (Some(kv_env), Some(wrangler_env)) = (kv_env, wrangler_env)
+        && kv_env != wrangler_env {
             return Err(anyhow!(
                 "--kv-env ({kv_env}) conflicts with --wrangler-env ({wrangler_env})"
             ));
         }
-    }
     if let (Some(kv_env), Some(kv_flags_env)) = (kv_env, kv_flags_env) {
         if kv_env != kv_flags_env {
             return Err(anyhow!(
                 "--kv-env ({kv_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
             ));
         }
-    } else if let (Some(wrangler_env), Some(kv_flags_env)) = (wrangler_env, kv_flags_env) {
-        if wrangler_env != kv_flags_env {
+    } else if let (Some(wrangler_env), Some(kv_flags_env)) = (wrangler_env, kv_flags_env)
+        && wrangler_env != kv_flags_env {
             return Err(anyhow!(
                 "--wrangler-env ({wrangler_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
             ));
         }
-    }
     Ok(())
 }

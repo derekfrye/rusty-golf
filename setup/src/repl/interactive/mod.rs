@@ -13,6 +13,7 @@ mod bettors;
 mod events;
 mod golfers;
 mod setup;
+mod setup_helpers;
 mod update;
 
 use bettors::handle_pick_bettors;
@@ -71,7 +72,7 @@ fn handle_repl_line(
     };
 
     if command.expert_only && !state.expert_enabled {
-        println!("Toggle on expert mode to use command `{}`.", command_token);
+        println!("Toggle on expert mode to use command `{command_token}`.");
         return Ok(ReplFlow::Continue);
     }
 
