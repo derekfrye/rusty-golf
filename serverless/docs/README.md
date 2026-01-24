@@ -74,6 +74,88 @@ curl -H "x-admin-token: $MINIFLARE_ADMIN_TOKEN" \
   "http://127.0.0.1:8787/listing"
 ```
 
+## Instrumentation (per-request timings)
+Serverless timings are opt-in and gated by the `INSTRUMENT_TOKEN` secret. When enabled, a single
+JSON log line is emitted per request with total time and phase breakdowns (cache, ESPN, storage,
+render, response).
+
+Set the secret (per env):
+```bash
+wrangler secret put INSTRUMENT_TOKEN --env dev
+```
+
+Enable for a request:
+```bash
+curl -H "x-instrument-token: $INSTRUMENT_TOKEN" \
+  "https://your-worker.example.com/scores?event=401703521&yr=2025"
+```
+
+Logs show up under Workers Observability → Logs, or via:
+```bash
+wrangler tail --format json --env dev
+```
+
+Parsing notes (the tail file is a stream of JSON objects, each may contain `logs[].message[]` with
+stringified JSON from `console_log`):
+
+See `serverless/docs/Timing_results.md` for a saved analysis and parsing snippet.
+
+Python: scan for `type == "instrumentation"` and compute max phase/total.
+```bash
+python - <<'PY'
+import json
+from pathlib import Path
+
+text = Path("worker-tail.jsonl").read_text()
+idx = 0
+max_phase = (None, -1.0, None)  # (payload, ms, name)
+max_total = (None, -1.0)
+count = 0
+
+while idx < len(text):
+    while idx < len(text) and text[idx].isspace():
+        idx += 1
+    if idx >= len(text):
+        break
+    obj, next_idx = json.JSONDecoder().raw_decode(text, idx)
+    idx = next_idx
+    for entry in obj.get("logs", []):
+        for msg in entry.get("message", []):
+            try:
+                payload = json.loads(msg)
+            except json.JSONDecodeError:
+                continue
+            if payload.get("type") != "instrumentation":
+                continue
+            count += 1
+            total = payload.get("total_ms")
+            if isinstance(total, (int, float)) and total > max_total[1]:
+                max_total = (payload, total)
+            for phase in payload.get("phases", []):
+                ms = phase.get("ms")
+                name = phase.get("name")
+                if isinstance(ms, (int, float)) and ms > max_phase[1]:
+                    max_phase = (payload, ms, name)
+
+print("instrumentation entries:", count)
+print("max phase:", max_phase[2], max_phase[1])
+print("max total:", max_total[1])
+PY
+```
+
+jq: extract phase timings (helpful for quick greps).
+```bash
+jq -r '
+  select(.logs)
+  | .logs[]
+  | .message[]
+  | fromjson?
+  | select(.type=="instrumentation")
+  | .phases[]
+  | "\(.name)\t\(.ms)"
+' worker-tail.jsonl
+```
+
 ## Offline HTML validation (v.Nu)
 Use the Nu Html Checker container to validate rendered HTML without the online UI.
 

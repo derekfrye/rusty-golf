@@ -9,6 +9,8 @@ mod espn_client;
 #[cfg(target_arch = "wasm32")]
 mod index;
 #[cfg(target_arch = "wasm32")]
+mod instrument;
+#[cfg(target_arch = "wasm32")]
 mod listing;
 #[cfg(target_arch = "wasm32")]
 mod scores;

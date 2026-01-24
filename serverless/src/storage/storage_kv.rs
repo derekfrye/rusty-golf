@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::storage_helpers::{parse_event_id, parse_year_from_end_date};
 use super::storage_types::{AuthTokensDoc, EventDetailsDoc, EventListing};
 use crate::storage::ServerlessStorage;
+use rusty_golf_core::timed;
 use rusty_golf_core::storage::StorageError;
 
 impl ServerlessStorage {
@@ -52,12 +53,16 @@ impl ServerlessStorage {
     where
         T: for<'de> Deserialize<'de>,
     {
-        let value = self
-            .kv
-            .get(key)
-            .json::<T>()
-            .await
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let timing = self.timing();
+        let value = timed!(
+            timing,
+            "storage.kv_get_json_ms",
+            self.kv
+                .get(key)
+                .json::<T>()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))
+        )?;
         value.ok_or_else(|| StorageError::new(format!("KV key missing: {key}")))
     }
 
@@ -65,13 +70,22 @@ impl ServerlessStorage {
     where
         T: Serialize + ?Sized,
     {
-        let payload = serde_json::to_string(value).map_err(|e| StorageError::new(e.to_string()))?;
-        self.kv
-            .put(key, payload)
-            .map_err(|e| StorageError::new(e.to_string()))?
-            .execute()
-            .await
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let timing = self.timing();
+        let payload = timed!(
+            timing,
+            "storage.kv_put_json_serialize_ms",
+            serde_json::to_string(value).map_err(|e| StorageError::new(e.to_string()))
+        )?;
+        timed!(
+            timing,
+            "storage.kv_put_json_ms",
+            self.kv
+                .put(key, payload)
+                .map_err(|e| StorageError::new(e.to_string()))?
+                .execute()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))
+        )?;
         Ok(())
     }
 
@@ -79,33 +93,51 @@ impl ServerlessStorage {
     where
         T: for<'de> Deserialize<'de>,
     {
-        let obj = self
-            .bucket
-            .get(key.to_string())
-            .execute()
-            .await
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let timing = self.timing();
+        let obj = timed!(
+            timing,
+            "storage.r2_get_json_fetch_ms",
+            self.bucket
+                .get(key.to_string())
+                .execute()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))
+        )?;
         let obj = obj.ok_or_else(|| StorageError::new(format!("R2 key missing: {key}")))?;
         let body = obj
             .body()
             .ok_or_else(|| StorageError::new(format!("R2 body missing for key: {key}")))?;
-        let text = body
-            .text()
-            .await
-            .map_err(|e| StorageError::new(e.to_string()))?;
-        serde_json::from_str(&text).map_err(|e| StorageError::new(e.to_string()))
+        let text = timed!(
+            timing,
+            "storage.r2_get_json_body_ms",
+            body.text().await.map_err(|e| StorageError::new(e.to_string()))
+        )?;
+        timed!(
+            timing,
+            "storage.r2_get_json_parse_ms",
+            serde_json::from_str(&text).map_err(|e| StorageError::new(e.to_string()))
+        )
     }
 
     pub async fn r2_put_json<T>(&self, key: &str, value: &T) -> Result<(), StorageError>
     where
         T: Serialize + ?Sized,
     {
-        let payload = serde_json::to_string(value).map_err(|e| StorageError::new(e.to_string()))?;
-        self.bucket
-            .put(key.to_string(), payload)
-            .execute()
-            .await
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let timing = self.timing();
+        let payload = timed!(
+            timing,
+            "storage.r2_put_json_serialize_ms",
+            serde_json::to_string(value).map_err(|e| StorageError::new(e.to_string()))
+        )?;
+        timed!(
+            timing,
+            "storage.r2_put_json_ms",
+            self.bucket
+                .put(key.to_string(), payload)
+                .execute()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))
+        )?;
         Ok(())
     }
 
@@ -113,6 +145,7 @@ impl ServerlessStorage {
         &self,
         prefix: Option<&str>,
     ) -> Result<Vec<String>, StorageError> {
+        let timing = self.timing();
         let mut keys = Vec::new();
         let mut cursor: Option<String> = None;
         loop {
@@ -125,10 +158,14 @@ impl ServerlessStorage {
             if let Some(cursor_value) = cursor {
                 builder = builder.cursor(cursor_value);
             }
-            let response = builder
-                .execute()
-                .await
-                .map_err(|e| StorageError::new(e.to_string()))?;
+            let response = timed!(
+                timing,
+                "storage.r2_list_keys_page_ms",
+                builder
+                    .execute()
+                    .await
+                    .map_err(|e| StorageError::new(e.to_string()))
+            )?;
             keys.extend(response.objects().into_iter().map(|obj| obj.key()));
             if !response.truncated() {
                 break;
@@ -139,12 +176,16 @@ impl ServerlessStorage {
     }
 
     pub async fn r2_key_exists(&self, key: &str) -> Result<bool, StorageError> {
-        let obj = self
-            .bucket
-            .get(key.to_string())
-            .execute()
-            .await
-            .map_err(|e| StorageError::new(e.to_string()))?;
+        let timing = self.timing();
+        let obj = timed!(
+            timing,
+            "storage.r2_key_exists_ms",
+            self.bucket
+                .get(key.to_string())
+                .execute()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))
+        )?;
         Ok(obj.is_some())
     }
 
@@ -152,6 +193,7 @@ impl ServerlessStorage {
         &self,
         prefix: &str,
     ) -> Result<Vec<String>, StorageError> {
+        let timing = self.timing();
         let mut keys = Vec::new();
         let mut cursor: Option<String> = None;
         loop {
@@ -159,10 +201,14 @@ impl ServerlessStorage {
             if let Some(cursor_value) = cursor {
                 builder = builder.cursor(cursor_value);
             }
-            let response = builder
-                .execute()
-                .await
-                .map_err(|e| StorageError::new(e.to_string()))?;
+            let response = timed!(
+                timing,
+                "storage.kv_list_keys_page_ms",
+                builder
+                    .execute()
+                    .await
+                    .map_err(|e| StorageError::new(e.to_string()))
+            )?;
             keys.extend(response.keys.into_iter().map(|key| key.name));
             if response.list_complete {
                 break;

@@ -1,6 +1,8 @@
 #![cfg(target_arch = "wasm32")]
 
 use rusty_golf_core::storage::StorageError;
+use rusty_golf_core::timing::TimingSink;
+use std::rc::Rc;
 use worker::{Bucket, Env, KvStore};
 
 mod storage_admin_lock;
@@ -22,6 +24,7 @@ pub use storage_types::{
 pub struct ServerlessStorage {
     pub(crate) kv: KvStore,
     pub(crate) bucket: Bucket,
+    pub(crate) timing: Option<Rc<dyn TimingSink>>,
 }
 
 impl ServerlessStorage {
@@ -35,6 +38,20 @@ impl ServerlessStorage {
         let bucket = env
             .bucket(r2_binding)
             .map_err(|e| StorageError::new(e.to_string()))?;
-        Ok(Self { kv, bucket })
+        Ok(Self {
+            kv,
+            bucket,
+            timing: None,
+        })
+    }
+
+    #[must_use]
+    pub fn with_timing(mut self, timing: Option<Rc<dyn TimingSink>>) -> Self {
+        self.timing = timing;
+        self
+    }
+
+    pub fn timing(&self) -> Option<&dyn TimingSink> {
+        self.timing.as_deref()
     }
 }

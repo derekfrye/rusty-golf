@@ -3,6 +3,8 @@ pub mod processing;
 use crate::error::CoreError;
 use crate::model::{PlayerJsonResponse, RefreshSource, Scores, ScoresAndLastRefresh};
 use crate::storage::Storage;
+use crate::timed;
+use crate::timing::TimingSink;
 use async_trait::async_trait;
 use processing::{merge_statistics_with_scores, process_json_to_statistics};
 use std::collections::HashMap;
@@ -37,6 +39,22 @@ pub trait EspnApiClient {
     }
 }
 
+enum FetchOutcome {
+    Scores(Vec<Scores>),
+    Cached(ScoresAndLastRefresh),
+}
+
+pub struct FetchScoresRequest<'a> {
+    pub api: &'a dyn EspnApiClient,
+    pub storage: &'a dyn Storage,
+    pub scores: Vec<Scores>,
+    pub year: i32,
+    pub event_id: i32,
+    pub use_cache: bool,
+    pub cache_max_age: i64,
+    pub timing: Option<&'a dyn TimingSink>,
+}
+
 /// Fetch ESPN JSON and merge it into score records.
 ///
 /// # Errors
@@ -47,9 +65,35 @@ pub async fn go_get_espn_data(
     year: i32,
     event_id: i32,
 ) -> Result<Vec<Scores>, CoreError> {
-    let json_responses = api.get_json_from_espn(scores, year, event_id).await?;
-    let statistics = process_json_to_statistics(&json_responses)?;
-    merge_statistics_with_scores(&statistics, scores)
+    go_get_espn_data_with_timing(api, scores, year, event_id, None).await
+}
+
+/// Fetch ESPN JSON, process it, and merge it with score records, capturing timings.
+///
+/// # Errors
+/// Returns an error if the ESPN request fails or data cannot be processed.
+pub async fn go_get_espn_data_with_timing(
+    api: &dyn EspnApiClient,
+    scores: &[Scores],
+    year: i32,
+    event_id: i32,
+    timing: Option<&dyn TimingSink>,
+) -> Result<Vec<Scores>, CoreError> {
+    let json_responses = timed!(
+        timing,
+        "espn.fetch_json_ms",
+        api.get_json_from_espn(scores, year, event_id).await
+    )?;
+    let statistics = timed!(
+        timing,
+        "espn.process_json_ms",
+        process_json_to_statistics(&json_responses)
+    )?;
+    timed!(
+        timing,
+        "espn.merge_statistics_ms",
+        merge_statistics_with_scores(&statistics, scores)
+    )
 }
 
 /// Fetch scores with optional caching and fallback logic.
@@ -65,41 +109,105 @@ pub async fn fetch_scores_from_espn(
     use_cache: bool,
     cache_max_age: i64,
 ) -> Result<(ScoresAndLastRefresh, bool), CoreError> {
-    if use_cache
-        && cache_max_age < 0
-        && let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await
-    {
-        return Ok((cached, true));
+    fetch_scores_from_espn_with_timing(FetchScoresRequest {
+        api,
+        storage,
+        scores,
+        year,
+        event_id,
+        use_cache,
+        cache_max_age,
+        timing: None,
+    })
+    .await
+}
+
+/// Fetch scores with optional caching and fallback logic, capturing timings.
+///
+/// # Errors
+/// Returns an error if ESPN fetch, cache read/write, or fallback retrieval fails.
+pub async fn fetch_scores_from_espn_with_timing(
+    request: FetchScoresRequest<'_>,
+) -> Result<(ScoresAndLastRefresh, bool), CoreError> {
+    let FetchScoresRequest {
+        api,
+        storage,
+        scores,
+        year,
+        event_id,
+        use_cache,
+        cache_max_age,
+        timing,
+    } = request;
+
+    if use_cache && cache_max_age < 0 {
+        let cached = timed!(
+            timing,
+            "cache.get_scores_db_ms",
+            storage.get_scores(event_id, RefreshSource::Db).await
+        );
+        if let Ok(cached) = cached {
+            return Ok((cached, true));
+        }
     }
 
-    if use_cache
-        && let Some(cached) =
-            crate::score::context::load_cached_scores(storage, event_id, cache_max_age).await?
-    {
-        return Ok((cached, true));
+    if use_cache {
+        let cached = timed!(
+            timing,
+            "cache.load_cached_scores_ms",
+            crate::score::context::load_cached_scores(storage, event_id, cache_max_age).await
+        )?;
+        if let Some(cached) = cached {
+            return Ok((cached, true));
+        }
     }
 
-    let fetched_scores = match go_get_espn_data(api, &scores, year, event_id).await {
-        Ok(fetched) => fetched,
-        Err(err) => {
-            if let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await {
-                return Ok((cached, false));
-            }
-            if let Some(fallback) = api.fallback_scores(event_id).await? {
-                fallback
-            } else {
-                return Err(err);
+    let fetch_outcome = timed!(
+        timing,
+        "espn.fetch_total_ms",
+        async {
+            match go_get_espn_data_with_timing(api, &scores, year, event_id, timing).await {
+                Ok(fetched) => Ok(FetchOutcome::Scores(fetched)),
+                Err(err) => {
+                    if let Ok(cached) = storage.get_scores(event_id, RefreshSource::Db).await {
+                        Ok(FetchOutcome::Cached(cached))
+                    } else {
+                        match api.fallback_scores(event_id).await {
+                            Ok(Some(fallback)) => Ok(FetchOutcome::Scores(fallback)),
+                            Ok(None) => Err(err),
+                            Err(fallback_err) => Err(fallback_err),
+                        }
+                    }
+                }
             }
         }
+        .await
+    )?;
+
+    let fetched_scores = match fetch_outcome {
+        FetchOutcome::Scores(scores) => scores,
+        FetchOutcome::Cached(cached) => return Ok((cached, false)),
     };
 
-    let existing_scores = match storage.get_scores(event_id, RefreshSource::Db).await {
+    let existing_scores = timed!(
+        timing,
+        "storage.get_scores_db_ms",
+        storage.get_scores(event_id, RefreshSource::Db).await
+    );
+    let existing_scores = match existing_scores {
         Ok(existing) => Some(existing.score_struct),
         Err(_) => None,
     };
-    let merged_scores = merge_scores_for_event(&scores, fetched_scores, existing_scores);
-    let stored =
-        crate::score::context::store_scores_and_reload(storage, event_id, &merged_scores).await?;
+    let merged_scores = timed!(
+        timing,
+        "scores.merge_event_ms",
+        merge_scores_for_event(&scores, fetched_scores, existing_scores)
+    );
+    let stored = timed!(
+        timing,
+        "storage.store_scores_ms",
+        crate::score::context::store_scores_and_reload(storage, event_id, &merged_scores).await
+    )?;
     Ok((stored, false))
 }
 

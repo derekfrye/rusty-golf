@@ -3,8 +3,12 @@
 use maud::{Markup, html};
 use serde::Serialize;
 use worker::{Env, Request, Response, Result, RouteContext};
+use std::rc::Rc;
 
 use crate::storage::EventListing;
+use crate::instrument::instrumentation_from_request;
+use rusty_golf_core::timed;
+use rusty_golf_core::timing::TimingSink;
 use crate::utils::{parse_query_params, respond_html, storage_from_env};
 
 #[derive(Serialize)]
@@ -40,68 +44,126 @@ fn admin_header_valid(req: &Request, env: &Env) -> Result<bool> {
 }
 
 pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    let storage = storage_from_env(&ctx.env)?;
+    let instrumentation = instrumentation_from_request(&req, &ctx.env)?;
+    let timing = instrumentation
+        .as_ref()
+        .map(|collector| collector.as_ref() as &dyn TimingSink);
+    let timing_rc: Option<Rc<dyn TimingSink>> =
+        instrumentation.as_ref().map(|collector| collector.clone() as Rc<dyn TimingSink>);
+    let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
+        .with_timing(timing_rc);
     if admin_header_valid(&req, &ctx.env)? {
-        let query = parse_query_params(&req)?;
+        let query = timed!(
+            timing,
+            "request.parse_query_params_ms",
+            parse_query_params(&req)
+        )?;
         let event_id = query
             .get("event_id")
             .and_then(|value| value.trim().parse::<i32>().ok());
-        let events = storage
-            .list_event_listings()
-            .await
-            .map_err(|e| worker::Error::RustError(e.to_string()))?;
-        let kv_keys = storage
-            .kv_list_keys_with_prefix("")
-            .await
-            .map_err(|e| worker::Error::RustError(e.to_string()))?;
+        let events = timed!(
+            timing,
+            "storage.list_event_listings_ms",
+            storage
+                .list_event_listings()
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))
+        )?;
+        let kv_keys = timed!(
+            timing,
+            "storage.kv_list_keys_ms",
+            storage
+                .kv_list_keys_with_prefix("")
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))
+        )?;
         let (r2_keys, scores_exists, espn_cache_exists) = if let Some(id) = event_id {
             let scores_key = crate::storage::ServerlessStorage::scores_key(id);
             let cache_key = crate::storage::ServerlessStorage::espn_cache_key(id);
-            let scores_exists = storage
-                .r2_key_exists(&scores_key)
-                .await
-                .map_err(|e| worker::Error::RustError(e.to_string()))?;
-            let espn_cache_exists = storage
-                .r2_key_exists(&cache_key)
-                .await
-                .map_err(|e| worker::Error::RustError(e.to_string()))?;
+            let scores_exists = timed!(
+                timing,
+                "storage.r2_scores_exists_ms",
+                storage
+                    .r2_key_exists(&scores_key)
+                    .await
+                    .map_err(|e| worker::Error::RustError(e.to_string()))
+            )?;
+            let espn_cache_exists = timed!(
+                timing,
+                "storage.r2_espn_cache_exists_ms",
+                storage
+                    .r2_key_exists(&cache_key)
+                    .await
+                    .map_err(|e| worker::Error::RustError(e.to_string()))
+            )?;
             (Vec::new(), Some(scores_exists), Some(espn_cache_exists))
         } else {
-            let r2_keys = storage
-                .r2_list_keys_with_prefix(None)
-                .await
-                .map_err(|e| worker::Error::RustError(e.to_string()))?;
+            let r2_keys = timed!(
+                timing,
+                "storage.r2_list_keys_ms",
+                storage
+                    .r2_list_keys_with_prefix(None)
+                    .await
+                    .map_err(|e| worker::Error::RustError(e.to_string()))
+            )?;
             (r2_keys, None, None)
         };
-        return Response::from_json(&AdminListingResponse {
+        let resp = timed!(timing, "response.json_ms", Response::from_json(&AdminListingResponse {
             events,
             kv_keys,
             r2_keys,
             event_id,
             scores_exists,
             espn_cache_exists,
-        });
+        }));
+        if let Some(instrumentation) = instrumentation {
+            let details = serde_json::json!({
+                "admin": true,
+                "event_id": event_id,
+            });
+            instrumentation.log_request(&req, details)?;
+        }
+        return resp;
     }
 
-    let query = parse_query_params(&req)?;
+    let query = timed!(
+        timing,
+        "request.parse_query_params_ms",
+        parse_query_params(&req)
+    )?;
     let auth_token = match query.get("auth_token") {
         Some(value) if !value.trim().is_empty() => value.trim(),
         _ => return Response::error("auth_token is required", 401),
     };
-    if !storage
-        .auth_token_valid(auth_token)
-        .await
-        .map_err(|e| worker::Error::RustError(e.to_string()))?
-    {
+    let auth_ok = timed!(
+        timing,
+        "storage.auth_token_valid_ms",
+        storage
+            .auth_token_valid(auth_token)
+            .await
+            .map_err(|e| worker::Error::RustError(e.to_string()))
+    )?;
+    if !auth_ok {
         return Response::error("auth_token is invalid", 401);
     }
 
-    let entries = storage
-        .list_event_listings()
-        .await
-        .map_err(|e| worker::Error::RustError(e.to_string()))?;
-    let markup = render_listing(entries);
-    respond_html(markup.into_string())
+    let entries = timed!(
+        timing,
+        "storage.list_event_listings_ms",
+        storage
+            .list_event_listings()
+            .await
+            .map_err(|e| worker::Error::RustError(e.to_string()))
+    )?;
+    let markup = timed!(timing, "view.render_listing_ms", render_listing(entries));
+    let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
+    if let Some(instrumentation) = instrumentation {
+        let details = serde_json::json!({
+            "admin": false,
+        });
+        instrumentation.log_request(&req, details)?;
+    }
+    resp
 }
 
 fn render_listing(entries: Vec<EventListing>) -> Markup {
