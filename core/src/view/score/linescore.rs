@@ -6,7 +6,7 @@ use maud::{Markup, html};
 #[must_use]
 pub fn render_line_score_tables(bettors: &[BettorData], refresh_data: &RefreshData) -> Markup {
     html! {
-        h3 class="playerbars" { "Score by Golfer" }
+        h2 class="playerbars" { "Score by Golfer" }
 
         p class="refresh" {
             "Use filters from prior section to cycle through golfers, and use buttons below to cycle through rounds."
@@ -113,7 +113,11 @@ fn render_tee_time_rows(golfer: &GolferData, rounds: &[usize], latest_round: usi
                 } else {
                     tee_time.clone()
                 };
-                div class=(row_class) data-round=(rd) { "Tee (ct): " br { (friendly_time) }}
+                div class=(row_class) data-round=(rd) {
+                    "Tee (ct): "
+                    br;
+                    (friendly_time)
+                }
             }
         }
     }

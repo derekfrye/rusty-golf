@@ -146,7 +146,7 @@ body.alt-zen {
   z-index: 1;
 }
 
-h3 {
+h2 {
   font-family: "Cormorant Garamond", "Garamond", "Palatino Linotype", serif;
   font-weight: 600;
   font-size: 26px;
@@ -154,7 +154,7 @@ h3 {
   color: var(--accent-deep);
 }
 
-.panel > h3 {
+.panel > h2 {
   margin-top: 0;
 }
 

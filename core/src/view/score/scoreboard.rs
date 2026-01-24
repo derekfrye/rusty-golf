@@ -8,7 +8,7 @@ pub fn render_scoreboard(data: &ScoreData) -> Markup {
 
             @let grouped_bettors = &data.bettor_struct;
 
-            h3 { "Scoreboard" }
+            h2 { "Scoreboard" }
 
             table class="styled-table" {
                 thead {

@@ -33,36 +33,38 @@ pub async fn resolve_index_title_or_default(storage: &dyn Storage, event_str: &s
 pub fn render_index_template_with_scores(title: &str, scores_markup: Option<Markup>) -> Markup {
     html! {
         (maud::DOCTYPE)
-        head{
-            meta charset="UTF-8";
-            meta name="viewport" content="width=device-width, initial-scale=1.0";
-            link id="theme-stylesheet" rel="stylesheet" type="text/css" href="static/alt/modern.v3.css" data-theme-modern="static/alt/modern.v3.css" data-theme-classic="static/styles.v2.css";
-            link rel="stylesheet" href="static/ex.css";
-            title { (title) }
-            script src=(HTMX_PATH) defer integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous" {}
-            script src="static/tablesort.js" defer {}
-            script src="static/params.js" defer {}
-            script src="static/scores.js" defer {}
-            script src="static/ex.js" defer {}
-        }
-        body class="alt-zen" {
-            div class="paper-bg" aria-hidden="true" {}
-            div class="page" {
-                div class="switches" {
-                    button class="theme-toggle" id="theme-toggle" title="Toggles classic & modern" aria-label="auto" aria-live="polite" {
-                        span class="theme-label" { "Theme:" }
-                        span class="theme-toggle-text" id="theme-toggle-text" { "classic" }
+        html lang="en" {
+            head{
+                meta charset="UTF-8";
+                meta name="viewport" content="width=device-width, initial-scale=1.0";
+                link id="theme-stylesheet" rel="stylesheet" type="text/css" href="static/alt/modern.v3.css" data-theme-modern="static/alt/modern.v3.css" data-theme-classic="static/styles.v2.css";
+                link rel="stylesheet" href="static/ex.css";
+                title { (title) }
+                script src=(HTMX_PATH) defer integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous" {}
+                script src="static/tablesort.js" defer {}
+                script src="static/params.js" defer {}
+                script src="static/scores.js" defer {}
+                script src="static/ex.js" defer {}
+            }
+            body class="alt-zen" {
+                div class="paper-bg" aria-hidden="true" {}
+                div class="page" {
+                    div class="switches" {
+                        button class="theme-toggle" id="theme-toggle" title="Toggles classic & modern" aria-label="auto" aria-live="polite" {
+                            span class="theme-label" { "Theme:" }
+                            span class="theme-toggle-text" id="theme-toggle-text" { "classic" }
+                        }
                     }
-                }
-                main class="content" {
-                    h1 {
-                        (title)
-                    }
-                    div id="scores" {
-                        @if let Some(markup) = scores_markup {
-                            (markup)
-                        } @else {
-                            img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
+                    main class="content" {
+                        h1 {
+                            (title)
+                        }
+                        div id="scores" {
+                            @if let Some(markup) = scores_markup {
+                                (markup)
+                            } @else {
+                                img alt="Result loading..." class="htmx-indicator" width="150" src="https://htmx.org//img/bars.svg" {}
+                            }
                         }
                     }
                 }

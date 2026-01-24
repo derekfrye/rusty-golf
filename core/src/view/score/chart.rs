@@ -142,7 +142,7 @@ pub fn render_drop_down_bar_pure<S: BuildHasher>(
     let sorted_bettors = sorted_bettors(summary_scores_x);
 
     html! {
-        h3 class="playerbars" { "Score by Player" }
+        h2 class="playerbars" { "Score by Player" }
         // Outer container with both old and new class names for CSS compatibility
         div class="drop-down-bar-chart player-bar-container" {
             // Old structure: player-selection for buttons

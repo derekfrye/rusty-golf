@@ -73,3 +73,22 @@ Miniflare), `/listing` further returns a JSON payload with KV and R2 keys for de
 curl -H "x-admin-token: $MINIFLARE_ADMIN_TOKEN" \
   "http://127.0.0.1:8787/listing"
 ```
+
+## Offline HTML validation (v.Nu)
+Use the Nu Html Checker container to validate rendered HTML without the online UI.
+
+Validate a public URL:
+```bash
+podman run --rm ghcr.io/validator/validator:latest \
+  vnu --format json --stdout "https://example.com" > vnu-report.json
+```
+
+Validate a local dev URL:
+```bash
+podman run --rm --network host ghcr.io/validator/validator:latest \
+  vnu --format json --stdout "http://localhost:8787" > vnu-report.json
+```
+
+Notes:
+- The `--network host` flag is required if the page is only reachable on localhost.
+- Use `--format text` instead of `json` if you want human-readable output.

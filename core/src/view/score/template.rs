@@ -39,23 +39,23 @@ pub fn render_scores_template_pure<S: BuildHasher>(
             (render_scoreboard(data))
             @if expanded {
                 div id="score-summary"
-                    hx-get=(format!("scores/summary?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, "1"))
-                    hx-trigger="load" hx-swap="innerHTML" {
+                    data-hx-get=(format!("scores/summary?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, "1"))
+                    data-hx-trigger="load" data-hx-swap="innerHTML" {
                     (render_summary_scores(&summary_scores_x))
                 }
             }
 
             div id="score-chart"
-                hx-get=(format!("scores/chart?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
-                hx-trigger="load" hx-swap="innerHTML" {
+                data-hx-get=(format!("scores/chart?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
+                data-hx-trigger="load" data-hx-swap="innerHTML" {
                 (render_drop_down_bar_pure(&summary_scores_x, &detailed_scores, global_step_factor, player_step_factors))
             }
         }
 
         section class="panel linescore-panel" {
             div id="linescore"
-                hx-get=(format!("scores/linescore?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
-                hx-trigger="load" hx-swap="innerHTML" {
+                data-hx-get=(format!("scores/linescore?event={}&yr={}&cache={}&expanded={}", event_id, year, cache_str, if expanded {"1"} else {"0"}))
+                data-hx-trigger="load" data-hx-swap="innerHTML" {
                 (render_line_score_tables(bettor_struct_for_line_scores, &refresh_data))
             }
         }

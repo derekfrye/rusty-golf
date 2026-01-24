@@ -4,7 +4,7 @@ use maud::{Markup, html};
 #[must_use]
 pub fn render_summary_scores(grouped_data: &AllBettorScoresByRound) -> Markup {
     html! {
-        h3 { "Summary Scores by Round" }
+        h2 { "Summary Scores by Round" }
         table class="styled-table" {
             thead {
                 tr {
