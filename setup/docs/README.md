@@ -33,12 +33,32 @@ Optional args:
 - `--wrangler-config-dir` Directory for wrangler config (sets `XDG_CONFIG_HOME`).
 - `--output-json-stdout` Write one-shot JSON output to stdout instead of a file.
 
-Example:
+## Examples:
 
 ```bash
 cargo run -p rusty-golf-setup -- \
   --eup-json tests/test05_dbprefill.json \
   --kv-env dev --wrangler-config serverless/wrangler.toml
+```
+
+Note: `update_event` only reads KV for context and writes a new EUP JSON entry. It does not
+seed or re-seed KV. To apply changes to KV, run `--mode seed` with the updated EUP JSON, for
+example:
+
+```bash
+# 1) Update an event and write a new EUP JSON file.
+cargo run -p rusty-golf-setup -- \
+  --mode update_event \
+  --eup-json tests/test05_dbprefill.json \
+  --output-json /tmp/eup_updated.json
+
+# 2) Re-seed KV using the updated EUP JSON.
+cargo run -p rusty-golf-setup -- \
+  --mode seed \
+  --eup-json /tmp/eup_updated.json \
+  --event-id 401703504 \
+  --kv-env dev \
+  --wrangler-config serverless/wrangler.toml
 ```
 
 With config:

@@ -21,7 +21,8 @@ pub(crate) use eup::{eup_event_exists, load_eup_event_dates, load_eup_json};
 pub(crate) use events::{ensure_list_events, print_list_event_error};
 pub(crate) use golfers::{output_json_path, set_golfers_by_bettor, take_golfers_by_bettor};
 pub(crate) use kv::{
-    list_kv_events, load_current_golfers_by_bettor, load_kv_bettors, load_kv_golfers_list,
+    list_kv_event_ids, list_kv_events, load_current_golfers_by_bettor, load_kv_bettors,
+    load_kv_event_name, load_kv_golfers_list,
 };
 
 pub(crate) struct ReplState {

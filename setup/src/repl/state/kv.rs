@@ -1,6 +1,7 @@
 use super::ReplState;
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::process::Command;
 
@@ -57,15 +58,9 @@ pub(crate) fn load_kv_golfers_list(
 pub(crate) fn list_kv_events(
     state: &ReplState,
 ) -> Result<Option<Vec<(i64, Option<String>)>>> {
-    let Some(raw_keys) = kv_list_keys(state, "event:")? else {
+    let Some(event_ids) = list_kv_event_ids(state)? else {
         return Ok(None);
     };
-    let mut event_ids = BTreeSet::new();
-    for key in raw_keys {
-        if let Some(event_id) = parse_event_id_from_key(&key) {
-            event_ids.insert(event_id);
-        }
-    }
     if event_ids.is_empty() {
         return Ok(Some(Vec::new()));
     }
@@ -78,7 +73,20 @@ pub(crate) fn list_kv_events(
     Ok(Some(events))
 }
 
-fn load_kv_event_name(state: &ReplState, event_id: i64) -> Result<Option<String>> {
+pub(crate) fn list_kv_event_ids(state: &ReplState) -> Result<Option<Vec<i64>>> {
+    let Some(raw_keys) = kv_list_keys(state, "event:")? else {
+        return Ok(None);
+    };
+    let mut event_ids = BTreeSet::new();
+    for key in raw_keys {
+        if let Some(event_id) = parse_event_id_from_key(&key) {
+            event_ids.insert(event_id);
+        }
+    }
+    Ok(Some(event_ids.into_iter().collect()))
+}
+
+pub(crate) fn load_kv_event_name(state: &ReplState, event_id: i64) -> Result<Option<String>> {
     let key = format!("event:{event_id}:details");
     let Some(raw) = kv_key_get(state, &key)? else {
         return Ok(None);
@@ -193,6 +201,32 @@ fn kv_list_keys(state: &ReplState, prefix: &str) -> Result<Option<Vec<String>>> 
     let trimmed = stdout.trim();
     if trimmed.is_empty() {
         return Ok(Some(Vec::new()));
+    }
+
+    if trimmed.starts_with('[') || trimmed.starts_with('{') {
+        let value: Value = serde_json::from_str(trimmed)
+            .context("parse wrangler kv key list json")?;
+        let mut keys = Vec::new();
+        match value {
+            Value::Array(items) => {
+                for item in items {
+                    if let Some(name) = item.get("name").and_then(Value::as_str) {
+                        keys.push(name.to_string());
+                    }
+                }
+            }
+            Value::Object(map) => {
+                if let Some(items) = map.get("result").and_then(Value::as_array) {
+                    for item in items {
+                        if let Some(name) = item.get("name").and_then(Value::as_str) {
+                            keys.push(name.to_string());
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        return Ok(Some(keys));
     }
 
     let mut keys = Vec::new();

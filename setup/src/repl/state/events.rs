@@ -4,7 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use super::{ReplState, list_kv_events};
+use super::{ReplState, list_kv_event_ids, load_kv_event_name};
 use super::cache::warm_event_cache;
 use super::eup::read_eup_event_ids;
 
@@ -54,20 +54,37 @@ pub(crate) fn ensure_list_events(
         events.insert(id, name);
     }
 
-    match list_kv_events(state) {
-        Ok(Some(kv_events)) => {
-            for (event_id, name) in kv_events {
-                let id = event_id.to_string();
-                if let Some(name) = name {
-                    events.insert(id, name);
-                } else {
-                    events.entry(id).or_insert_with(String::new);
-                }
-            }
-        }
-        Ok(None) => {}
+    let kv_event_ids = match list_kv_event_ids(state) {
+        Ok(Some(ids)) => Some(ids),
+        Ok(None) => None,
         Err(err) => {
             println!("Warning: failed to list KV events: {err}");
+            None
+        }
+    };
+    let kv_event_len = kv_event_ids.as_ref().map_or(0, Vec::len);
+    if kv_event_len > 0 {
+        overall.set_message("Loading KV events");
+        overall.set_length(1 + kv_event_len as u64);
+    }
+    if let Some(kv_event_ids) = kv_event_ids {
+        for event_id in kv_event_ids {
+            let id = event_id.to_string();
+            let name = match load_kv_event_name(state, event_id) {
+                Ok(name) => name,
+                Err(err) => {
+                    println!("Warning: failed to load KV event {event_id}: {err}");
+                    None
+                }
+            };
+            if let Some(name) = name {
+                events.insert(id, name);
+            } else {
+                events.entry(id).or_insert_with(String::new);
+            }
+            if kv_event_len > 0 {
+                overall.inc(1);
+            }
         }
     }
 
@@ -84,7 +101,11 @@ pub(crate) fn ensure_list_events(
             })
             .collect();
     }
-    overall.set_length(1 + missing_ids.len() as u64);
+    if kv_event_len > 0 {
+        overall.set_length(1 + kv_event_len as u64 + missing_ids.len() as u64);
+    } else {
+        overall.set_length(1 + missing_ids.len() as u64);
+    }
 
     if !missing_ids.is_empty() {
         overall.set_message("Fetching missing event names");
