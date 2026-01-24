@@ -1,11 +1,13 @@
 use super::ReplState;
 use crate::espn::EspnClient;
 use anyhow::{Context, Result};
+use indicatif::{ProgressBar, ProgressStyle};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 
 pub(crate) fn has_cached_events(state: &ReplState) -> Result<bool> {
     let mut entries = fs::read_dir(&state.event_cache_dir)
@@ -80,14 +82,32 @@ pub(crate) fn warm_event_cache(
     cache_dir: &Path,
     espn: &Arc<dyn EspnClient>,
 ) -> Result<()> {
-    for (event_id, _) in events {
-        let cache_path = cache_dir.join(format!("{event_id}.json"));
-        if cache_path.is_file() {
-            continue;
-        }
-        if let Ok(event_id) = event_id.parse::<i64>() {
-            let _ = espn.fetch_event_name(event_id, cache_dir)?;
-        }
+    let missing_ids: Vec<i64> = events
+        .iter()
+        .filter_map(|(event_id, _)| {
+            let cache_path = cache_dir.join(format!("{event_id}.json"));
+            if cache_path.is_file() {
+                return None;
+            }
+            event_id.parse::<i64>().ok()
+        })
+        .collect();
+    if missing_ids.is_empty() {
+        return Ok(());
     }
+
+    let overall_style =
+        ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
+            .unwrap_or_else(|_| ProgressStyle::default_bar());
+    let overall = ProgressBar::new(missing_ids.len() as u64);
+    overall.set_style(overall_style);
+    overall.set_message("Warming event cache");
+    overall.enable_steady_tick(Duration::from_millis(120));
+
+    for event_id in missing_ids {
+        let _ = espn.fetch_event_name(event_id, cache_dir)?;
+        overall.inc(1);
+    }
+    overall.finish_and_clear();
     Ok(())
 }
