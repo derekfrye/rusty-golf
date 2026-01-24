@@ -5,13 +5,13 @@ use common::serverless::{
     admin_test_unlock, event_id_i32, is_local_miniflare, load_espn_cache, load_eup_event,
     load_score_struct, shared_wrangler_dirs, test_lock_token,
 };
-use serde_json::Value;
 use rusty_golf_actix::controller::score::get_data_for_scores_page;
 use rusty_golf_actix::model::ScoreData;
 use rusty_golf_actix::storage::SqlStorage;
 use rusty_golf_actix::view::score::{
     render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
 };
+use serde_json::Value;
 use sql_middleware::middleware::{ConfigAndPool as ConfigAndPool2, QueryAndParams, SqliteOptions};
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -48,8 +48,7 @@ struct BrysonExpectations {
 
 fn init_env() {
     let _ = dotenvy::dotenv();
-    if std::env::var("MINIFLARE_URL").is_err() || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err()
-    {
+    if std::env::var("MINIFLARE_URL").is_err() || std::env::var("MINIFLARE_ADMIN_TOKEN").is_err() {
         let _ = dotenvy::from_filename("../.env");
     }
 }

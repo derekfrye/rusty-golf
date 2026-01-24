@@ -13,8 +13,7 @@ use std::process::Command;
 use std::time::Duration;
 
 #[tokio::test(flavor = "multi_thread")]
-async fn test13_serverless_espn_failure_falls_back_to_seed_cache(
-) -> Result<(), Box<dyn Error>> {
+async fn test13_serverless_espn_failure_falls_back_to_seed_cache() -> Result<(), Box<dyn Error>> {
     if !run_serverless_enabled() {
         eprintln!("Skipping serverless test: RUN_SERVERLESS=1 not set in .env");
         return Ok(());
@@ -64,7 +63,8 @@ async fn test13_serverless_espn_failure_falls_back_to_seed_cache(
         admin_set_espn_failure(&miniflare_url, &admin_token, event_id, true).await?;
 
         assert_scores_response(event_id, &miniflare_url).await?;
-        let (scores_exists, _) = admin_scores_exists(&miniflare_url, &admin_token, event_id).await?;
+        let (scores_exists, _) =
+            admin_scores_exists(&miniflare_url, &admin_token, event_id).await?;
         assert!(scores_exists, "Expected scores.json to be restored");
 
         Ok(())

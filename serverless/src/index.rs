@@ -6,9 +6,7 @@ use maud::Markup;
 
 use worker::{Request, Response, Result, RouteContext};
 
-use rusty_golf_core::score::{
-    cache_max_age_for_event, load_score_context, parse_score_request,
-};
+use rusty_golf_core::score::{cache_max_age_for_event, load_score_context, parse_score_request};
 use rusty_golf_core::view::index::{
     render_index_template_with_scores, resolve_index_title_or_default,
 };

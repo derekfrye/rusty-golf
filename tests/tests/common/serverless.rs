@@ -251,7 +251,9 @@ pub async fn admin_cleanup_scores(
 ) -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     let event_id_i32 = event_id_i32(event_id)?;
-    let payload = AdminCleanupScoresRequest { event_id: event_id_i32 };
+    let payload = AdminCleanupScoresRequest {
+        event_id: event_id_i32,
+    };
     let resp = client
         .post(format!("{miniflare_url}/admin/cleanup_scores"))
         .header("x-admin-token", admin_token)

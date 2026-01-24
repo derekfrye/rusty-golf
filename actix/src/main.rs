@@ -1,8 +1,8 @@
 use rusty_golf_actix::args;
 use rusty_golf_actix::controller::{db_prefill, score::scores};
-use rusty_golf_actix::storage::SqlStorage;
 use rusty_golf_actix::mvu::runtime::run_score;
-use rusty_golf_actix::mvu::score::{decode_request_to_model, Deps, Msg};
+use rusty_golf_actix::mvu::score::{Deps, Msg, decode_request_to_model};
+use rusty_golf_actix::storage::SqlStorage;
 use rusty_golf_actix::view::index::{
     DEFAULT_INDEX_TITLE, render_index_template_with_scores, try_resolve_index_title,
 };

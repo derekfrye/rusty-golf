@@ -1,12 +1,14 @@
-use super::{AppMode, KvAccessConfig};
 use super::cli::{Cli, FileConfig};
+use super::{AppMode, KvAccessConfig};
 use crate::seed::wrangler::load_kv_namespace_id;
 use anyhow::{Result, anyhow};
 use std::path::PathBuf;
 
 pub(crate) fn build_update_event_mode(cli: &Cli, file_config: &FileConfig) -> Result<AppMode> {
     if cli.one_shot || file_config.one_shot.unwrap_or(false) {
-        return Err(anyhow!("--one-shot is only valid with --mode=new_event or --mode=get_event_details"));
+        return Err(anyhow!(
+            "--one-shot is only valid with --mode=new_event or --mode=get_event_details"
+        ));
     }
 
     let output_json = cli
@@ -18,10 +20,7 @@ pub(crate) fn build_update_event_mode(cli: &Cli, file_config: &FileConfig) -> Re
         .kv_binding
         .clone()
         .or_else(|| file_config.kv_binding.clone());
-    let kv_env = cli
-        .kv_env
-        .clone()
-        .or_else(|| file_config.kv_env.clone());
+    let kv_env = cli.kv_env.clone().or_else(|| file_config.kv_env.clone());
 
     let wrangler_config = cli
         .wrangler_config
@@ -47,7 +46,8 @@ pub(crate) fn build_update_event_mode(cli: &Cli, file_config: &FileConfig) -> Re
     )?;
 
     let kv_namespace_id = if kv_binding.is_none() {
-        let kv_env = kv_env.ok_or_else(|| anyhow!("missing --kv-env (required without --kv-binding)"))?;
+        let kv_env =
+            kv_env.ok_or_else(|| anyhow!("missing --kv-env (required without --kv-binding)"))?;
         Some(load_kv_namespace_id(&wrangler_config, &kv_env)?)
     } else {
         None
@@ -133,11 +133,12 @@ fn validate_env_consistency(
         ));
     }
     if let (Some(kv_env), Some(wrangler_env)) = (kv_env, wrangler_env)
-        && kv_env != wrangler_env {
-            return Err(anyhow!(
-                "--kv-env ({kv_env}) conflicts with --wrangler-env ({wrangler_env})"
-            ));
-        }
+        && kv_env != wrangler_env
+    {
+        return Err(anyhow!(
+            "--kv-env ({kv_env}) conflicts with --wrangler-env ({wrangler_env})"
+        ));
+    }
     if let (Some(kv_env), Some(kv_flags_env)) = (kv_env, kv_flags_env) {
         if kv_env != kv_flags_env {
             return Err(anyhow!(
@@ -145,10 +146,11 @@ fn validate_env_consistency(
             ));
         }
     } else if let (Some(wrangler_env), Some(kv_flags_env)) = (wrangler_env, kv_flags_env)
-        && wrangler_env != kv_flags_env {
-            return Err(anyhow!(
-                "--wrangler-env ({wrangler_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
-            ));
-        }
+        && wrangler_env != kv_flags_env
+    {
+        return Err(anyhow!(
+            "--wrangler-env ({wrangler_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
+        ));
+    }
     Ok(())
 }

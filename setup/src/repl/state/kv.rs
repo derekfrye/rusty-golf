@@ -27,10 +27,7 @@ pub(crate) fn load_current_golfers_by_bettor(
     Ok(Some(build_golfers_by_bettor(&assignments)))
 }
 
-pub(crate) fn load_kv_bettors(
-    state: &ReplState,
-    event_id: i64,
-) -> Result<Option<Vec<String>>> {
+pub(crate) fn load_kv_bettors(state: &ReplState, event_id: i64) -> Result<Option<Vec<String>>> {
     let Some(assignments) = load_kv_golfers(state, event_id)? else {
         return Ok(None);
     };
@@ -78,10 +75,7 @@ pub(crate) fn load_kv_event_name(state: &ReplState, event_id: i64) -> Result<Opt
     Ok(Some(details.event_name))
 }
 
-fn load_kv_golfers(
-    state: &ReplState,
-    event_id: i64,
-) -> Result<Option<Vec<KvGolferAssignment>>> {
+fn load_kv_golfers(state: &ReplState, event_id: i64) -> Result<Option<Vec<KvGolferAssignment>>> {
     let key = format!("event:{event_id}:golfers");
     let Some(raw) = kv_key_get(state, &key)? else {
         return Ok(None);
@@ -91,9 +85,7 @@ fn load_kv_golfers(
     Ok(Some(assignments))
 }
 
-fn build_golfers_by_bettor(
-    assignments: &[KvGolferAssignment],
-) -> BTreeMap<String, Vec<String>> {
+fn build_golfers_by_bettor(assignments: &[KvGolferAssignment]) -> BTreeMap<String, Vec<String>> {
     let mut golfers_by_bettor: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for entry in assignments {
         golfers_by_bettor

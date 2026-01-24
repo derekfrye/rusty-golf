@@ -36,8 +36,12 @@ pub(crate) fn parse_golfers_by_bettor(value: &str) -> Result<Vec<GolferByBettorI
 }
 
 pub(crate) fn parse_event_ids(value: &str) -> Result<Vec<i64>> {
-    let items = parse_items(value)
-        .map_err(|err| anyhow!("invalid event id list: {}", format_parse_error(value, err.index)))?;
+    let items = parse_items(value).map_err(|err| {
+        anyhow!(
+            "invalid event id list: {}",
+            format_parse_error(value, err.index)
+        )
+    })?;
     if items.is_empty() {
         return Err(anyhow!("event id list is empty"));
     }

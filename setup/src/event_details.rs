@@ -1,6 +1,6 @@
 use crate::espn::EspnClient;
 use anyhow::{Context, Result};
-use chrono::{DateTime, Local, Timelike, TimeZone};
+use chrono::{DateTime, Local, TimeZone, Timelike};
 use chrono_tz::Tz;
 use serde::Serialize;
 use serde_json::Value;
@@ -61,7 +61,9 @@ pub fn build_event_details_row(
             end_date = header_end;
         }
     }
-    if (start_date.is_none() || end_date.is_none()) && let Some(dates) = eup_dates {
+    if (start_date.is_none() || end_date.is_none())
+        && let Some(dates) = eup_dates
+    {
         if start_date.is_none() {
             start_date.clone_from(&dates.start_date);
         }
@@ -169,8 +171,14 @@ fn extract_dates_from_scoreboard(
                 if id != Some(event_id_str.as_str()) {
                     continue;
                 }
-                let start_date = event.get("date").and_then(Value::as_str).map(str::to_string);
-                let end_date = event.get("endDate").and_then(Value::as_str).map(str::to_string);
+                let start_date = event
+                    .get("date")
+                    .and_then(Value::as_str)
+                    .map(str::to_string);
+                let end_date = event
+                    .get("endDate")
+                    .and_then(Value::as_str)
+                    .map(str::to_string);
                 return Some((start_date, end_date));
             }
         }

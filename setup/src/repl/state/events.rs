@@ -4,9 +4,9 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use super::{ReplState, list_kv_event_ids, load_kv_event_name};
 use super::cache::warm_event_cache;
 use super::eup::read_eup_event_ids;
+use super::{ReplState, list_kv_event_ids, load_kv_event_name};
 
 pub(crate) fn list_event_error_message(err: &anyhow::Error) -> String {
     if err.is::<MalformedEspnJson>() {

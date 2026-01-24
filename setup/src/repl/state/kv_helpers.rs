@@ -8,7 +8,11 @@ pub(super) fn kv_key_get(state: &ReplState, key: &str) -> Result<Option<String>>
         return Ok(None);
     };
     let mut command = Command::new("wrangler");
-    command.arg("kv").arg("key").arg("get").args(&kv_access.wrangler_kv_flags);
+    command
+        .arg("kv")
+        .arg("key")
+        .arg("get")
+        .args(&kv_access.wrangler_kv_flags);
     if let Some(binding) = kv_access.kv_binding.as_deref() {
         command.arg("--binding").arg(binding);
     } else if let Some(id) = kv_access.kv_namespace_id.as_deref() {
@@ -36,10 +40,7 @@ pub(super) fn kv_key_get(state: &ReplState, key: &str) -> Result<Option<String>>
 
     let stdout = String::from_utf8(output.stdout).context("parse wrangler kv output")?;
     let trimmed = stdout.trim();
-    if trimmed.is_empty()
-        || trimmed == "null"
-        || trimmed.eq_ignore_ascii_case("value not found")
-    {
+    if trimmed.is_empty() || trimmed == "null" || trimmed.eq_ignore_ascii_case("value not found") {
         return Ok(None);
     }
     Ok(Some(trimmed.to_string()))
@@ -85,8 +86,8 @@ pub(super) fn kv_list_keys(state: &ReplState, prefix: &str) -> Result<Option<Vec
     }
 
     if trimmed.starts_with('[') || trimmed.starts_with('{') {
-        let value: Value = serde_json::from_str(trimmed)
-            .context("parse wrangler kv key list json")?;
+        let value: Value =
+            serde_json::from_str(trimmed).context("parse wrangler kv key list json")?;
         let mut keys = Vec::new();
         match value {
             Value::Array(items) => {

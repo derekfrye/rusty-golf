@@ -60,7 +60,9 @@ pub(crate) fn build_seed_mode(cli: &Cli, file_config: &FileConfig) -> Result<App
         Some(&kv_env),
         wrangler_env_explicit.as_deref(),
         extract_env_flag(&wrangler_kv_flags).as_deref(),
-        cli.kv_binding.as_deref().or(file_config.kv_binding.as_deref()),
+        cli.kv_binding
+            .as_deref()
+            .or(file_config.kv_binding.as_deref()),
     )?;
 
     Ok(AppMode::Seed(Box::new(SeedOptions {
@@ -154,11 +156,12 @@ fn validate_env_consistency(
         ));
     }
     if let (Some(kv_env), Some(wrangler_env)) = (kv_env, wrangler_env)
-        && kv_env != wrangler_env {
-            return Err(anyhow!(
-                "--kv-env ({kv_env}) conflicts with --wrangler-env ({wrangler_env})"
-            ));
-        }
+        && kv_env != wrangler_env
+    {
+        return Err(anyhow!(
+            "--kv-env ({kv_env}) conflicts with --wrangler-env ({wrangler_env})"
+        ));
+    }
     if let (Some(kv_env), Some(kv_flags_env)) = (kv_env, kv_flags_env) {
         if kv_env != kv_flags_env {
             return Err(anyhow!(
@@ -166,10 +169,11 @@ fn validate_env_consistency(
             ));
         }
     } else if let (Some(wrangler_env), Some(kv_flags_env)) = (wrangler_env, kv_flags_env)
-        && wrangler_env != kv_flags_env {
-            return Err(anyhow!(
-                "--wrangler-env ({wrangler_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
-            ));
-        }
+        && wrangler_env != kv_flags_env
+    {
+        return Err(anyhow!(
+            "--wrangler-env ({wrangler_env}) conflicts with --wrangler-kv-flag --env {kv_flags_env}"
+        ));
+    }
     Ok(())
 }

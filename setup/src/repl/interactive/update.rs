@@ -7,8 +7,7 @@ use crate::repl::payload::write_event_payload;
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};
 use crate::repl::state::{
     ReplState, bettors_selection_exists, ensure_list_events, load_bettors_selection,
-    load_current_golfers_by_bettor, load_kv_bettors,
-    load_kv_golfers_list,
+    load_current_golfers_by_bettor, load_kv_bettors, load_kv_golfers_list,
 };
 use anyhow::Result;
 use rustyline::Editor;
@@ -31,9 +30,7 @@ pub(super) fn run_update_event(
         return Ok(());
     };
 
-    let Some(bettors) =
-        select_bettors(rl, helper_state, state, event_id)?
-    else {
+    let Some(bettors) = select_bettors(rl, helper_state, state, event_id)? else {
         return Ok(());
     };
 

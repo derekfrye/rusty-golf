@@ -96,10 +96,7 @@ fn resolve_golfers(
     Ok(golfers)
 }
 
-fn print_current_golfers(
-    current_golfers: Option<&BTreeMap<String, Vec<String>>>,
-    bettor: &str,
-) {
+fn print_current_golfers(current_golfers: Option<&BTreeMap<String, Vec<String>>>, bettor: &str) {
     let Some(current_by_bettor) = current_golfers else {
         return;
     };

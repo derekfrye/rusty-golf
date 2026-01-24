@@ -51,14 +51,8 @@ pub fn write_event_payload(
     bettors: &[String],
     selections: &[GolferSelection],
 ) -> Result<()> {
-    let serialized = build_event_payload_string(
-        state,
-        event_id,
-        event_name,
-        golfers,
-        bettors,
-        selections,
-    )?;
+    let serialized =
+        build_event_payload_string(state, event_id, event_name, golfers, bettors, selections)?;
     std::fs::write(output_path, serialized)
         .with_context(|| format!("write {}", output_path.display()))?;
     println!("Wrote {}", output_path.display());

@@ -1,9 +1,9 @@
-use super::{AppMode, KvAccessConfig};
 use super::cli::{Cli, FileConfig, GolfersByBettorConfig};
-use super::parse::{parse_golfers_by_bettor, parse_single_event_id};
 use super::new_event_helpers::{
     extract_env_flag, resolve_wrangler_flags, resolve_wrangler_kv_flags, validate_env_consistency,
 };
+use super::parse::{parse_golfers_by_bettor, parse_single_event_id};
+use super::{AppMode, KvAccessConfig};
 use crate::seed::wrangler::load_kv_namespace_id;
 use anyhow::{Result, anyhow};
 use std::path::PathBuf;
@@ -82,10 +82,7 @@ fn resolve_event_id_input(cli: &Cli, file_config: &FileConfig) -> Option<String>
     })
 }
 
-fn resolve_kv_access(
-    cli: &Cli,
-    file_config: &FileConfig,
-) -> Result<Option<KvAccessConfig>> {
+fn resolve_kv_access(cli: &Cli, file_config: &FileConfig) -> Result<Option<KvAccessConfig>> {
     let kv_binding = cli
         .kv_binding
         .clone()
@@ -119,7 +116,8 @@ fn resolve_kv_access(
     )?;
 
     let kv_namespace_id = if kv_binding.is_none() {
-        let kv_env = kv_env.ok_or_else(|| anyhow!("missing --kv-env (required without --kv-binding)"))?;
+        let kv_env =
+            kv_env.ok_or_else(|| anyhow!("missing --kv-env (required without --kv-binding)"))?;
         Some(load_kv_namespace_id(&wrangler_config, &kv_env)?)
     } else {
         None

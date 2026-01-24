@@ -1,6 +1,6 @@
 pub mod config;
-pub mod event_details;
 pub mod espn;
+pub mod event_details;
 pub mod repl;
 pub mod seed;
 

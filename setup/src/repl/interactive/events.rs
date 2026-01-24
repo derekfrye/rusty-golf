@@ -1,5 +1,5 @@
-use crate::repl::commands::{ReplCommand, SubcommandId, find_subcommand, print_subcommand_help};
 use crate::event_details::build_event_details_row;
+use crate::repl::commands::{ReplCommand, SubcommandId, find_subcommand, print_subcommand_help};
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
 use crate::repl::parse::format_parse_error;
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};

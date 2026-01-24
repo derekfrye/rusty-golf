@@ -1,6 +1,6 @@
 use crate::config::GolferByBettorInput;
-use crate::event_details::build_event_details_row;
 use crate::espn::EspnClient;
+use crate::event_details::build_event_details_row;
 use crate::repl::payload::{build_event_payload_string, write_event_payload};
 use crate::repl::state::{
     GolferSelection, ReplState, ensure_list_events, eup_event_exists, load_eup_event_dates,

@@ -93,8 +93,7 @@ fn handle_repl_line(
             handle_pick_bettors(rl, helper_state, state)?;
         }
         CommandId::SetGolfersByBettor => {
-            let selections =
-                select_golfers_by_bettor(rl, helper_state, state, true, None, None)?;
+            let selections = select_golfers_by_bettor(rl, helper_state, state, true, None, None)?;
             if selections.is_empty() {
                 println!("No golfers selected.");
             } else {
@@ -133,8 +132,7 @@ fn run_repl(
     let mut rl = Editor::<ReplHelper, DefaultHistory>::new().context("init repl")?;
     let helper_state = Rc::new(RefCell::new(ReplHelperState::new()));
     rl.set_helper(Some(ReplHelper::new(Rc::clone(&helper_state))));
-    let mut state =
-        ReplState::new(eup_json, output_json, kv_access).context("init repl state")?;
+    let mut state = ReplState::new(eup_json, output_json, kv_access).context("init repl state")?;
     helper_state
         .borrow_mut()
         .set_expert_enabled(state.expert_enabled);
@@ -142,9 +140,7 @@ fn run_repl(
     loop {
         match rl.readline(&prompt) {
             Ok(line) => {
-                if handle_repl_line(&line, &mut rl, &helper_state, &mut state)?
-                    == ReplFlow::Exit
-                {
+                if handle_repl_line(&line, &mut rl, &helper_state, &mut state)? == ReplFlow::Exit {
                     break;
                 }
             }

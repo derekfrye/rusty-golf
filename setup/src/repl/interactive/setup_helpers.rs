@@ -50,10 +50,7 @@ pub(super) fn select_setup_event(
     Ok(Some((event_id, event_id_raw)))
 }
 
-pub(super) fn load_kv_seed_data(
-    state: &mut ReplState,
-    event_id: i64,
-) -> KvSeedData {
+pub(super) fn load_kv_seed_data(state: &mut ReplState, event_id: i64) -> KvSeedData {
     let kv_bettors = match load_kv_bettors(state, event_id) {
         Ok(Some(bettors)) => Some(bettors),
         Ok(None) => None,

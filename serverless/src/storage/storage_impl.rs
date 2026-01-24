@@ -7,11 +7,11 @@ use rusty_golf_core::model::{RefreshSource, Scores, ScoresAndLastRefresh};
 use rusty_golf_core::storage::{EventDetails, Storage, StorageError};
 use std::collections::HashMap;
 
-use crate::storage::ServerlessStorage;
 use super::storage_helpers::{format_rfc3339, parse_rfc3339};
 use super::storage_types::{
     EventDetailsDoc, GolferAssignment, LastRefreshDoc, PlayerFactorEntry, SeededAtDoc,
 };
+use crate::storage::ServerlessStorage;
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl Storage for ServerlessStorage {

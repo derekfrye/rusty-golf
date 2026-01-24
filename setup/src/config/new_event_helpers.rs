@@ -1,5 +1,5 @@
-use super::cli::FileConfig;
 use super::Cli;
+use super::cli::FileConfig;
 use anyhow::{Result, anyhow};
 use std::path::Path;
 
