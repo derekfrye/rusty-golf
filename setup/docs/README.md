@@ -41,6 +41,20 @@ cargo run -p rusty-golf-setup -- \
   --kv-env dev --wrangler-config serverless/wrangler.toml
 ```
 
+Tested seed command (dev):
+
+```bash
+cargo run -q -p rusty-golf-setup -- \
+  --eup-json ~/docker/golf/eup.json \
+  --kv-env=dev \
+  --wrangler-config=serverless/wrangler.toml \
+  --auth-tokens="<token>" \
+  --mode=seed \
+  --wrangler-kv-flag=--preview \
+  --wrangler-kv-flag=false \
+  --wrangler-kv-flag=--remote
+```
+
 Note: `update_event` only reads KV for context and writes a new EUP JSON entry. It does not
 seed or re-seed KV. To apply changes to KV, run `--mode seed` with the updated EUP JSON, for
 example:
@@ -217,10 +231,10 @@ If you do not remember which events are in KV (or whether auth tokens were set),
   - Set `ADMIN_ENABLED=1` and `ADMIN_TOKEN=<token>` in the worker's dev env vars.
   - Request: `curl -H "x-admin-token: <token>" "https://<your-worker>/listing"`
 - Wrangler KV key list: list keys directly in the dev namespace to see seeded events.
-  - `wrangler kv key list --env dev --namespace-id <dev_kv_namespace_id>`. Unless you edit `wrangler.toml`, in this project that's:
+  - `wrangler kv key list --env dev --binding <kv_binding> --config serverless/wrangler.toml`.
 
 ```shell
-wrangler kv key list --env dev --namespace-id djf_rusty_golf_kv
+wrangler kv key list --env dev --binding djf_rusty_golf_kv --config serverless/wrangler.toml
 ```
 
   - Seeded events show up as `event:<event_id>:details`, `event:<event_id>:golfers`, etc.

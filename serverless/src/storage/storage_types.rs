@@ -20,6 +20,7 @@ pub struct EventDetailsDoc {
     pub event_name: String,
     pub score_view_step_factor: f32,
     pub refresh_from_espn: i64,
+    pub start_date: Option<String>,
     pub end_date: Option<String>,
 }
 
@@ -84,6 +85,7 @@ pub struct AdminEupEvent {
     pub event: i64,
     pub name: String,
     pub score_view_step_factor: serde_json::Value,
+    pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub data_to_fill_if_event_and_year_missing: Vec<AdminEupDataFill>,
 }

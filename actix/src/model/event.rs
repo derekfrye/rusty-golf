@@ -7,6 +7,7 @@ pub struct EventTitleAndScoreViewConf {
     pub event_name: String,
     pub score_view_step_factor: f32,
     pub refresh_from_espn: i64,
+    pub start_date: Option<String>,
     pub end_date: Option<String>,
 }
 
@@ -53,6 +54,7 @@ pub async fn get_event_details(
                     .ok_or(SqlMiddlewareDbError::Other(
                         "Refresh from ESPN flag not found".to_string(),
                     ))?,
+                start_date: None,
                 end_date: row
                     .get("end_date")
                     .and_then(|v| v.as_text())

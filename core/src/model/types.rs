@@ -60,6 +60,9 @@ pub struct ScoreData {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum RefreshSource {
     Db,
+    R2,
+    Kv,
+    Memory,
     Espn,
 }
 
@@ -67,6 +70,9 @@ impl fmt::Display for RefreshSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             RefreshSource::Db => "database",
+            RefreshSource::R2 => "R2",
+            RefreshSource::Kv => "kv",
+            RefreshSource::Memory => "memory",
             RefreshSource::Espn => "ESPN",
         };
         write!(f, "{s}")

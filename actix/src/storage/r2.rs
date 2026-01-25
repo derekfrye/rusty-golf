@@ -119,6 +119,7 @@ impl Storage for R2Storage {
             event_name: details.event_name,
             score_view_step_factor: details.score_view_step_factor,
             refresh_from_espn: details.refresh_from_espn,
+            start_date: details.start_date,
             end_date: details.end_date,
         })
     }
@@ -185,7 +186,11 @@ impl Storage for R2Storage {
             .get_json::<ScoresAndLastRefresh>(&key)
             .await?
             .ok_or_else(|| StorageError::new("scores not found"))?;
-        scores.last_refresh_source = source;
+        scores.last_refresh_source = if matches!(source, RefreshSource::Espn) {
+            RefreshSource::Espn
+        } else {
+            RefreshSource::R2
+        };
         Ok(scores)
     }
 

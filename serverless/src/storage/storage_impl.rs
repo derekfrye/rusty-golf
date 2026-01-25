@@ -14,8 +14,8 @@ use super::storage_types::{
     EventDetailsDoc, GolferAssignment, LastRefreshDoc, PlayerFactorEntry, SeededAtDoc,
 };
 use crate::storage::storage_cache::{
-    build_kv_scores_entry, get_in_memory_scores, parse_kv_scores_entry, set_in_memory_scores,
-    KV_SCORES_TTL_SECONDS,
+    build_kv_scores_entry, derive_cache_ttls, get_in_memory_scores, parse_kv_scores_entry,
+    set_in_memory_scores,
 };
 use crate::storage::ServerlessStorage;
 
@@ -28,6 +28,7 @@ impl Storage for ServerlessStorage {
             event_name: doc.event_name,
             score_view_step_factor: doc.score_view_step_factor,
             refresh_from_espn: doc.refresh_from_espn,
+            start_date: doc.start_date,
             end_date: doc.end_date,
         })
     }
@@ -80,11 +81,16 @@ impl Storage for ServerlessStorage {
         let in_memory = get_in_memory_scores(event_id);
         if let Some(mut scores) = in_memory {
             record_timing(timing, "cache.in_memory_hit_ms", in_memory_start);
-            scores.last_refresh_source = source;
+            scores.last_refresh_source = if matches!(source, RefreshSource::Espn) {
+                RefreshSource::Espn
+            } else {
+                RefreshSource::Memory
+            };
             return Ok(scores);
         }
         record_timing(timing, "cache.in_memory_miss_ms", in_memory_start);
 
+        let (kv_ttl_seconds, in_memory_ttl_seconds) = self.cache_ttls_for_event(event_id).await;
         let kv_key = Self::kv_scores_cache_key(event_id);
         let kv_start = start_timing();
         let kv_text = self.kv_get_optional_text(&kv_key).await?;
@@ -99,26 +105,35 @@ impl Storage for ServerlessStorage {
         };
         if let Some(mut scores) = timed!(timing, "cache.kv_scores_ms", kv_cached) {
             record_timing(timing, "cache.kv_hit_ms", kv_start);
-            set_in_memory_scores(event_id, &scores);
-            scores.last_refresh_source = source;
+            set_in_memory_scores(event_id, &scores, in_memory_ttl_seconds);
+            scores.last_refresh_source = if matches!(source, RefreshSource::Espn) {
+                RefreshSource::Espn
+            } else {
+                RefreshSource::Kv
+            };
             return Ok(scores);
         }
         record_timing(timing, "cache.kv_miss_ms", kv_start);
 
         let mut scores: ScoresAndLastRefresh = self.r2_get_json(&key).await?;
-        let kv_entry = build_kv_scores_entry(&scores);
+        let kv_entry = build_kv_scores_entry(&scores, kv_ttl_seconds as i64);
         let _ = timed!(
             timing,
             "cache.kv_fill_ms",
-            self.kv_put_json_with_ttl(&kv_key, &kv_entry, KV_SCORES_TTL_SECONDS)
+            self.kv_put_json_with_ttl(&kv_key, &kv_entry, kv_ttl_seconds)
                 .await
         );
-        set_in_memory_scores(event_id, &scores);
-        scores.last_refresh_source = source;
+        set_in_memory_scores(event_id, &scores, in_memory_ttl_seconds);
+        scores.last_refresh_source = if matches!(source, RefreshSource::Espn) {
+            RefreshSource::Espn
+        } else {
+            RefreshSource::R2
+        };
         Ok(scores)
     }
 
     async fn store_scores(&self, event_id: i32, scores: &[Scores]) -> Result<(), StorageError> {
+        let (kv_ttl_seconds, in_memory_ttl_seconds) = self.cache_ttls_for_event(event_id).await;
         let now = Utc::now().naive_utc();
         let payload = ScoresAndLastRefresh {
             score_struct: scores.to_vec(),
@@ -128,10 +143,10 @@ impl Storage for ServerlessStorage {
         let key = Self::scores_key(event_id);
         self.r2_put_json(&key, &payload).await?;
         let kv_key = Self::kv_scores_cache_key(event_id);
-        let kv_entry = build_kv_scores_entry(&payload);
-        self.kv_put_json_with_ttl(&kv_key, &kv_entry, KV_SCORES_TTL_SECONDS)
+        let kv_entry = build_kv_scores_entry(&payload, kv_ttl_seconds as i64);
+        self.kv_put_json_with_ttl(&kv_key, &kv_entry, kv_ttl_seconds)
             .await?;
-        set_in_memory_scores(event_id, &payload);
+        set_in_memory_scores(event_id, &payload, in_memory_ttl_seconds);
 
         let last_refresh = LastRefreshDoc {
             ts: format_rfc3339(now),
@@ -178,5 +193,15 @@ impl Storage for ServerlessStorage {
         let now = Utc::now().naive_utc();
         let diff = now.signed_duration_since(last_refresh_ts);
         Ok(diff.num_seconds() <= max_age_seconds)
+    }
+}
+
+impl ServerlessStorage {
+    async fn cache_ttls_for_event(&self, event_id: i32) -> (u64, i64) {
+        let details = self.get_event_details(event_id).await.ok();
+        derive_cache_ttls(
+            details.as_ref().and_then(|doc| doc.start_date.as_deref()),
+            details.as_ref().and_then(|doc| doc.end_date.as_deref()),
+        )
     }
 }

@@ -42,6 +42,7 @@ impl Storage for SqlStorage {
             event_name: details.event_name,
             score_view_step_factor: details.score_view_step_factor,
             refresh_from_espn: details.refresh_from_espn,
+            start_date: details.start_date,
             end_date: details.end_date,
         })
     }

@@ -3,7 +3,7 @@ mod common;
 use chrono::{DateTime, Duration, Utc};
 use common::serverless::{
     AdminSeedRequest, WranglerPaths, admin_cleanup_events, admin_seed_event, admin_test_lock_retry,
-    admin_test_unlock, admin_update_end_date, event_id_i32, is_local_miniflare, load_espn_cache,
+    admin_test_unlock, admin_update_dates, event_id_i32, is_local_miniflare, load_espn_cache,
     load_eup_event, load_score_struct, shared_wrangler_dirs, test_lock_token,
 };
 use serde::Deserialize;
@@ -66,7 +66,14 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
         // Ensure end_date is in the past to enable permanent cache behavior.
         let end_date = normalize_end_date(&end_date)?;
         // Store the past end_date in KV so cache is treated as permanent.
-        admin_update_end_date(&miniflare_url, &admin_token, event_id, Some(end_date)).await?;
+        admin_update_dates(
+            &miniflare_url,
+            &admin_token,
+            event_id,
+            None,
+            Some(end_date),
+        )
+        .await?;
 
         // First fetch should hit cache because end_date is in the past.
         let cached = fetch_scores_json(event_id, &miniflare_url).await?;
@@ -76,7 +83,14 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
         // Move end_date into the future to disable permanent caching.
         let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
         // Persist the future end_date so cache is no longer authoritative.
-        admin_update_end_date(&miniflare_url, &admin_token, event_id, Some(tomorrow)).await?;
+        admin_update_dates(
+            &miniflare_url,
+            &admin_token,
+            event_id,
+            None,
+            Some(tomorrow),
+        )
+        .await?;
 
         // Fetch again and verify it does not come from cache.
         let refreshed = fetch_scores_json(event_id, &miniflare_url).await?;

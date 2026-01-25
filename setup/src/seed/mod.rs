@@ -1,4 +1,4 @@
-use crate::seed::espn_header::fetch_end_dates;
+use crate::seed::espn_header::fetch_event_dates;
 use crate::seed::eup::load_events;
 use crate::seed::files::{write_auth_tokens, write_event_files};
 use crate::seed::wrangler::{load_kv_namespace_id, seed_event_kv};
@@ -62,23 +62,29 @@ pub fn seed_kv_from_eup(options: &SeedOptions) -> Result<()> {
         }
     }
 
-    let end_dates = match fetch_end_dates() {
+    let event_dates = match fetch_event_dates() {
         Ok(map) => map,
         Err(err) => {
-            eprintln!("Warning: failed to fetch ESPN end dates: {err}");
+            eprintln!("Warning: failed to fetch ESPN event dates: {err}");
             HashMap::new()
         }
     };
 
     let temp_dir = TempDir::new().context("create temp dir")?;
     for event in &events {
+        let dates = event_dates.get(&event.event);
+        let start_date = event
+            .start_date
+            .as_deref()
+            .or_else(|| dates.and_then(|entry| entry.start_date.as_deref()));
         let end_date = event
             .end_date
             .as_deref()
-            .or_else(|| end_dates.get(&event.event).map(String::as_str));
+            .or_else(|| dates.and_then(|entry| entry.end_date.as_deref()));
         write_event_files(
             event,
             options.refresh_from_espn,
+            start_date,
             end_date,
             &golfers_by_id,
             temp_dir.path(),

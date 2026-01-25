@@ -22,27 +22,39 @@ struct League {
 #[derive(Debug, Deserialize)]
 struct HeaderEvent {
     id: String,
+    #[serde(rename = "date")]
+    start_date: Option<String>,
     #[serde(rename = "endDate")]
     end_date: Option<String>,
 }
 
-pub(crate) fn fetch_end_dates() -> Result<HashMap<i64, String>> {
+#[derive(Debug, Clone)]
+pub(crate) struct HeaderEventDates {
+    pub(crate) start_date: Option<String>,
+    pub(crate) end_date: Option<String>,
+}
+
+pub(crate) fn fetch_event_dates() -> Result<HashMap<i64, HeaderEventDates>> {
     let response =
         reqwest::blocking::get(SCOREBOARD_HEADER_URL).context("fetch scoreboard header")?;
     let header: ScoreboardHeader = response.json().context("parse scoreboard header")?;
 
-    let mut end_dates = HashMap::new();
+    let mut dates = HashMap::new();
     for sport in header.sports {
         for league in sport.leagues {
             for event in league.events {
-                if let Some(end_date) = event.end_date
-                    && let Ok(event_id) = event.id.parse::<i64>()
-                {
-                    end_dates.insert(event_id, end_date);
+                if let Ok(event_id) = event.id.parse::<i64>() {
+                    dates.insert(
+                        event_id,
+                        HeaderEventDates {
+                            start_date: event.start_date,
+                            end_date: event.end_date,
+                        },
+                    );
                 }
             }
         }
     }
 
-    Ok(end_dates)
+    Ok(dates)
 }

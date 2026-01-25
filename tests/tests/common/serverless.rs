@@ -75,6 +75,7 @@ pub struct EupEventInput {
     pub event: i64,
     pub name: String,
     pub score_view_step_factor: serde_json::Value,
+    pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub data_to_fill_if_event_and_year_missing: Vec<EupDataFillInput>,
 }
@@ -160,8 +161,9 @@ struct AdminListingResponse {
 }
 
 #[derive(Debug, Serialize)]
-struct AdminEndDateRequest {
+struct AdminUpdateDatesRequest {
     event_id: i32,
+    start_date: Option<String>,
     end_date: Option<String>,
 }
 
@@ -431,20 +433,22 @@ pub async fn admin_test_lock_retry(
     }
 }
 
-pub async fn admin_update_end_date(
+pub async fn admin_update_dates(
     miniflare_url: &str,
     admin_token: &str,
     event_id: i64,
+    start_date: Option<String>,
     end_date: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     let event_id_i32 = event_id_i32(event_id)?;
-    let payload = AdminEndDateRequest {
+    let payload = AdminUpdateDatesRequest {
         event_id: event_id_i32,
+        start_date,
         end_date,
     };
     let resp = client
-        .post(format!("{miniflare_url}/admin/event_end_date"))
+        .post(format!("{miniflare_url}/admin/event_update_dates"))
         .header("x-admin-token", admin_token)
         .json(&payload)
         .send()
@@ -452,7 +456,7 @@ pub async fn admin_update_end_date(
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("admin end_date update failed: {status}\n{body}").into());
+        return Err(format!("admin date update failed: {status}\n{body}").into());
     }
     Ok(())
 }

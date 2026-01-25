@@ -69,6 +69,16 @@ pub async fn cache_max_age_for_event(
         }
     }
 
+    if let Some(start_date) = event_details.start_date.as_deref()
+        && let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(start_date)
+    {
+        let start_utc = parsed.with_timezone(&Utc);
+        let cutoff = start_utc - chrono::Duration::minutes(10);
+        if Utc::now() < cutoff {
+            return Ok(-1);
+        }
+    }
+
     Ok(match event_details.refresh_from_espn {
         1 => 300,
         _ => 0,

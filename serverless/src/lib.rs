@@ -25,9 +25,9 @@ pub use rusty_golf_core as core;
 
 #[cfg(target_arch = "wasm32")]
 use admin::{
-    admin_cache_status_handler, admin_cleanup_handler, admin_cleanup_scores_handler,
-    admin_end_date_handler, admin_espn_fail_handler, admin_seed_handler,
-    admin_test_lock_handler, admin_test_unlock_handler,
+    admin_cache_flush_handler, admin_cache_status_handler, admin_cleanup_handler,
+    admin_cleanup_scores_handler, admin_espn_fail_handler, admin_seed_handler,
+    admin_test_lock_handler, admin_test_unlock_handler, admin_update_dates_handler,
 };
 #[cfg(target_arch = "wasm32")]
 use index::index_handler;
@@ -82,8 +82,11 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .post_async("/admin/cleanup_scores", |req, ctx| async move {
             admin_cleanup_scores_handler(req, ctx).await
         })
-        .post_async("/admin/event_end_date", |req, ctx| async move {
-            admin_end_date_handler(req, ctx).await
+        .post_async("/admin/cache_flush", |req, ctx| async move {
+            admin_cache_flush_handler(req, ctx).await
+        })
+        .post_async("/admin/event_update_dates", |req, ctx| async move {
+            admin_update_dates_handler(req, ctx).await
         })
         .post_async("/admin/espn_fail", |req, ctx| async move {
             admin_espn_fail_handler(req, ctx).await

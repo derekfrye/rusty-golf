@@ -78,6 +78,13 @@ impl ServerlessStorage {
         Ok(())
     }
 
+    pub async fn admin_flush_scores_cache(&self, event_id: i32) -> Result<(), StorageError> {
+        let kv_key = Self::kv_scores_cache_key(event_id);
+        let _ = self.kv.delete(&kv_key).await;
+        clear_in_memory_scores(event_id);
+        Ok(())
+    }
+
     pub async fn admin_set_espn_failure(
         &self,
         event_id: i32,
@@ -92,14 +99,16 @@ impl ServerlessStorage {
         Ok(())
     }
 
-    pub async fn admin_update_event_end_date(
+    pub async fn admin_update_event_dates(
         &self,
         event_id: i32,
+        start_date: Option<String>,
         end_date: Option<String>,
     ) -> Result<(), StorageError> {
         let details_key = Self::kv_event_details_key(event_id);
         let mut details: super::storage_types::EventDetailsDoc =
             self.kv_get_json(details_key.as_str()).await?;
+        details.start_date = start_date;
         details.end_date = end_date;
         self.kv_put_json(&details_key, &details).await?;
 
@@ -117,6 +126,7 @@ impl ServerlessStorage {
             score_view_step_factor: request.event.score_view_step_factor.as_f64().unwrap_or(0.0)
                 as f32,
             refresh_from_espn: request.refresh_from_espn,
+            start_date: request.event.start_date.clone(),
             end_date: request.event.end_date.clone(),
         };
         let details_key = Self::kv_event_details_key(request.event_id);
