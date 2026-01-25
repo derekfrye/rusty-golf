@@ -36,14 +36,6 @@ Optional args:
 ## Examples:
 
 ```bash
-cargo run -p rusty-golf-setup -- \
-  --eup-json tests/test05_dbprefill.json \
-  --kv-env dev --wrangler-config serverless/wrangler.toml
-```
-
-Tested seed command (dev):
-
-```bash
 cargo run -q -p rusty-golf-setup -- \
   --eup-json ~/docker/golf/eup.json \
   --kv-env=dev \
@@ -92,6 +84,22 @@ cargo run -p rusty-golf-setup -- \
   --output-json /tmp/event_details.json \
   --event-id "401703504,401580355"
 ```
+
+## What have I seeded?
+
+If you do not remember which events are in KV (or whether auth tokens were set), use one of these:
+
+- Admin listing (preferred): enable admin mode in your deployed worker (set via `.dev.vars`), then call
+  `/listing` with the admin header to get a JSON response that includes KV keys and
+  parsed event listings.
+  - Set `ADMIN_ENABLED=1` and `ADMIN_TOKEN=<token>` in the worker's dev env vars.
+  - Request: `curl -H "x-admin-token: <token>" "https://<your-worker>/listing"`
+- Wrangler KV key list: list keys directly in the dev namespace to see seeded events. Remember to use `--remote --preview false` otherwise (for some bizarre reason) `wrangler` defaults to reading from your local env.
+
+```shell
+wrangler kv key list --env dev --binding djf_rusty_golf_kv --config serverless/wrangler.toml --remote --preview false
+```
+  - Seeded events show up as `event:<event_id>:details`, `event:<event_id>:golfers`, etc.
 
 ## Mode `new_event`
 
@@ -221,23 +229,7 @@ When `--auth-tokens` is provided, it stores them for `/listing` access:
 
 - `event:<event_id>:auth_tokens`
 
-## What have I seeded?
 
-If you do not remember which events are in KV (or whether auth tokens were set), use one of these:
-
-- Admin listing (preferred): enable admin mode in your deployed worker, then call
-  `/listing` with the admin header to get a JSON response that includes KV keys and
-  parsed event listings.
-  - Set `ADMIN_ENABLED=1` and `ADMIN_TOKEN=<token>` in the worker's dev env vars.
-  - Request: `curl -H "x-admin-token: <token>" "https://<your-worker>/listing"`
-- Wrangler KV key list: list keys directly in the dev namespace to see seeded events.
-  - `wrangler kv key list --env dev --binding <kv_binding> --config serverless/wrangler.toml`.
-
-```shell
-wrangler kv key list --env dev --binding djf_rusty_golf_kv --config serverless/wrangler.toml
-```
-
-  - Seeded events show up as `event:<event_id>:details`, `event:<event_id>:golfers`, etc.
 
 ## Limitations
 
