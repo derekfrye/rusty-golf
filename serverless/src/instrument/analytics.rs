@@ -30,6 +30,12 @@ pub(super) fn emit_analytics(
         .map(|url| url.path().to_string())
         .unwrap_or_else(|_| "unknown".to_string());
     let method = req.method().to_string();
+    let request_id = req
+        .headers()
+        .get("cf-ray")
+        .ok()
+        .flatten()
+        .unwrap_or_default();
     let event_id = details
         .get("event_id")
         .and_then(|value| value.as_i64())
@@ -43,9 +49,11 @@ pub(super) fn emit_analytics(
 
     let total_blobs = vec![
         "total".to_string(),
+        "".to_string(),
         method.clone(),
         event_id.clone(),
         year.clone(),
+        request_id.clone(),
     ];
     let _ = AnalyticsEngineDataPointBuilder::new()
         .indexes([path.as_str()])
@@ -61,6 +69,7 @@ pub(super) fn emit_analytics(
                 method.clone(),
                 event_id.clone(),
                 year.clone(),
+                request_id.clone(),
             ];
             let _ = AnalyticsEngineDataPointBuilder::new()
                 .indexes([path.as_str()])

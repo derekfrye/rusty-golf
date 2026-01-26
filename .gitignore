@@ -21,3 +21,6 @@ node_modules/
 dist/
 .wrangler-locks/worker-build.lock
 worker-tail.jsonl
+results.txt
+seed_run_prod.txt
+seed_run.txt

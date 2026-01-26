@@ -53,11 +53,16 @@ impl TimingCollector {
         let url = req
             .url()
             .map_err(|e| worker::Error::RustError(e.to_string()))?;
+        let request_id = req
+            .headers()
+            .get("cf-ray")?
+            .unwrap_or_default();
         let phases = self.entries.borrow().clone();
         let log = serde_json::json!({
             "type": "instrumentation",
             "method": req.method().to_string(),
             "path": url.path(),
+            "request_id": request_id,
             "total_ms": elapsed_ms(&self.started_at),
             "phases": phases,
             "details": details,
@@ -146,15 +151,17 @@ fn has_valid_instrument_token(req: &Request, env: &Env) -> Result<bool> {
         Ok(secret) => secret.to_string(),
         Err(_) => return Ok(false),
     };
-    if secret.trim().is_empty() {
+    let secret_trimmed = secret.trim();
+    if secret_trimmed.is_empty() {
         return Ok(false);
     }
     let provided = match req.headers().get("x-instrument-token")? {
         Some(value) => value,
         None => return Ok(false),
     };
-    if provided.trim().is_empty() {
+    let provided_trimmed = provided.trim();
+    if provided_trimmed.is_empty() {
         return Ok(false);
     }
-    Ok(provided == secret)
+    Ok(provided_trimmed == secret_trimmed)
 }

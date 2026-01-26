@@ -87,6 +87,11 @@ and emit full per-phase metrics when either:
 - `x-instrument-token` matches `INSTRUMENT_TOKEN`, or
 - `LOGGING_TOTAL_MS` is set and the request `total_ms` exceeds the threshold.
 
+Important: Analytics Engine appears to require a consistent blob count per dataset. If you emit
+different blob counts in different code paths, the shorter payloads can be dropped. We observed
+totals being dropped when totals used 5 blobs but phases used 6; changing totals to also emit 6
+blobs (with an empty placeholder for the phase slot) restored totals ingestion.
+
 Required settings:
 - Analytics dataset binding `REQUEST_METRICS` (set in `serverless/wrangler.toml`).
 
@@ -94,6 +99,90 @@ Optional secrets:
 - `INSTRUMENT_TOKEN`: if set, matching requests emit full phase metrics and also console logs.
 - `LOGGING_TOTAL_MS`: numeric (ms) threshold for slow-request logging/metrics. If unset or empty,
   only the totals are emitted (unless `INSTRUMENT_TOKEN` matches).
+
+Analytics blobs now include `request_id` (Cloudflare `cf-ray`) as the last blob entry for both
+totals and phases. This lets you group per-request in Analytics Engine queries.
+
+### Sample Analytics Engine Query (Totals, per request)
+
+```sql
+SELECT
+  index1 AS path,
+  blob2 AS phase_or_empty,
+  blob3 AS method,
+  blob4 AS event_id,
+  blob5 AS year,
+  blob6 AS request_id,
+  double1 AS total_ms
+FROM rusty_golf_dev_metrics
+WHERE
+  blob1 = 'total'
+  AND timestamp > now() - INTERVAL '24' HOUR
+ORDER BY total_ms DESC
+LIMIT 50;
+```
+
+### Sample Analytics Engine Query (Phases, per request)
+
+```sql
+SELECT
+  index1 AS path,
+  blob2 AS phase,
+  blob3 AS method,
+  blob4 AS event_id,
+  blob5 AS year,
+  blob6 AS request_id,
+  double1 AS phase_ms
+FROM rusty_golf_dev_metrics
+WHERE
+  blob1 = 'phase'
+  AND timestamp > now() - INTERVAL '24' HOUR
+ORDER BY phase_ms DESC
+LIMIT 200;
+```
+
+### Sample Analytics Engine Query (Totals + Phases, grouped by request)
+
+Analytics Engine does not allow aliasing subqueries, so use a two-step approach:
+
+1) Get the top request IDs by total time:
+
+```sql
+SELECT
+  index1 AS path,
+  blob2 AS phase_or_empty,
+  blob3 AS method,
+  blob4 AS event_id,
+  blob5 AS year,
+  blob6 AS request_id,
+  double1 AS total_ms
+FROM rusty_golf_dev_metrics
+WHERE
+  blob1 = 'total'
+  AND timestamp > now() - INTERVAL '24' HOUR
+ORDER BY total_ms DESC
+LIMIT 20;
+```
+
+2) Paste the `request_id` values into this phases query:
+
+```sql
+SELECT
+  index1 AS path,
+  blob2 AS phase,
+  blob3 AS method,
+  blob4 AS event_id,
+  blob5 AS year,
+  blob6 AS request_id,
+  double1 AS phase_ms
+FROM rusty_golf_dev_metrics
+WHERE
+  blob1 = 'phase'
+  AND timestamp > now() - INTERVAL '24' HOUR
+  AND blob6 IN ('RAY_ID_1', 'RAY_ID_2')
+ORDER BY phase_ms DESC
+LIMIT 200;
+```
 
 ## Parsing Script
 
