@@ -97,8 +97,15 @@ Required settings:
 
 Optional secrets:
 - `INSTRUMENT_TOKEN`: if set, matching requests emit full phase metrics and also console logs.
+Optional vars (set in `wrangler.toml` or the dashboard):
 - `LOGGING_TOTAL_MS`: numeric (ms) threshold for slow-request logging/metrics. If unset or empty,
   only the totals are emitted (unless `INSTRUMENT_TOKEN` matches).
+- `LOG_EVERY_N_REQUESTS`: integer N to emit full phase metrics for every Nth request (counter is
+  per worker instance).
+
+Defaults in `serverless/wrangler.toml`:
+- dev: `LOGGING_TOTAL_MS=600`, `LOG_EVERY_N_REQUESTS=2`
+- prod: `LOGGING_TOTAL_MS=600`, `LOG_EVERY_N_REQUESTS=10`
 
 Analytics blobs now include `request_id` (Cloudflare `cf-ray`) as the last blob entry for both
 totals and phases. This lets you group per-request in Analytics Engine queries.

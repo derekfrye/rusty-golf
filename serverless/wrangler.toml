@@ -41,6 +41,8 @@ r2_buckets = [
 [env.dev.vars]
 KV_BINDING = "djf_rusty_golf_kv"
 R2_BINDING = "SCORES_R2"
+LOGGING_TOTAL_MS = "600"
+LOG_EVERY_N_REQUESTS = "2"
 
 [[env.dev.analytics_engine_datasets]]
 binding = "REQUEST_METRICS"
@@ -63,6 +65,8 @@ r2_buckets = [
 [env.prod.vars]
 KV_BINDING = "djf_rusty_golf_kv"
 R2_BINDING = "SCORES_R2"
+LOGGING_TOTAL_MS = "600"
+LOG_EVERY_N_REQUESTS = "10"
 
 [[env.prod.analytics_engine_datasets]]
 binding = "REQUEST_METRICS"

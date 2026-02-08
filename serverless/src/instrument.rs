@@ -2,6 +2,7 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
 use worker::{Env, Request, Response, Result, console_log};
@@ -10,6 +11,8 @@ use rusty_golf_core::timing::{TimingSink, TimingStart, elapsed_ms, start_timing}
 
 mod analytics;
 use analytics::{emit_analytics, slow_log_threshold_ms};
+
+static REQUEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[macro_export]
 macro_rules! finalize_resp {
@@ -113,7 +116,8 @@ impl RequestInstrumentation {
         let is_slow = slow_threshold
             .map(|threshold| total_ms >= threshold)
             .unwrap_or(false);
-        let emit_full = self.log_console || is_slow;
+        let emit_sampled = should_emit_sampled_request(env)?;
+        let emit_full = self.log_console || is_slow || emit_sampled;
         if self.log_console || is_slow {
             self.collector.log_request(req, details.clone())?;
         }
@@ -144,6 +148,23 @@ pub fn request_instrumentation(req: &Request, env: &Env) -> Result<RequestInstru
         collector: Rc::new(TimingCollector::new()),
         log_console,
     })
+}
+
+fn should_emit_sampled_request(env: &Env) -> Result<bool> {
+    let value = match env.var("LOG_EVERY_N_REQUESTS") {
+        Ok(value) => value.to_string(),
+        Err(_) => return Ok(false),
+    };
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok(false);
+    }
+    let every_n: u64 = match trimmed.parse() {
+        Ok(value) if value > 0 => value,
+        _ => return Ok(false),
+    };
+    let count = REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed) + 1;
+    Ok(count % every_n == 0)
 }
 
 fn has_valid_instrument_token(req: &Request, env: &Env) -> Result<bool> {

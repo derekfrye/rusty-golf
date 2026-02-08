@@ -5,8 +5,8 @@ use worker::{AnalyticsEngineDataPointBuilder, Env, Request, Result};
 use super::TimingEntry;
 
 pub(super) fn slow_log_threshold_ms(env: &Env) -> Option<f64> {
-    let secret = env.secret("LOGGING_TOTAL_MS").ok()?.to_string();
-    let trimmed = secret.trim();
+    let value = env.var("LOGGING_TOTAL_MS").ok()?.to_string();
+    let trimmed = value.trim();
     if trimmed.is_empty() {
         return None;
     }
