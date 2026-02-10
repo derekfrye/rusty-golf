@@ -83,7 +83,7 @@ Future versions may automate this process.
 4. Restart with podman-compose; if using the [example docker-compose.yml](examples/docker-compose.yml), it'll read the db_prefill.json and load the data into the sqlite database.
 
 ## Postgresql Debugging (Actix flavor)
-If you want to use Postgres with the `actix/` server and debug locally, create a `.env` file in the *root* of this project[^2]. VScode debugging has been tested. Your `.env` will be excluded by `.dockerignore`. Specify your Postgres `<values>` below based on your needs. If you're using the example podman compose file, make sure your DB_PORT and DB_HOST match entries in `examples/docker-compose.yml`.
+If you want to use Postgres with the `actix/` server and debug locally, create a `.env` file in the *root* of this project[^1]. VScode debugging has been tested. Your `.env` will be excluded by `.dockerignore`. Specify your Postgres `<values>` below based on your needs. If you're using the example podman compose file, make sure your DB_PORT and DB_HOST match entries in `examples/docker-compose.yml`.
 ```text
 DB_USER=<string>
 DB_PASSWORD=<string>
@@ -96,7 +96,7 @@ DB_PORT=<integers>
 - Recommended: `cargo nextest run --no-fail-fast`
 - Fallback: `cargo test`
 - Most tests use in-memory SQLite; no Postgres required.
-- Serverless tests (`test10_serverless.rs`, `test11_listing.rs`) require a running Miniflare instance and admin token in `.env` file of repo root[^2].
+- Serverless tests (`test10_serverless.rs`, `test11_listing.rs`) require a running Miniflare instance and admin token in `.env` file of repo root[^1].
 - Offline mode: when ESPN HTTP requests fail (e.g., no network), tests automatically fall back to local fixtures so the suite remains deterministic. See [testing documentation](tests.md).
 
 ## How we use `htmx`
@@ -104,7 +104,7 @@ DB_PORT=<integers>
 See [htmx documentation](htmx.md) for how we use `htmx`.
 
 
-[^2]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode and for tests.
+[^1]: Where's the *root* of the project? The root of the project is alongside the `LICENSE` file. Create a `.env` file there for debugging with VScode and for tests.
     <pre>
     .
     ├── Cargo.toml
