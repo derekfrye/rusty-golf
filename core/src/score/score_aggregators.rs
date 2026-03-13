@@ -1,4 +1,3 @@
-use ahash::RandomState;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::sort_utils::sort_scores;
@@ -8,8 +7,7 @@ use crate::model::{
 
 #[must_use]
 pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
-    let mut grouped_scores: HashMap<usize, Vec<Scores>, RandomState> =
-        HashMap::with_hasher(RandomState::new());
+    let mut grouped_scores: HashMap<usize, Vec<Scores>> = HashMap::new();
 
     for score in scores {
         grouped_scores
@@ -22,23 +20,17 @@ pub fn group_by_scores(scores: Vec<Scores>) -> Vec<(usize, Vec<Scores>)> {
 }
 
 type BettorGolferMaps = (
-    HashMap<String, HashMap<String, BTreeMap<i32, i32>, RandomState>, RandomState>,
-    HashMap<(String, String), i64, RandomState>,
+    HashMap<String, HashMap<String, BTreeMap<i32, i32>>>,
+    HashMap<(String, String), i64>,
     Vec<String>,
-    HashMap<String, Vec<String>, RandomState>,
+    HashMap<String, Vec<String>>,
 );
 
 fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
-    let mut scores_map: HashMap<
-        String,
-        HashMap<String, BTreeMap<i32, i32>, RandomState>,
-        RandomState,
-    > = HashMap::with_hasher(RandomState::new());
-    let mut espn_id_map: HashMap<(String, String), i64, RandomState> =
-        HashMap::with_hasher(RandomState::new());
+    let mut scores_map: HashMap<String, HashMap<String, BTreeMap<i32, i32>>> = HashMap::new();
+    let mut espn_id_map: HashMap<(String, String), i64> = HashMap::new();
     let mut bettor_order: Vec<String> = Vec::new();
-    let mut golfer_order_map: HashMap<String, Vec<String>, RandomState> =
-        HashMap::with_hasher(RandomState::new());
+    let mut golfer_order_map: HashMap<String, Vec<String>> = HashMap::new();
 
     for score in scores {
         let bettor_name = &score.bettor_name;
@@ -61,7 +53,7 @@ fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
 
             scores_map
                 .entry(bettor_name.clone())
-                .or_insert_with(|| HashMap::with_hasher(RandomState::new()))
+                .or_insert_with(HashMap::new)
                 .entry(golfer_name.clone())
                 .or_default()
                 .entry(round_val)
