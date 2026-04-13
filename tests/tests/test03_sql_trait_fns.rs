@@ -11,6 +11,7 @@ use rusty_golf_actix::storage::SqlStorage;
 use rusty_golf_actix::view::score::{
     render_scores_template_pure, scores_and_last_refresh_to_line_score_tables,
 };
+use rusty_golf_core::storage::Storage;
 use serde_json::Value;
 use sql_middleware::middleware::{ConfigAndPool as ConfigAndPool2, QueryAndParams, SqliteOptions};
 use std::error::Error;

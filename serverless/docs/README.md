@@ -19,6 +19,20 @@ Notes:
 - KV/R2 bindings and routes are defined per env in `serverless/wrangler.toml`.
 - After deploy, seed KV/R2 for a specific event using the scripts below.
 
+## Version endpoint
+Each deployed worker exposes an unauthenticated JSON endpoint at `/version`.
+
+Examples:
+```bash
+curl https://golfdev.dfrye.io/version
+curl https://golf.dfrye.io/version
+```
+
+Response shape:
+```json
+{"git_sha":"<full sha>","git_sha_short":"<short sha>","package_version":"0.2.0"}
+```
+
 ## Seed KV for an event (dev or prod)
 Use `setup` to seed event details, golfers, and player_factors into the KV
 namespace configured in `serverless/wrangler.toml`. You only have to seed KV; on first run the `-serverless` app will store data in R2.

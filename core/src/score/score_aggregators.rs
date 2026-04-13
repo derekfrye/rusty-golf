@@ -53,7 +53,7 @@ fn build_bettor_golfer_maps(scores: &[Scores]) -> BettorGolferMaps {
 
             scores_map
                 .entry(bettor_name.clone())
-                .or_insert_with(HashMap::new)
+                .or_default()
                 .entry(golfer_name.clone())
                 .or_default()
                 .entry(round_val)

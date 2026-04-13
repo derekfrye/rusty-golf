@@ -22,6 +22,8 @@ Here's instructions for running on your host as-is, which requires `wrangler` to
 2. Install the WASM target: `rustup target add wasm32-unknown-unknown`.
 3. For local deployment, `serverless/wrangler.toml` should work fine as-is. For real, remote deploys, authenticate with Cloudflare and update `serverless/wrangler.toml` with your `account_id`, routes, KV namespace IDs, and R2 bucket names. 
 
+For the `setup/` CLI workflow, REPL modes, and KV seeding details, see [setup/docs/README.md](/setup/docs/README.md).
+
 
 Local-only dev (no Cloudflare deploy):
 ```bash
@@ -68,7 +70,7 @@ python -m webbrowser http://127.0.0.1:5201/?event=401580351&yr=2024
 - `actix/`: Actix web server crate (runtime-specific wiring)
 - `core/`: Shared domain/model/storage logic
 - `serverless/`: Cloudflare Workers crate (runtime-specific wiring)
-- `setup/`: CLI for bootstrapping events and seeding KV
+- `setup/`: CLI for bootstrapping events and seeding KV. See [setup/docs/README.md](/setup/docs/README.md)
 - `tests/`: Integration test crate and fixtures
 - `static/`: Static assets (js, css, etc.) served at `/static`
 - `docs/`: Project documentation

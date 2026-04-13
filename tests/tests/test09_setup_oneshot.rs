@@ -26,7 +26,8 @@ fn test09_setup_oneshot() -> Result<()> {
         let output_path = output_path(event_id);
         run_new_event_one_shot_with_client(
             Some(dbprefill_path.clone()),
-            &output_path,
+            Some(&output_path),
+            false,
             event_id,
             golfers_by_bettor,
             Some(Arc::clone(&client)),
@@ -348,6 +349,25 @@ impl EspnClient for FixtureEspnClient {
             return Ok(payload);
         }
         let source_path = self.event_path(event_id);
+        let contents = fs::read_to_string(&source_path)
+            .with_context(|| format!("read {}", source_path.display()))?;
+        fs::write(&cache_path, &contents)
+            .with_context(|| format!("write {}", cache_path.display()))?;
+        let payload: Value = serde_json::from_str(&contents)
+            .with_context(|| format!("parse {}", source_path.display()))?;
+        Ok(payload)
+    }
+
+    fn fetch_scoreboard_header_cached(&self, cache_dir: &Path) -> Result<Value> {
+        let cache_path = cache_dir.join("scoreboard_header.json");
+        if cache_path.is_file() {
+            let contents = fs::read_to_string(&cache_path)
+                .with_context(|| format!("read {}", cache_path.display()))?;
+            let payload: Value = serde_json::from_str(&contents)
+                .with_context(|| format!("parse {}", cache_path.display()))?;
+            return Ok(payload);
+        }
+        let source_path = self.scoreboard_path();
         let contents = fs::read_to_string(&source_path)
             .with_context(|| format!("read {}", source_path.display()))?;
         fs::write(&cache_path, &contents)

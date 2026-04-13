@@ -20,6 +20,8 @@ mod static_assets;
 pub mod storage;
 #[cfg(target_arch = "wasm32")]
 mod utils;
+#[cfg(target_arch = "wasm32")]
+mod version;
 
 pub use rusty_golf_core as core;
 
@@ -42,6 +44,8 @@ use static_assets::static_handler;
 #[cfg(target_arch = "wasm32")]
 use utils::storage_from_env;
 #[cfg(target_arch = "wasm32")]
+use version::version_handler;
+#[cfg(target_arch = "wasm32")]
 use worker::{Env, Request, Response, Result, Router, event};
 
 #[cfg(target_arch = "wasm32")]
@@ -58,6 +62,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let _storage = storage_from_env(&ctx.env)?;
             Response::ok("ok")
         })
+        .get_async("/version", |_, ctx| async move { version_handler(ctx).await })
         .get_async("/scores", |req, ctx| async move {
             scores_handler(req, ctx).await
         })
