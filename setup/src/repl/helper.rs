@@ -92,22 +92,36 @@ impl ReplHelper {
 
         if let Some(command) = find_command(first)
             && command.name == "list_events"
-            && second == Some("refresh")
+            && prefix.contains(char::is_whitespace)
         {
-            let target_prefix = if prefix.ends_with(char::is_whitespace) {
-                third.unwrap_or_default()
+            let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
+
+            if second == Some("refresh") && (third.is_some() || prefix.ends_with(char::is_whitespace)) {
+                let target_prefix = third.unwrap_or_default();
+                let candidates = ["kv", "all", "espn"]
+                    .into_iter()
+                    .filter(|candidate| candidate.starts_with(target_prefix))
+                    .map(|candidate| Pair {
+                        display: candidate.to_string(),
+                        replacement: candidate.to_string(),
+                    })
+                    .collect();
+                return (start, candidates);
+            }
+
+            let sub_prefix = if prefix.ends_with(char::is_whitespace) {
+                ""
             } else {
-                third.or(second).unwrap_or_default()
+                second.unwrap_or_default()
             };
-            let candidates = ["espn", "all"]
+            let candidates = ["help", "refresh"]
                 .into_iter()
-                .filter(|candidate| candidate.starts_with(target_prefix))
+                .filter(|candidate| candidate.starts_with(sub_prefix))
                 .map(|candidate| Pair {
                     display: candidate.to_string(),
                     replacement: candidate.to_string(),
                 })
                 .collect();
-            let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
             return (start, candidates);
         }
 

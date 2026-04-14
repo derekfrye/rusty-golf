@@ -34,6 +34,8 @@ Subcommands:
   - Same as `refresh`.
 - `refresh all`
   - Refreshes both ESPN and KV, then rebuilds the merged event list.
+- `refresh kv`
+  - Same as `kv`.
 - `kv`
   - Refreshes KV only, then merges those results with any cached ESPN events.
 

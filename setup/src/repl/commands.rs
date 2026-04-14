@@ -166,6 +166,7 @@ pub(crate) fn print_subcommand_help(command: &ReplCommand) {
     if command.id == CommandId::ListEvents {
         println!("refresh espn refresh ESPN only (same as `refresh`)");
         println!("refresh all refresh ESPN and KV");
+        println!("refresh kv refresh KV only (same as `kv`)");
     }
 }
 

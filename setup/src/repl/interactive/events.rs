@@ -84,6 +84,7 @@ fn parse_list_events_mode(
             None => Some((ListEventsAction::RefreshEspn, true)),
             Some("espn") => Some((ListEventsAction::RefreshEspn, true)),
             Some("all") => Some((ListEventsAction::RefreshAll, true)),
+            Some("kv") => Some((ListEventsAction::RefreshKv, false)),
             Some(other) => {
                 println!("Unknown refresh target: {other}");
                 print_subcommand_help(command);
@@ -232,6 +233,12 @@ mod tests {
     fn refresh_all_is_distinct() {
         let parsed = parse_list_events_mode(list_events_command(), &["refresh", "all"]);
         assert_eq!(parsed, Some((ListEventsAction::RefreshAll, true)));
+    }
+
+    #[test]
+    fn refresh_kv_alias_is_distinct() {
+        let parsed = parse_list_events_mode(list_events_command(), &["refresh", "kv"]);
+        assert_eq!(parsed, Some((ListEventsAction::RefreshKv, false)));
     }
 
     #[test]
