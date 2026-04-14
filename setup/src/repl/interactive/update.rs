@@ -6,8 +6,9 @@ use crate::repl::parse::format_parse_error;
 use crate::repl::payload::write_event_payload;
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};
 use crate::repl::state::{
-    ReplState, bettors_selection_exists, ensure_list_events, load_bettors_selection,
-    load_current_golfers_by_bettor, load_kv_bettors, load_kv_golfers_list,
+    EventListMode, ReplState, bettors_selection_exists, ensure_list_events,
+    load_bettors_selection, load_current_golfers_by_bettor, load_kv_bettors,
+    load_kv_golfers_list,
 };
 use anyhow::Result;
 use rustyline::Editor;
@@ -20,7 +21,7 @@ pub(super) fn run_update_event(
     helper_state: &Rc<RefCell<ReplHelperState>>,
     state: &mut ReplState,
 ) -> Result<()> {
-    let events = ensure_list_events(state, false, true)?;
+    let events = ensure_list_events(state, EventListMode::EnsureAll, true)?;
     print_events(&events);
     if events.is_empty() {
         return Ok(());

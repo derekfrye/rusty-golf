@@ -17,6 +17,7 @@ pub(crate) enum CommandId {
 pub(crate) enum SubcommandId {
     Help,
     Refresh,
+    Kv,
 }
 
 pub(crate) struct ReplCommand {
@@ -43,7 +44,12 @@ const LIST_EVENTS_SUBCOMMANDS: &[ReplSubcommand] = &[
     ReplSubcommand {
         id: SubcommandId::Refresh,
         name: "refresh",
-        description: "if passed, hit espn api again to refresh current events.",
+        description: "refresh ESPN only; use `refresh all` to reload ESPN + KV.",
+    },
+    ReplSubcommand {
+        id: SubcommandId::Kv,
+        name: "kv",
+        description: "refresh KV only and reuse cached ESPN events if available.",
     },
 ];
 
@@ -156,6 +162,10 @@ pub(crate) fn find_subcommand(
 pub(crate) fn print_subcommand_help(command: &ReplCommand) {
     for subcommand in command.subcommands {
         println!("{} {}", subcommand.name, subcommand.description);
+    }
+    if command.id == CommandId::ListEvents {
+        println!("refresh espn refresh ESPN only (same as `refresh`)");
+        println!("refresh all refresh ESPN and KV");
     }
 }
 

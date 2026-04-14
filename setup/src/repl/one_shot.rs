@@ -73,7 +73,7 @@ pub fn run_get_event_details_one_shot_with_client(
     let (event_ids, event_names) = if let Some(ids) = event_ids {
         (ids, std::collections::BTreeMap::new())
     } else {
-        let events = ensure_list_events(&mut state, false, true)?;
+        let events = ensure_list_events(&mut state, crate::repl::state::EventListMode::EnsureAll, true)?;
         if events.is_empty() {
             return Err(anyhow!("no events found"));
         }
@@ -135,7 +135,7 @@ pub fn run_new_event_one_shot_with_client(
             .context("init repl state")?,
         None => ReplState::new(eup_json, output_json_path, None).context("init repl state")?,
     };
-    let events = ensure_list_events(&mut state, false, true)?;
+    let events = ensure_list_events(&mut state, crate::repl::state::EventListMode::EnsureAll, true)?;
     if events.is_empty() {
         return Err(anyhow::anyhow!("no events found"));
     }

@@ -88,6 +88,28 @@ impl ReplHelper {
         let mut parts = prefix.split_whitespace();
         let first = parts.next().unwrap_or_default();
         let second = parts.next();
+        let third = parts.next();
+
+        if let Some(command) = find_command(first)
+            && command.name == "list_events"
+            && second == Some("refresh")
+        {
+            let target_prefix = if prefix.ends_with(char::is_whitespace) {
+                third.unwrap_or_default()
+            } else {
+                third.or(second).unwrap_or_default()
+            };
+            let candidates = ["espn", "all"]
+                .into_iter()
+                .filter(|candidate| candidate.starts_with(target_prefix))
+                .map(|candidate| Pair {
+                    display: candidate.to_string(),
+                    replacement: candidate.to_string(),
+                })
+                .collect();
+            let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
+            return (start, candidates);
+        }
 
         if let Some(command) = find_command(first)
             && !command.subcommands.is_empty()

@@ -4,7 +4,7 @@ use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
 use crate::repl::parse::format_parse_error;
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};
 use crate::repl::state::{
-    ReplState, ensure_list_events, load_eup_event_dates, print_list_event_error,
+    EventListMode, ReplState, ensure_list_events, load_eup_event_dates, print_list_event_error,
 };
 use anyhow::Result;
 use rustyline::Editor;
@@ -17,24 +17,79 @@ use tabled::Table;
 pub(super) fn handle_list_events_command(
     state: &mut ReplState,
     command: &ReplCommand,
-    token: Option<&str>,
+    tokens: &[&str],
 ) {
-    let subcommand = token.and_then(|token| find_subcommand(command.subcommands, token));
-    if let Some(token) = token
-        && subcommand.is_none()
-    {
-        println!("Unknown subcommand: {token}");
+    let Some((mode, warm_cache)) = parse_list_events_mode(command, tokens) else {
+        return;
+    };
+    if matches!(mode, ListEventsAction::Help) {
         print_subcommand_help(command);
         return;
     }
-    if matches!(subcommand.map(|sub| sub.id), Some(SubcommandId::Help)) {
-        print_subcommand_help(command);
-        return;
-    }
-    let refresh = matches!(subcommand.map(|sub| sub.id), Some(SubcommandId::Refresh));
-    match ensure_list_events(state, refresh, true) {
+    let mode = match mode {
+        ListEventsAction::Help => unreachable!(),
+        ListEventsAction::EnsureAll => EventListMode::EnsureAll,
+        ListEventsAction::RefreshEspn => EventListMode::RefreshEspn,
+        ListEventsAction::RefreshKv => EventListMode::RefreshKv,
+        ListEventsAction::RefreshAll => EventListMode::RefreshAll,
+    };
+    match ensure_list_events(state, mode, warm_cache) {
         Ok(events) => print_events(&events),
         Err(err) => print_list_event_error(&err),
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ListEventsAction {
+    Help,
+    EnsureAll,
+    RefreshEspn,
+    RefreshKv,
+    RefreshAll,
+}
+
+fn parse_list_events_mode(
+    command: &ReplCommand,
+    tokens: &[&str],
+) -> Option<(ListEventsAction, bool)> {
+    if tokens.is_empty() {
+        return Some((ListEventsAction::EnsureAll, true));
+    }
+
+    let token = tokens[0];
+    let Some(subcommand) = find_subcommand(command.subcommands, token) else {
+        println!("Unknown subcommand: {token}");
+        print_subcommand_help(command);
+        return None;
+    };
+
+    match subcommand.id {
+        SubcommandId::Help => {
+            if tokens.len() > 1 {
+                println!("Unexpected argument: {}", tokens[1]);
+                print_subcommand_help(command);
+                return None;
+            }
+            Some((ListEventsAction::Help, false))
+        }
+        SubcommandId::Kv => {
+            if tokens.len() > 1 {
+                println!("Unexpected argument: {}", tokens[1]);
+                print_subcommand_help(command);
+                return None;
+            }
+            Some((ListEventsAction::RefreshKv, false))
+        }
+        SubcommandId::Refresh => match tokens.get(1).copied() {
+            None => Some((ListEventsAction::RefreshEspn, true)),
+            Some("espn") => Some((ListEventsAction::RefreshEspn, true)),
+            Some("all") => Some((ListEventsAction::RefreshAll, true)),
+            Some(other) => {
+                println!("Unknown refresh target: {other}");
+                print_subcommand_help(command);
+                None
+            }
+        },
     }
 }
 
@@ -43,7 +98,7 @@ pub(super) fn handle_get_available_golfers(
     helper_state: &Rc<RefCell<ReplHelperState>>,
     state: &mut ReplState,
 ) -> Result<()> {
-    match ensure_list_events(state, false, false) {
+    match ensure_list_events(state, EventListMode::EnsureAll, false) {
         Ok(events) => {
             print_events(&events);
             let event_ids: Vec<String> = events.iter().map(|(id, _)| id.clone()).collect();
@@ -80,7 +135,7 @@ pub(super) fn handle_get_event_details(
     helper_state: &Rc<RefCell<ReplHelperState>>,
     state: &mut ReplState,
 ) -> Result<()> {
-    let events = match ensure_list_events(state, false, false) {
+    let events = match ensure_list_events(state, EventListMode::EnsureAll, false) {
         Ok(events) => {
             print_events(&events);
             events
@@ -153,6 +208,37 @@ pub(super) fn handle_get_event_details(
         println!("{}", Table::new(rows));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ListEventsAction, parse_list_events_mode};
+    use crate::repl::commands::REPL_COMMANDS;
+
+    fn list_events_command() -> &'static crate::repl::commands::ReplCommand {
+        REPL_COMMANDS
+            .iter()
+            .find(|command| command.name == "list_events")
+            .unwrap()
+    }
+
+    #[test]
+    fn refresh_defaults_to_espn_only() {
+        let parsed = parse_list_events_mode(list_events_command(), &["refresh"]);
+        assert_eq!(parsed, Some((ListEventsAction::RefreshEspn, true)));
+    }
+
+    #[test]
+    fn refresh_all_is_distinct() {
+        let parsed = parse_list_events_mode(list_events_command(), &["refresh", "all"]);
+        assert_eq!(parsed, Some((ListEventsAction::RefreshAll, true)));
+    }
+
+    #[test]
+    fn kv_refresh_is_distinct() {
+        let parsed = parse_list_events_mode(list_events_command(), &["kv"]);
+        assert_eq!(parsed, Some((ListEventsAction::RefreshKv, false)));
+    }
 }
 
 fn print_events(events: &[(String, String)]) {

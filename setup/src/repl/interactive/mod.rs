@@ -81,7 +81,8 @@ fn handle_repl_line(
             println!("{}", build_repl_help(state.expert_enabled));
         }
         CommandId::ListEvents => {
-            handle_list_events_command(state, command, parts.next());
+            let tokens: Vec<&str> = parts.collect();
+            handle_list_events_command(state, command, &tokens);
         }
         CommandId::GetEventDetails => {
             handle_get_event_details(rl, helper_state, state)?;

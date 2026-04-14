@@ -19,7 +19,7 @@ pub(crate) use bettors::{
 };
 pub(crate) use cache::{has_cached_events, load_cached_golfers, load_event_golfers};
 pub(crate) use eup::{eup_event_exists, load_eup_event_dates, load_eup_json};
-pub(crate) use events::{ensure_list_events, print_list_event_error};
+pub(crate) use events::{EventListMode, ensure_list_events, print_list_event_error};
 pub(crate) use golfers::{output_json_path, set_golfers_by_bettor, take_golfers_by_bettor};
 pub(crate) use kv::{
     list_kv_event_ids, load_current_golfers_by_bettor, load_kv_bettors, load_kv_event_name,
@@ -28,6 +28,8 @@ pub(crate) use kv::{
 
 pub(crate) struct ReplState {
     pub(crate) cached_events: Option<Vec<(String, String)>>,
+    pub(crate) cached_espn_events: Option<Vec<(String, String)>>,
+    pub(crate) cached_kv_events: Option<Vec<(String, String)>>,
     pub(crate) cached_bettors: Option<Vec<String>>,
     pub(crate) golfers_by_bettor: Option<Vec<GolferSelection>>,
     pub(crate) eup_json_path: Option<PathBuf>,
@@ -67,6 +69,8 @@ impl ReplState {
             .with_context(|| format!("create {}", event_cache_dir.display()))?;
         Ok(Self {
             cached_events: None,
+            cached_espn_events: None,
+            cached_kv_events: None,
             cached_bettors: None,
             golfers_by_bettor: None,
             eup_json_path,

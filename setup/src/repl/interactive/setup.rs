@@ -1,7 +1,8 @@
 use crate::repl::helper::{ReplCompletionMode, ReplHelper, ReplHelperState};
 use crate::repl::payload::write_event_payload;
 use crate::repl::state::{
-    ReplState, ensure_list_events, eup_event_exists, load_bettors_selection, output_json_path,
+    EventListMode, ReplState, ensure_list_events, eup_event_exists, load_bettors_selection,
+    output_json_path,
 };
 use anyhow::{Context, Result};
 use rustyline::Editor;
@@ -20,7 +21,7 @@ pub(super) fn run_setup_event(
     helper_state: &Rc<RefCell<ReplHelperState>>,
     state: &mut ReplState,
 ) -> Result<()> {
-    let events = ensure_list_events(state, false, true)?;
+    let events = ensure_list_events(state, EventListMode::EnsureAll, true)?;
     print_events(&events);
     if events.is_empty() {
         return Ok(());
