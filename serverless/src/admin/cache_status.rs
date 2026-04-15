@@ -5,10 +5,10 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use worker::{Env, Request, Response, Result, RouteContext};
 
-use crate::instrument::request_instrumentation;
 use crate::instrument::RequestInstrumentation;
-use crate::storage::storage_cache::{CacheStatus, in_memory_status, parse_kv_scores_entry};
+use crate::instrument::request_instrumentation;
 use crate::storage::ServerlessStorage;
+use crate::storage::storage_cache::{CacheStatus, in_memory_status, parse_kv_scores_entry};
 use crate::utils::{parse_query_params, storage_from_env};
 use rusty_golf_core::timed;
 use rusty_golf_core::timing::TimingSink;
@@ -149,18 +149,24 @@ pub async fn admin_cache_status_handler(req: Request, ctx: RouteContext<()>) -> 
     let instrumentation = request_instrumentation(&req, &ctx.env)?;
     let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
     let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
-    let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
-        .with_timing(timing_rc);
+    let storage =
+        timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?.with_timing(timing_rc);
     let query = timed!(
         timing,
         "request.parse_query_params_ms",
         parse_query_params(&req)
     )?;
-    let event_id = match query.get("event").and_then(|value| value.trim().parse::<i32>().ok()) {
+    let event_id = match query
+        .get("event")
+        .and_then(|value| value.trim().parse::<i32>().ok())
+    {
         Some(value) => value,
         None => return Response::error("event is required", 400),
     };
-    let year = match query.get("yr").and_then(|value| value.trim().parse::<i32>().ok()) {
+    let year = match query
+        .get("yr")
+        .and_then(|value| value.trim().parse::<i32>().ok())
+    {
         Some(value) => value,
         None => return Response::error("yr is required", 400),
     };

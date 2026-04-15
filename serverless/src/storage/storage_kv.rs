@@ -3,8 +3,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::storage::ServerlessStorage;
-use rusty_golf_core::timed;
 use rusty_golf_core::storage::StorageError;
+use rusty_golf_core::timed;
 
 impl ServerlessStorage {
     pub async fn kv_get_json<T>(&self, key: &str) -> Result<T, StorageError>
@@ -88,5 +88,4 @@ impl ServerlessStorage {
         )?;
         Ok(())
     }
-
 }

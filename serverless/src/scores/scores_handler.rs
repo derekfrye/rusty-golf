@@ -18,8 +18,8 @@ pub async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Respo
     let instrumentation = request_instrumentation(&req, &ctx.env)?;
     let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
     let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
-    let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
-        .with_timing(timing_rc);
+    let storage =
+        timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?.with_timing(timing_rc);
     let score_req = match timed!(
         timing,
         "request.parse_score_request_ms",
@@ -76,7 +76,11 @@ pub async fn scores_handler(req: Request, ctx: RouteContext<()>) -> Result<Respo
                 score_req.use_cache,
             )
         );
-        let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
+        let resp = timed!(
+            timing,
+            "response.html_ms",
+            respond_html(markup.into_string())
+        );
         let details = serde_json::json!({
             "event_id": score_req.event_id,
             "year": score_req.year,

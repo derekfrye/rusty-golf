@@ -37,7 +37,9 @@ async fn try_render_scores_markup(
     let cache_max_age = timed!(
         timing,
         "cache.max_age_ms",
-        cache_max_age_for_event(storage, score_req.event_id).await.ok()
+        cache_max_age_for_event(storage, score_req.event_id)
+            .await
+            .ok()
     )?;
     let espn_client = ServerlessEspnClient::new(storage.clone());
     let context = timed!(
@@ -83,8 +85,8 @@ pub async fn index_handler(req: Request, ctx: RouteContext<()>) -> Result<Respon
     let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
     let query = parse_query_params(&req)?;
     let event_str = query.get("event").map(String::as_str).unwrap_or("");
-    let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
-        .with_timing(timing_rc);
+    let storage =
+        timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?.with_timing(timing_rc);
     let title = timed!(
         timing,
         "view.resolve_index_title_ms",
@@ -103,17 +105,15 @@ pub async fn index_handler(req: Request, ctx: RouteContext<()>) -> Result<Respon
         "view.render_index_ms",
         render_index_template_with_scores(&title, scores_markup)
     );
-    let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
+    let resp = timed!(
+        timing,
+        "response.html_ms",
+        respond_html(markup.into_string())
+    );
     let details = serde_json::json!({
         "event_id": query.get("event").and_then(|value| value.parse::<i32>().ok()),
         "year": query.get("yr").and_then(|value| value.parse::<i32>().ok()),
         "nojs": matches!(query.get("nojs").map(String::as_str), Some("1")),
     });
-    crate::finalize_resp!(
-        instrumentation,
-        &req,
-        &ctx.env,
-        details,
-        resp
-    )
+    crate::finalize_resp!(instrumentation, &req, &ctx.env, details, resp)
 }

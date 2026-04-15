@@ -56,10 +56,7 @@ impl TimingCollector {
         let url = req
             .url()
             .map_err(|e| worker::Error::RustError(e.to_string()))?;
-        let request_id = req
-            .headers()
-            .get("cf-ray")?
-            .unwrap_or_default();
+        let request_id = req.headers().get("cf-ray")?.unwrap_or_default();
         let phases = self.entries.borrow().clone();
         let log = serde_json::json!({
             "type": "instrumentation",
@@ -105,12 +102,7 @@ impl RequestInstrumentation {
         self.log_console
     }
 
-    pub fn finalize(
-        &self,
-        req: &Request,
-        env: &Env,
-        details: serde_json::Value,
-    ) -> Result<()> {
+    pub fn finalize(&self, req: &Request, env: &Env, details: serde_json::Value) -> Result<()> {
         let total_ms = self.collector.total_ms();
         let slow_threshold = slow_log_threshold_ms(env);
         let is_slow = slow_threshold

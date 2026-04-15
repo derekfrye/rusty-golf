@@ -100,7 +100,6 @@ fn merge_events(
 }
 
 fn load_espn_events(state: &ReplState) -> Result<Vec<(String, String)>> {
-
     let overall_style =
         ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
             .unwrap_or_else(|_| ProgressStyle::default_bar());

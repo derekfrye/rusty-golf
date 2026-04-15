@@ -1,5 +1,5 @@
-pub mod processing;
 mod fetch;
+pub mod processing;
 
 use crate::error::CoreError;
 use crate::model::{PlayerJsonResponse, Scores};

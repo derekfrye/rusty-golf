@@ -3,8 +3,8 @@
 use worker::{Env, Request, Response, Result};
 
 use crate::instrument::RequestInstrumentation;
-use crate::storage::ServerlessStorage;
 use crate::listing::AdminListingResponse;
+use crate::storage::ServerlessStorage;
 use rusty_golf_core::timed;
 use rusty_golf_core::timing::TimingSink;
 

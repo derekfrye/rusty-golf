@@ -66,14 +66,7 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
         // Ensure end_date is in the past to enable permanent cache behavior.
         let end_date = normalize_end_date(&end_date)?;
         // Store the past end_date in KV so cache is treated as permanent.
-        admin_update_dates(
-            &miniflare_url,
-            &admin_token,
-            event_id,
-            None,
-            Some(end_date),
-        )
-        .await?;
+        admin_update_dates(&miniflare_url, &admin_token, event_id, None, Some(end_date)).await?;
 
         // First fetch should hit cache because end_date is in the past.
         let cached = fetch_scores_json(event_id, &miniflare_url).await?;
@@ -83,14 +76,7 @@ async fn test12_serverless_cache_behavior() -> Result<(), Box<dyn Error>> {
         // Move end_date into the future to disable permanent caching.
         let tomorrow = (Utc::now() + Duration::days(1)).to_rfc3339();
         // Persist the future end_date so cache is no longer authoritative.
-        admin_update_dates(
-            &miniflare_url,
-            &admin_token,
-            event_id,
-            None,
-            Some(tomorrow),
-        )
-        .await?;
+        admin_update_dates(&miniflare_url, &admin_token, event_id, None, Some(tomorrow)).await?;
 
         // Fetch again and verify it does not come from cache.
         let refreshed = fetch_scores_json(event_id, &miniflare_url).await?;

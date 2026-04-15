@@ -3,8 +3,8 @@
 use serde::Serialize;
 
 use crate::storage::ServerlessStorage;
-use rusty_golf_core::timed;
 use rusty_golf_core::storage::StorageError;
+use rusty_golf_core::timed;
 
 impl ServerlessStorage {
     pub async fn r2_get_json<T>(&self, key: &str) -> Result<T, StorageError>
@@ -28,7 +28,9 @@ impl ServerlessStorage {
         let text = timed!(
             timing,
             "storage.r2_get_json_body_ms",
-            body.text().await.map_err(|e| StorageError::new(e.to_string()))
+            body.text()
+                .await
+                .map_err(|e| StorageError::new(e.to_string()))
         )?;
         timed!(
             timing,

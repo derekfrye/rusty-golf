@@ -77,11 +77,7 @@ pub fn in_memory_status(event_id: i32) -> CacheStatus {
     }
 }
 
-pub fn set_in_memory_scores(
-    event_id: i32,
-    scores: &ScoresAndLastRefresh,
-    ttl_seconds: i64,
-) {
+pub fn set_in_memory_scores(event_id: i32, scores: &ScoresAndLastRefresh, ttl_seconds: i64) {
     let now = Utc::now().timestamp();
     let Ok(mut cache) = IN_MEMORY_SCORES.lock() else {
         return;

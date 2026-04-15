@@ -6,9 +6,8 @@ use crate::repl::parse::format_parse_error;
 use crate::repl::payload::write_event_payload;
 use crate::repl::prompt::{ReplPromptError, prompt_for_items};
 use crate::repl::state::{
-    EventListMode, ReplState, bettors_selection_exists, ensure_list_events,
-    load_bettors_selection, load_current_golfers_by_bettor, load_kv_bettors,
-    load_kv_golfers_list,
+    EventListMode, ReplState, bettors_selection_exists, ensure_list_events, load_bettors_selection,
+    load_current_golfers_by_bettor, load_kv_bettors, load_kv_golfers_list,
 };
 use anyhow::Result;
 use rustyline::Editor;

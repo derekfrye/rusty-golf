@@ -5,8 +5,8 @@ use worker::{Request, Response, Result, RouteContext};
 use crate::admin_auth::admin_auth_response;
 use crate::admin_types::{
     AdminCacheFlushRequest, AdminCleanupRequest, AdminCleanupScoresRequest, AdminEspnFailRequest,
-    AdminEventSelector, AdminTestLockRequest, AdminTestLockResponse, AdminUpdateDatesRequest,
-    AdminTestUnlockRequest, AdminTestUnlockResponse,
+    AdminEventSelector, AdminTestLockRequest, AdminTestLockResponse, AdminTestUnlockRequest,
+    AdminTestUnlockResponse, AdminUpdateDatesRequest,
 };
 use crate::storage::{AdminSeedRequest, TestLockMode};
 use crate::utils::storage_from_env;

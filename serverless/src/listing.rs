@@ -2,16 +2,16 @@
 
 use maud::{Markup, html};
 use serde::Serialize;
-use worker::{Request, Response, Result, RouteContext};
 use std::rc::Rc;
+use worker::{Request, Response, Result, RouteContext};
 
 mod admin;
 
-use crate::storage::EventListing;
 use crate::instrument::request_instrumentation;
+use crate::storage::EventListing;
+use crate::utils::{parse_query_params, respond_html, storage_from_env};
 use rusty_golf_core::timed;
 use rusty_golf_core::timing::TimingSink;
-use crate::utils::{parse_query_params, respond_html, storage_from_env};
 
 #[derive(Serialize)]
 pub(super) struct AdminListingResponse {
@@ -27,8 +27,8 @@ pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Resp
     let instrumentation = request_instrumentation(&req, &ctx.env)?;
     let timing: Option<&dyn TimingSink> = Some(instrumentation.timing());
     let timing_rc: Option<Rc<dyn TimingSink>> = Some(instrumentation.timing_rc());
-    let storage = timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?
-        .with_timing(timing_rc);
+    let storage =
+        timed!(timing, "storage.from_env_ms", storage_from_env(&ctx.env))?.with_timing(timing_rc);
     if let Some(response) =
         admin::try_admin_listing_response(&req, &ctx.env, &instrumentation, timing, &storage)
             .await?
@@ -88,17 +88,15 @@ pub async fn listing_handler(req: Request, ctx: RouteContext<()>) -> Result<Resp
             .map_err(|e| worker::Error::RustError(e.to_string()))
     )?;
     let markup = timed!(timing, "view.render_listing_ms", render_listing(entries));
-    let resp = timed!(timing, "response.html_ms", respond_html(markup.into_string()));
+    let resp = timed!(
+        timing,
+        "response.html_ms",
+        respond_html(markup.into_string())
+    );
     let details = serde_json::json!({
         "admin": false,
     });
-    crate::finalize_resp!(
-        instrumentation,
-        &req,
-        &ctx.env,
-        details,
-        resp
-    )
+    crate::finalize_resp!(instrumentation, &req, &ctx.env, details, resp)
 }
 
 fn render_listing(entries: Vec<EventListing>) -> Markup {

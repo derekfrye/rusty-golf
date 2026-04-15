@@ -6,8 +6,8 @@ use crate::storage::Storage;
 use crate::timed;
 use crate::timing::TimingSink;
 
-use super::processing::{merge_statistics_with_scores, process_json_to_statistics};
 use super::EspnApiClient;
+use super::processing::{merge_statistics_with_scores, process_json_to_statistics};
 
 enum FetchOutcome {
     Scores(Vec<Scores>),
@@ -125,13 +125,8 @@ pub async fn fetch_scores_from_espn_with_timing(
         let cached = timed!(
             timing,
             "cache.load_cached_scores_ms",
-            crate::score::context::load_cached_scores(
-                storage,
-                event_id,
-                cache_max_age,
-                timing,
-            )
-            .await
+            crate::score::context::load_cached_scores(storage, event_id, cache_max_age, timing,)
+                .await
         )?;
         if let Some(cached) = cached {
             return Ok((cached, true));

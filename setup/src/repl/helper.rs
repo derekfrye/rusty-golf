@@ -96,7 +96,9 @@ impl ReplHelper {
         {
             let start = prefix.rfind(' ').map_or(pos, |i| i + 1);
 
-            if second == Some("refresh") && (third.is_some() || prefix.ends_with(char::is_whitespace)) {
+            if second == Some("refresh")
+                && (third.is_some() || prefix.ends_with(char::is_whitespace))
+            {
                 let target_prefix = third.unwrap_or_default();
                 let candidates = ["kv", "all", "espn"]
                     .into_iter()

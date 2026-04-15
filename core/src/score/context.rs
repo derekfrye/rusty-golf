@@ -65,18 +65,16 @@ pub async fn load_scores_data_with_timing(
     let (scores_and_refresh, cache_hit) = timed!(
         timing,
         "score_context.fetch_scores_ms",
-        fetch_scores_from_espn_with_timing(
-            FetchScoresRequest {
-                api: espn_api,
-                storage,
-                scores: active_golfers,
-                year,
-                event_id,
-                use_cache,
-                cache_max_age,
-                timing,
-            },
-        )
+        fetch_scores_from_espn_with_timing(FetchScoresRequest {
+            api: espn_api,
+            storage,
+            scores: active_golfers,
+            year,
+            event_id,
+            use_cache,
+            cache_max_age,
+            timing,
+        },)
         .await
     )?;
     let data = timed!(
@@ -132,18 +130,16 @@ pub async fn load_score_context_with_timing(
     let (scores_and_refresh, cache_hit) = timed!(
         timing,
         "score_context.fetch_scores_ms",
-        fetch_scores_from_espn_with_timing(
-            FetchScoresRequest {
-                api: espn_api,
-                storage,
-                scores: active_golfers,
-                year,
-                event_id,
-                use_cache,
-                cache_max_age,
-                timing,
-            },
-        )
+        fetch_scores_from_espn_with_timing(FetchScoresRequest {
+            api: espn_api,
+            storage,
+            scores: active_golfers,
+            year,
+            event_id,
+            use_cache,
+            cache_max_age,
+            timing,
+        },)
         .await
     )?;
     let data = timed!(
