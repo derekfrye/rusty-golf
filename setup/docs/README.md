@@ -89,34 +89,33 @@ prompting for new selections.
 
 ### Seed mode
 
-Required args (seed mode):
+#### What have I seeded?
 
+If you do not remember which events are in KV (or whether auth tokens were set), use one of these:
+
+- Wrangler KV key list: list keys directly in the dev namespace to see seeded events. Remember to use `--remote --preview false` otherwise (for some bizarre reason) `wrangler` defaults to reading from your local env.
+- Admin listing (works great for local miniflare): enable admin mode in your deployed worker (set via `.dev.vars`), then call
+  `/listing` with the admin header to get a JSON response that includes KV keys and parsed event listings.
+  - Set `ADMIN_ENABLED=1` and `ADMIN_TOKEN=<token>` in the worker's dev env vars.
+  - Request: `curl -H "x-admin-token: <token>" "https://<your-worker>/listing"`
+
+From CF worker, nicely sorted, and only one kv item per event:
+```shell
+wrangler kv key list --env prod --binding djf_rusty_golf_kv --config serverless/wrangler.toml --remote --preview false | jaq 'sort_by(.name | capture("^event:(?<id>[0-9]+):").id | tonumber)| .[]| select(.name | test("^event:[0-9]+:golfers$"))'
+```
+
+Without sorting (will have all the different KV for each event, there's lots of kv for each event):
+```shell
+wrangler kv key list --env dev --binding djf_rusty_golf_kv --config serverless/wrangler.toml --remote --preview false
+```
+
+#### Do the seed
+
+Required args to seed:
+
+- `--mode seed` to enable seed mode.
 - `--eup-json` Path to the EUP JSON file.
 - `--kv-env` Wrangler env to target (`dev` or `prod`).
-
-Required args:
-
-- `--mode` Operation mode (`seed`, `new_event`/`setup_event`/`repl`, `update_event`/`edit_event`, or `get_event_details`).
-  - `seed`: non-interactive, reads EUP JSON and seeds KV.
-  - `new_event`: interactive REPL unless `--one-shot` is provided.
-  - `get_event_details`: one-shot JSON export of event details.
-
-Optional args:
-
-- `--config-toml` Path to a TOML config file. Values from CLI flags override it.
-- `--kv-binding` KV binding name (useful for `wrangler --local`).
-- `--auth-tokens` CSV list of tokens to allow `/listing?auth_token=...` access (min 8 chars each).
-- `--event-id` Event id filter. For `seed` and `new_event` one-shot, this must be a single id.
-  For `get_event_details`, it can be CSV or space-separated.
-- `--refresh-from-espn` Value written into `event_details.json` (default: `1`).
-- The setup CLI also fetches `endDate` from the ESPN scoreboard header when available and stores it in `event_details.json` to disable refreshes after the event ends.
-- `--wrangler-config` Path to `wrangler.toml` (default: `serverless/wrangler.toml`).
-- `--wrangler-env` Wrangler env (default: `dev`).
-- `--wrangler-flag` Extra flags for all wrangler commands (repeatable).
-- `--wrangler-kv-flag` Overrides `--wrangler-flag` for KV commands (repeatable).
-- `--wrangler-log-dir` Directory for wrangler logs (sets `WRANGLER_LOG_DIR`).
-- `--wrangler-config-dir` Directory for wrangler config (sets `XDG_CONFIG_HOME`).
-- `--output-json-stdout` Write one-shot JSON output to stdout instead of a file.
 
 ### Mode `get_event_details`
 
@@ -128,73 +127,6 @@ This mode is non-interactive and requires `--one-shot` plus `--output-json` or
   those events.
 - Output is a JSON array of `{ event_id, event_name, start_date, end_date }`.
   Use `--output-json-stdout` to print the JSON instead of writing a file.
-
-## Examples:
-
-```bash
-cargo run -q -p rusty-golf-setup -- \
-  --eup-json ~/docker/golf/eup.json \
-  --kv-env=dev \
-  --wrangler-config=serverless/wrangler.toml \
-  --auth-tokens="<token>" \
-  --mode=seed \
-  --wrangler-kv-flag=--preview \
-  --wrangler-kv-flag=false \
-  --wrangler-kv-flag=--remote
-```
-
-Note: `update_event` only reads KV for context and writes a new EUP JSON entry. It does not
-seed or re-seed KV. To apply changes to KV, run `--mode seed` with the updated EUP JSON, for
-example:
-
-```bash
-# 1) Update an event and write a new EUP JSON file.
-cargo run -p rusty-golf-setup -- \
-  --mode update_event \
-  --eup-json tests/test05_dbprefill.json \
-  --output-json /tmp/eup_updated.json
-
-# 2) Re-seed KV using the updated EUP JSON.
-cargo run -p rusty-golf-setup -- \
-  --mode seed \
-  --eup-json /tmp/eup_updated.json \
-  --event-id 401703504 \
-  --kv-env dev \
-  --wrangler-config serverless/wrangler.toml
-```
-
-With config:
-
-```bash
-cargo run -p rusty-golf-setup -- \
-  --config-toml setup/seed_config.toml \
-  --event-id 401703504
-```
-
-Get event details (one-shot):
-
-```bash
-cargo run -p rusty-golf-setup -- \
-  --mode get_event_details \
-  --one-shot \
-  --output-json /tmp/event_details.json \
-  --event-id "401703504,401580355"
-```
-
-## What have I seeded?
-
-If you do not remember which events are in KV (or whether auth tokens were set), use one of these:
-
-- Admin listing (preferred): enable admin mode in your deployed worker (set via `.dev.vars`), then call
-  `/listing` with the admin header to get a JSON response that includes KV keys and parsed event listings.
-  - Set `ADMIN_ENABLED=1` and `ADMIN_TOKEN=<token>` in the worker's dev env vars.
-  - Request: `curl -H "x-admin-token: <token>" "https://<your-worker>/listing"`
-- Wrangler KV key list: list keys directly in the dev namespace to see seeded events. Remember to use `--remote --preview false` otherwise (for some bizarre reason) `wrangler` defaults to reading from your local env.
-
-```shell
-wrangler kv key list --env dev --binding djf_rusty_golf_kv --config serverless/wrangler.toml --remote --preview false
-```
-  - Seeded events show up as `event:<event_id>:details`, `event:<event_id>:golfers`, etc.
 
 ## Config file
 
