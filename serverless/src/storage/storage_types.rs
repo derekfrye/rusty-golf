@@ -22,6 +22,8 @@ pub struct EventDetailsDoc {
     pub refresh_from_espn: i64,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    #[serde(default)]
+    pub completed: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -87,6 +89,8 @@ pub struct AdminEupEvent {
     pub score_view_step_factor: serde_json::Value,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    #[serde(default)]
+    pub completed: bool,
     pub data_to_fill_if_event_and_year_missing: Vec<AdminEupDataFill>,
 }
 

@@ -60,13 +60,8 @@ pub async fn cache_max_age_for_event(
         return Ok(0);
     };
 
-    if let Some(end_date) = event_details.end_date.as_deref()
-        && let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(end_date)
-    {
-        let end_utc = parsed.with_timezone(&Utc);
-        if Utc::now() > end_utc {
-            return Ok(-1);
-        }
+    if event_details.completed {
+        return Ok(-1);
     }
 
     if let Some(start_date) = event_details.start_date.as_deref()

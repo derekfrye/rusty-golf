@@ -77,6 +77,8 @@ pub struct EupEventInput {
     pub score_view_step_factor: serde_json::Value,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    #[serde(default)]
+    pub completed: bool,
     pub data_to_fill_if_event_and_year_missing: Vec<EupDataFillInput>,
 }
 
@@ -165,6 +167,7 @@ struct AdminUpdateDatesRequest {
     event_id: i32,
     start_date: Option<String>,
     end_date: Option<String>,
+    completed: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -439,6 +442,7 @@ pub async fn admin_update_dates(
     event_id: i64,
     start_date: Option<String>,
     end_date: Option<String>,
+    completed: Option<bool>,
 ) -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     let event_id_i32 = event_id_i32(event_id)?;
@@ -446,6 +450,7 @@ pub async fn admin_update_dates(
         event_id: event_id_i32,
         start_date,
         end_date,
+        completed,
     };
     let resp = client
         .post(format!("{miniflare_url}/admin/event_update_dates"))

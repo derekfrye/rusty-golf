@@ -13,6 +13,7 @@ pub struct EventDetailsRow {
     pub event_name: String,
     pub start_date: String,
     pub end_date: String,
+    pub completed: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +50,14 @@ pub fn build_event_details_row(
         ],
     );
     let mut end_date = extract_event_field(&payload, &[&["event", "endDate"], &["endDate"]]);
+    let completed = extract_event_field_bool(
+        &payload,
+        &[
+            &["fullStatus", "completed"],
+            &["event", "fullStatus", "completed"],
+        ],
+    )
+    .unwrap_or(false);
     if (start_date.is_none() || end_date.is_none())
         && let Ok(scoreboard) = espn.fetch_scoreboard_header_cached(cache_dir)
         && let Some((header_start, header_end)) =
@@ -84,6 +93,7 @@ pub fn build_event_details_row(
         event_name,
         start_date,
         end_date,
+        completed,
     })
 }
 
@@ -116,6 +126,28 @@ fn extract_event_field(payload: &Value, paths: &[&[&str]]) -> Option<String> {
             && !value.trim().is_empty()
         {
             return Some(value.to_string());
+        }
+    }
+    None
+}
+
+fn extract_event_field_bool(payload: &Value, paths: &[&[&str]]) -> Option<bool> {
+    for path in paths {
+        let mut current = payload;
+        let mut missing = false;
+        for key in *path {
+            if let Some(next) = current.get(*key) {
+                current = next;
+            } else {
+                missing = true;
+                break;
+            }
+        }
+        if missing {
+            continue;
+        }
+        if let Some(value) = current.as_bool() {
+            return Some(value);
         }
     }
     None

@@ -44,6 +44,7 @@ impl Storage for SqlStorage {
             refresh_from_espn: details.refresh_from_espn,
             start_date: details.start_date,
             end_date: details.end_date,
+            completed: false,
         })
     }
 

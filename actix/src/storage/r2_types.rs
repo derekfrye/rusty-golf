@@ -9,6 +9,8 @@ pub struct R2EventDetails {
     pub refresh_from_espn: i64,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    #[serde(default)]
+    pub completed: bool,
 }
 
 impl R2Storage {

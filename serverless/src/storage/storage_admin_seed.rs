@@ -104,12 +104,16 @@ impl ServerlessStorage {
         event_id: i32,
         start_date: Option<String>,
         end_date: Option<String>,
+        completed: Option<bool>,
     ) -> Result<(), StorageError> {
         let details_key = Self::kv_event_details_key(event_id);
         let mut details: super::storage_types::EventDetailsDoc =
             self.kv_get_json(details_key.as_str()).await?;
         details.start_date = start_date;
         details.end_date = end_date;
+        if let Some(completed) = completed {
+            details.completed = completed;
+        }
         self.kv_put_json(&details_key, &details).await?;
 
         let seeded_at = SeededAtDoc {
@@ -128,6 +132,7 @@ impl ServerlessStorage {
             refresh_from_espn: request.refresh_from_espn,
             start_date: request.event.start_date.clone(),
             end_date: request.event.end_date.clone(),
+            completed: request.event.completed,
         };
         let details_key = Self::kv_event_details_key(request.event_id);
         self.kv_put_json(&details_key, &details).await

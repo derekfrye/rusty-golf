@@ -24,6 +24,7 @@ pub struct AdminUpdateDatesRequest {
     pub event_id: i32,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    pub completed: Option<bool>,
 }
 
 #[derive(Deserialize)]

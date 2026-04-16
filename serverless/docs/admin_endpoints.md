@@ -142,6 +142,7 @@ JSON body:
 - `event_id` (int, required)
 - `start_date` (string, optional)
 - `end_date` (string, optional)
+- `completed` (bool, optional)
 
 Response: `200 OK` with `"updated"`.
 

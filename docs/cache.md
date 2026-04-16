@@ -7,7 +7,7 @@ This document describes how score caching works and how it differs between the A
 - Cache max age is derived from event details:
   - `refresh_from_espn = 1` -> 300 seconds.
   - Any other value -> 0 (treat as no cache).
-- If `end_date` is present and in the past, the cache is treated as effectively permanent:
+- If `completed = true`, the cache is treated as effectively permanent:
   - When cached scores exist, they are returned and ESPN is not called.
   - If no cached scores exist, a fetch still occurs to seed the cache.
 - If ESPN fetch fails, the system falls back to cached scores (if any).
@@ -27,4 +27,4 @@ This document describes how score caching works and how it differs between the A
 - With `cache=0`, ESPN is polled on every request (fallback to cached if ESPN fails).
 
 ## Notes
-- `end_date` is populated by the `setup` seed process when it can fetch the ESPN scoreboard header; it is stored in event details and used by both runtimes.
+- `completed` is populated by the `setup` seed process from ESPN scoreboard/event completion state and is used by both runtimes to decide when the cache can stop refreshing.

@@ -11,6 +11,7 @@ struct EventDetails<'a> {
     event_name: &'a str,
     score_view_step_factor: &'a serde_json::Value,
     refresh_from_espn: i64,
+    completed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     start_date: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,6 +71,7 @@ pub(crate) fn write_event_files(
         event_name: &event.name,
         score_view_step_factor: &event.score_view_step_factor,
         refresh_from_espn,
+        completed: event.completed,
         start_date,
         end_date,
     };

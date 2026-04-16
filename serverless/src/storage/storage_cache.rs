@@ -128,15 +128,14 @@ pub fn kv_remaining_ttl_seconds(cached_at: i64, ttl_seconds: i64) -> i64 {
     remaining.max(0)
 }
 
-pub fn derive_cache_ttls(start_date: Option<&str>, end_date: Option<&str>) -> (u64, i64) {
+pub fn derive_cache_ttls(
+    start_date: Option<&str>,
+    _end_date: Option<&str>,
+    completed: bool,
+) -> (u64, i64) {
     let now = Utc::now();
-    if let Some(end_date) = end_date
-        && let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(end_date)
-    {
-        let end_utc = parsed.with_timezone(&Utc);
-        if now > end_utc {
-            return (LONG_TTL_SECONDS as u64, LONG_TTL_SECONDS);
-        }
+    if completed {
+        return (LONG_TTL_SECONDS as u64, LONG_TTL_SECONDS);
     }
 
     if let Some(start_date) = start_date

@@ -113,7 +113,12 @@ pub async fn admin_update_dates_handler(
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
     let storage = storage_from_env(&ctx.env)?;
     storage
-        .admin_update_event_dates(payload.event_id, payload.start_date, payload.end_date)
+        .admin_update_event_dates(
+            payload.event_id,
+            payload.start_date,
+            payload.end_date,
+            payload.completed,
+        )
         .await
         .map_err(|e| worker::Error::RustError(e.to_string()))?;
     Response::ok("updated")

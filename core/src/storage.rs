@@ -11,6 +11,7 @@ pub struct EventDetails {
     pub refresh_from_espn: i64,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
+    pub completed: bool,
 }
 
 #[derive(Debug, Clone)]

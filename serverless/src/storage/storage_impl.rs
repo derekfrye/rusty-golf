@@ -30,6 +30,7 @@ impl Storage for ServerlessStorage {
             refresh_from_espn: doc.refresh_from_espn,
             start_date: doc.start_date,
             end_date: doc.end_date,
+            completed: doc.completed,
         })
     }
 
@@ -202,6 +203,7 @@ impl ServerlessStorage {
         derive_cache_ttls(
             details.as_ref().and_then(|doc| doc.start_date.as_deref()),
             details.as_ref().and_then(|doc| doc.end_date.as_deref()),
+            details.as_ref().map(|doc| doc.completed).unwrap_or(false),
         )
     }
 }
