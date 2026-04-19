@@ -1,8 +1,10 @@
 use crate::error::CoreError;
 use crate::storage::Storage;
-use chrono::Utc;
+use chrono::{NaiveDateTime, Utc};
 use std::collections::HashMap;
 use std::hash::BuildHasher;
+
+const COMPLETION_PROMOTION_GRACE_DAYS: i64 = 5;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ScoreRequest {
@@ -80,6 +82,27 @@ pub async fn cache_max_age_for_event(
     })
 }
 
+/// Decide whether an event should be promoted to completed based on ESPN and age.
+#[must_use]
+pub fn should_promote_completed(
+    espn_completed: bool,
+    end_date: Option<&str>,
+    now: NaiveDateTime,
+) -> bool {
+    if !espn_completed {
+        return false;
+    }
+
+    let Some(end_date) = end_date else {
+        return false;
+    };
+    let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(end_date) else {
+        return false;
+    };
+    let end_date = parsed.with_timezone(&Utc).naive_utc();
+    now > end_date + chrono::Duration::days(COMPLETION_PROMOTION_GRACE_DAYS)
+}
+
 /// Parse a score request and build a derived value.
 ///
 /// # Errors
@@ -92,4 +115,49 @@ pub async fn decode_score_request<T, S: BuildHasher>(
     let score_request = parse_score_request(query)?;
     let cache_max_age = cache_max_age_for_event(storage, score_request.event_id).await?;
     Ok(builder(score_request, cache_max_age))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+
+    #[test]
+    fn promotes_completed_after_five_days() {
+        let now = Utc
+            .with_ymd_and_hms(2026, 4, 20, 12, 0, 0)
+            .unwrap()
+            .naive_utc();
+        assert!(should_promote_completed(
+            true,
+            Some("2026-04-14T12:00:00Z"),
+            now,
+        ));
+    }
+
+    #[test]
+    fn does_not_promote_before_five_days() {
+        let now = Utc
+            .with_ymd_and_hms(2026, 4, 20, 12, 0, 0)
+            .unwrap()
+            .naive_utc();
+        assert!(!should_promote_completed(
+            true,
+            Some("2026-04-16T12:00:00Z"),
+            now,
+        ));
+    }
+
+    #[test]
+    fn does_not_promote_without_espn_completion() {
+        let now = Utc
+            .with_ymd_and_hms(2026, 4, 20, 12, 0, 0)
+            .unwrap()
+            .naive_utc();
+        assert!(!should_promote_completed(
+            false,
+            Some("2026-04-14T12:00:00Z"),
+            now,
+        ));
+    }
 }

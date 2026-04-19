@@ -11,6 +11,9 @@ This document describes how score caching works and how it differs between the A
   - When cached scores exist, they are returned and ESPN is not called.
   - If no cached scores exist, a fetch still occurs to seed the cache.
 - If ESPN fetch fails, the system falls back to cached scores (if any).
+- In serverless, `completed = true` can also be promoted on a successful ESPN refresh when the
+  ESPN scoreboard header reports completion and the event `end_date` is more than 5 days in the past.
+  The promotion check runs after `store_scores()`, not on cache hits.
 
 ## Serverless behavior
 - Cached scores live in R2 at `events/<event_id>/scores.json`.
@@ -18,6 +21,9 @@ This document describes how score caching works and how it differs between the A
 - Last refresh metadata is stored in KV (`event:<event_id>:last_refresh`).
 - Freshness check compares the KV timestamp to the cache max age in seconds.
 - With `cache=0`, ESPN is polled on every request (fallback to cached if ESPN fails).
+- Completion promotion reads ESPN `scoreboard/header` for `sport=golf&league=pga` and treats either `fullStatus.completed` or `fullStatus.type.completed` as completed.
+- If the stored event details already have `completed = true`, the serverless promotion path returns immediately.
+- If `end_date` is missing or not yet older than 5 days, the serverless promotion path returns without changing `completed`.
 
 ## Actix behavior
 - Cached scores live in the SQL database (`eup_statistic` and related tables).
@@ -27,4 +33,4 @@ This document describes how score caching works and how it differs between the A
 - With `cache=0`, ESPN is polled on every request (fallback to cached if ESPN fails).
 
 ## Notes
-- `completed` is populated by the `setup` seed process from ESPN scoreboard/event completion state and is used by both runtimes to decide when the cache can stop refreshing.
+- `completed` is initially populated by the `setup` seed process from ESPN scoreboard/event completion state.
