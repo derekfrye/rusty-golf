@@ -40,10 +40,14 @@ async fn test_scores_hx_routes_are_relative() -> Result<(), Box<dyn std::error::
     let body_str = String::from_utf8(body.to_vec()).expect("scores response should be UTF-8");
 
     let document = Html::parse_fragment(&body_str);
-    let selector = Selector::parse("[hx-get]").expect("valid selector");
+    let selector = Selector::parse("[hx-get], [data-hx-get]").expect("valid selector");
     let mut hx_targets = Vec::new();
     for element in document.select(&selector) {
-        if let Some(value) = element.value().attr("hx-get") {
+        if let Some(value) = element
+            .value()
+            .attr("hx-get")
+            .or_else(|| element.value().attr("data-hx-get"))
+        {
             assert!(
                 !value.starts_with('/'),
                 "hx-get attribute should be relative but found '{value}'"

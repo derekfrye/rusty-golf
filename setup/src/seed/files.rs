@@ -84,8 +84,7 @@ pub(crate) fn write_event_files(
 
     let mut bettor_counts: HashMap<&str, usize> = HashMap::new();
     let mut golfers_out = Vec::new();
-    let mut eup_id = 1_i64;
-    for entry in &data_to_fill.event_user_player {
+    for (eup_id, entry) in (1_i64..).zip(data_to_fill.event_user_player.iter()) {
         let count = bettor_counts.entry(entry.bettor.as_str()).or_insert(0);
         *count += 1;
 
@@ -109,7 +108,6 @@ pub(crate) fn write_event_files(
             group: *count,
             score_view_step_factor: entry.score_view_step_factor.as_ref(),
         });
-        eup_id += 1;
     }
 
     write_json(&event_dir.join("golfers.json"), &golfers_out)?;

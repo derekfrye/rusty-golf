@@ -9,6 +9,7 @@ mod storage_admin_lock;
 mod storage_admin_seed;
 mod storage_admin_seed_helpers;
 pub(crate) mod storage_cache;
+mod storage_completion;
 mod storage_helpers;
 mod storage_impl;
 mod storage_kv;
